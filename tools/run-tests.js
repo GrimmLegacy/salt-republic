@@ -9,7 +9,7 @@ const dir = __dirname;
 const outDir = path.join(dir, 'out');
 fs.mkdirSync(outDir, { recursive: true });
 
-const skip = new Set(['run-tests.js']);
+const skip = new Set(['run-tests.js', 'harness.js']);
 const harnesses = fs.readdirSync(dir)
   .filter((n) => n.endsWith('.js') && !skip.has(n))
   .sort();

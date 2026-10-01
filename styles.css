@@ -1530,10 +1530,318 @@ summary:focus-visible {
 .deck-view,
 .persona-view,
 .equipment-view,
+.lore-view,
 .chronicles-view,
 .profile-view {
   min-width: 0;
   animation: rise-in 320ms both;
+}
+
+.lore-view {
+  display: grid;
+  gap: 14px;
+}
+
+.lore-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.lore-tally {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 9px;
+}
+
+.lore-tally-figure {
+  display: grid;
+  gap: 1px;
+}
+
+.lore-tally-figure strong {
+  color: #e6d5ac;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.9rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.lore-tally-figure span {
+  color: #8d7f6b;
+  font-size: 0.66rem;
+}
+
+.lore-tally-track {
+  height: 5px;
+  margin-bottom: 9px;
+  border-radius: 999px;
+  background: rgba(197, 151, 79, 0.14);
+  overflow: hidden;
+}
+
+.lore-tally-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(216, 178, 106, 0.75), rgba(142, 201, 200, 0.75));
+  transition: width 320ms ease;
+}
+
+.lore-standing {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 9px;
+}
+
+.lore-standing-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 1px;
+  border-bottom: 1px solid rgba(197, 151, 79, 0.1);
+}
+
+.lore-standing-name {
+  flex: 1;
+  min-width: 0;
+  color: #c7b79a;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.98rem;
+}
+
+.lore-standing-mark {
+  padding: 2px 8px;
+  border: 1px solid rgba(197, 151, 79, 0.22);
+  border-radius: 999px;
+  color: #8d7f6b;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lore-standing-mark.is-ally {
+  border-color: rgba(134, 185, 138, 0.45);
+  background: rgba(134, 185, 138, 0.12);
+  color: #8fc79a;
+}
+
+.lore-standing-mark.is-enemy {
+  border-color: rgba(197, 101, 94, 0.5);
+  background: rgba(197, 101, 94, 0.14);
+  color: #e08c84;
+}
+
+.lore-standing-mark.is-contested {
+  border-color: rgba(211, 154, 56, 0.5);
+  background: rgba(211, 154, 56, 0.14);
+  color: #e0b45f;
+}
+
+.lore-standing-why {
+  flex: 1 0 100%;
+  color: #83776a;
+  font-size: 0.64rem;
+  font-style: italic;
+}
+
+.lore-panel h3 span {
+  margin-right: 5px;
+  color: var(--gold);
+}
+
+.lore-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lore-entry {
+  display: flex;
+  gap: 11px;
+  padding: 10px 12px;
+  border: 1px solid rgba(197, 151, 79, 0.16);
+  border-radius: 4px;
+  background: rgba(31, 24, 17, 0.42);
+}
+
+.lore-entry.is-revealed {
+  border-left: 3px solid rgba(216, 178, 106, 0.55);
+}
+
+/* A locked entry is deliberately bare: the player learns that something is
+   there and nothing else. */
+.lore-entry.is-locked {
+  border-style: dashed;
+  border-color: rgba(197, 151, 79, 0.16);
+  background: rgba(20, 16, 12, 0.32);
+}
+
+.lore-entry-sigil {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(197, 151, 79, 0.2);
+  border-radius: 50%;
+  background: rgba(12, 10, 8, 0.5);
+  color: #cbb489;
+  font-size: 1rem;
+}
+
+.lore-entry.is-locked .lore-entry-sigil {
+  border-style: dashed;
+  color: #6d6355;
+}
+
+.lore-entry-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  flex: 1;
+}
+
+.lore-entry-kind {
+  margin: 0;
+  color: #8d7f6b;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lore-entry h3 {
+  margin: 0;
+  color: #ebdfcd;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.18rem;
+  font-variant: small-caps;
+  line-height: 1.1;
+}
+
+.lore-entry.is-locked h3 {
+  color: #7d7263;
+  font-style: italic;
+  font-variant: normal;
+}
+
+.lore-entry-teaser,
+.lore-entry-gate {
+  margin: 0;
+  color: #9c8f79;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.93rem;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+.lore-entry-gate {
+  color: #7f7466;
+  font-style: normal;
+  font-size: 0.68rem;
+}
+
+.lore-entry-progress {
+  margin: 2px 0 0;
+  color: #6f6559;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lore-chapters {
+  display: grid;
+  gap: 6px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lore-chapter {
+  display: flex;
+  gap: 9px;
+  padding: 8px 10px;
+  border-left: 2px solid rgba(216, 178, 106, 0.35);
+  border-radius: 3px;
+  background: rgba(12, 10, 8, 0.34);
+}
+
+.lore-chapter.is-sealed {
+  border-left-style: dashed;
+  border-left-color: rgba(197, 151, 79, 0.22);
+  background: transparent;
+}
+
+.lore-chapter-mark {
+  flex: 0 0 auto;
+  color: #c9a86a;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.lore-chapter.is-sealed .lore-chapter-mark {
+  color: #5f564b;
+}
+
+.lore-chapter h4 {
+  margin: 0 0 2px;
+  color: #ddcfb6;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-variant: small-caps;
+  line-height: 1.15;
+}
+
+.lore-chapter.is-sealed h4 {
+  color: #6f6559;
+  font-style: italic;
+  font-variant: normal;
+}
+
+.lore-chapter p {
+  margin: 0;
+  color: #a2957f;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.lore-chapter.is-sealed p {
+  color: #6f6559;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.lore-chapter-why {
+  margin-top: 5px !important;
+  padding-top: 5px;
+  border-top: 1px solid rgba(197, 151, 79, 0.1);
+  color: #83776a !important;
+  font-size: 0.7rem !important;
+  font-style: normal !important;
+}
+
+.lore-chapter-why strong {
+  display: block;
+  margin-bottom: 1px;
+  color: #6f6559;
+  font-family: Inter, sans-serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 980px) {
+  .lore-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .equipment-view {

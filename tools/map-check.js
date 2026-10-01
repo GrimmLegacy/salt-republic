@@ -1,5 +1,6 @@
 const fs = require('fs');
 const vm = require('vm');
+const path = require('path');
 
 const out = [];
 const log = (...a) => out.push(a.join(' '));
@@ -50,7 +51,11 @@ global.document = {
   querySelectorAll: () => []
 };
 
-vm.runInThisContext(fs.readFileSync('c:/Users/focas/source/salt-republic/app.js', 'utf8'));
+// lore.js must load first, exactly as index.html orders them: it supplies the
+// flags and discovery helpers that app.js calls at boot.
+const root = path.join(__dirname, '..');
+vm.runInThisContext(fs.readFileSync(path.join(root, 'lore.js'), 'utf8'));
+vm.runInThisContext(fs.readFileSync(path.join(root, 'app.js'), 'utf8'));
 
 // ---- A) site table -----------------------------------------------------
 log('=== A) getMapSites() integrity ===');
@@ -349,6 +354,60 @@ check('array instead of object falls back to the kit', sanitizeEquipment(['nope'
 check('every slot key always exists', equipmentSlots.every((s) => s.key in sanitizeEquipment({})));
 check('unknown inventory ids are dropped', !sanitizeInventory(['ghost-item', 'starter-reef-cloak', 'starter-reef-cloak'], { head: null }).includes('ghost-item'));
 check('equipped ids are not duplicated into inventory', !sanitizeInventory(['starter-diving-hood'], sanitizeEquipment(null)).includes('starter-diving-hood'));
+
+// ---- I) lore page renders and hides what is not earned ------------------
+log('');
+log('=== I) lore page ===');
+state.currentLocationId = 'grand-canal';
+state.player.flags = {};
+state.player.visitedLocations = [];
+state.player.lore = { entries: {}, chapters: {} };
+state.player.completedEvents = [];
+markLocationVisited('grand-canal');
+refreshLoreDiscovery();
+renderLore();
+const loreHtml = captured.html;
+
+check('lore page renders', loreHtml.includes('class="lore-view"'));
+check('lore page lists places, people, factions and events',
+  ['Places', 'People', 'Factions', 'Events'].every((k) => loreHtml.includes(`>${k}</h3>`) || loreHtml.includes(`${k}</h3>`)));
+check('the tally is shown', loreHtml.includes('subjects recorded') && loreHtml.includes('chapters known'));
+check('faction standing is shown', loreHtml.includes('The Council of Ten') && loreHtml.includes('Where you stand'));
+check('the Doge is listed as unrecorded', loreHtml.includes('Something you have not met yet'));
+check('no hidden lore text leaks', !loreHtml.includes('He is down there. He is writing'));
+check('no hidden chapter text leaks', !loreHtml.includes('the same, and the archive has never once recorded the Doge'));
+check('the opening surface lore is readable', loreHtml.includes('The clerks in waders'));
+
+// Walking the opening chain must unlock the Doge and reveal his first chapter.
+Object.assign(state.player.flags, { ledgerTrusted: true, cargoCarried: true, pansLeased: true, brineFarmSigned: true });
+refreshLoreDiscovery();
+renderLore();
+const afterChainHtml = captured.html;
+check('the chain opens the Doge', afterChainHtml.includes('The Doge of the Drowned City'));
+check('his first chapter appears', afterChainHtml.includes('The winter of 1502'));
+check('his final chapter is still sealed', !afterChainHtml.includes('He is down there. He is writing'));
+check('sealed chapters are shown as closed, not blank', afterChainHtml.includes('A chapter still closed'));
+
+// Standing must be readable and derived from the flags just set.
+check('carrying cargo reads as Scholarium ally', afterChainHtml.includes('Ally'));
+check('standing explains itself', afterChainHtml.includes('You carried the Scholarium crate'));
+
+// Betrayal alone makes the Council hostile; it is only "contested" when you are
+// both in their favour and against them at once.
+state.player.flags.councilRecords = true;
+state.player.flags.checkpointBetrayal = true;
+renderLore();
+check('being in favour and against the Council at once is contested', captured.html.includes('Contested'));
+
+delete state.player.flags.councilRecords;
+renderLore();
+check('betrayal alone makes the Council hostile', captured.html.includes('Enemy') && !captured.html.includes('Contested'));
+
+// Nothing discovered twice, and no error while rendering the final state.
+const tallied = getLoreTally();
+check('tally counts entries and chapters', tallied.revealed > 0 && tallied.chapters > 0 && tallied.revealed <= tallied.entries);
+refreshLoreDiscovery();
+check('a second refresh changes nothing', JSON.stringify(getLoreTally()) === JSON.stringify(tallied));
 
 log('');
 log(failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`);

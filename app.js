@@ -254,6 +254,7 @@ const locations = {
         success: {
           stats: { cunning: 2 },
           resources: { ducatsOfSalt: 3 },
+          sets: { ledgerTrusted: true },
           log: 'You sign the ledger book with a hand that does not shake. The harbormaster pays you in advance and pretends not to watch you leave.'
         },
         failure: {
@@ -276,10 +277,12 @@ const locations = {
         success: {
           stats: { audacity: 2 },
           resources: { ducatsOfSalt: 4 },
+          sets: { cargoCarried: true, checkpointMercy: true },
           log: 'You shoulder the crate through the half-light of the checkpoint. The inspector looks at the seal, then at you, and waves you through.'
         },
         failure: {
           resources: { wounds: 1, scandal: 1 },
+          sets: { checkpointBetrayal: true, scholariumDebt: true },
           log: 'The crate hits the flooded floor and splits. Salt pours out like a pale bell, and the inspectors take your name down in ink that will not wash.'
         },
         chain: { follows: 'take-ledger-job' },
@@ -300,6 +303,7 @@ const locations = {
         success: {
           stats: { persuasion: 2 },
           resources: { ducatsOfSalt: 1 },
+          sets: { pansLeased: true },
           log: 'The keeper laughs, then signs. The pans are yours for as long as the brine keeps rising, and the first tide already does.'
         },
         failure: {
@@ -324,6 +328,7 @@ const locations = {
           stats: { resolve: 2 },
           resources: { ducatsOfSalt: 2 },
           properties: ['The Brine-Farm (La Fattoria 1)'],
+          sets: { brineFarmSigned: true },
           log: 'The last clerk presses the seal into wet paper and the first row of the Brine-Farm becomes yours. Somewhere below, the nursery lights itself.'
         },
         failure: {
@@ -347,6 +352,7 @@ const locations = {
         success: {
           stats: { vigilance: 2 },
           resources: { ducatsOfSalt: 1 },
+          sets: { treatyRead: true },
           log: 'The ink wakes under your hands. The treaty reveals a buried promise between the lagoon and a drowned crown.'
         },
         failure: {
@@ -368,6 +374,7 @@ const locations = {
         success: {
           stats: { cunning: 2 },
           resources: { whisperedSecrets: 2 },
+          sets: { councilRecords: true },
           log: 'The scribe smiles without warmth and passes you a ledger of secret meetings under the seal of a black ribbon.'
         },
         failure: {
@@ -421,6 +428,7 @@ const locations = {
         success: {
           stats: { audacity: 2, elegance: 1 },
           properties: ['The Brine-Farm (La Fattoria 2)'],
+          sets: { desaltinators: true },
           log: 'You thread the cold vents into the farm\'s heart and the abyss answers with a deep, iron hiss. The nursery breathes easier.'
         },
         failure: {
@@ -443,6 +451,7 @@ const locations = {
         success: {
           stats: { audacity: 2 },
           resources: { ducatsOfSalt: 2, phosphorAmber: 1 },
+          sets: { cathedralScoured: true },
           log: 'You emerge from the cathedral\'s black nave with silver relics and salt crusted in your beard. The deep remembers your name.'
         },
         failure: {
@@ -475,6 +484,7 @@ const locations = {
         chanceRewards: [{ resource: 'aetherCanister', amount: 1, chance: 0.3 }],
         success: {
           resources: { whisperedSecrets: 2 },
+          sets: { railTimetable: true },
           log: 'The impossible departure is there, inked between two stars. Somewhere below, the Stygian Rail answers with a single distant whistle.'
         },
         failure: {
@@ -495,6 +505,7 @@ const locations = {
         success: {
           stats: { persuasion: 1 },
           resources: { whisperedSecrets: 2 },
+          sets: { railPassage: true },
           log: 'The conductor stamps your ticket with a seal of black wax. For one night, the stars make room for your name.'
         },
         failure: {
@@ -558,6 +569,12 @@ const defaultState = {
     // can never inject an unknown item into the bonuses.
     equipment: { ...startingEquipment },
     inventory: [],
+    // Lore bookkeeping. `flags` are the branching record: encounters set them
+    // and lore gates read them, so the same choice can make a faction an ally or
+    // an enemy. `lore` remembers what has been discovered and why.
+    flags: {},
+    visitedLocations: [],
+    lore: { entries: {}, chapters: {} },
     log: []
   },
   currentLocationId: 'grand-canal',
@@ -901,6 +918,9 @@ function loadSave() {
         pendingMalus: Array.isArray(parsed.player?.pendingMalus) ? parsed.player.pendingMalus.filter((key) => typeof key === 'string') : [],
         equipment: sanitizeEquipment(parsed.player?.equipment),
         inventory: sanitizeInventory(parsed.player?.inventory, sanitizeEquipment(parsed.player?.equipment)),
+        flags: sanitizeFlags(parsed.player?.flags),
+        visitedLocations: sanitizeVisited(parsed.player?.visitedLocations),
+        lore: sanitizeLore(parsed.player?.lore),
         deckInitialized: Boolean(parsed.player?.deckInitialized)
       }
     };
@@ -1268,6 +1288,15 @@ function spendCost(cost) {
 function applyReward(reward, source = null) {
   if (!reward) return;
 
+  // Branching flags live on the outcome itself, so success and failure can pull
+  // the chronicle in different directions. Recording them here means a choice is
+  // remembered even if the player never opens the lore page.
+  if (reward.sets) {
+    Object.entries(reward.sets).forEach(([flag, value]) => {
+      if (flag in loreFlags) state.player.flags[flag] = Boolean(value);
+    });
+  }
+
   if (reward.stats) {
     Object.entries(reward.stats).forEach(([key, value]) => {
       addStatExperience(key, value);
@@ -1527,6 +1556,8 @@ function resolveAction(actionId) {
 
   recordEventCompletion(action, success ? 'Success' : 'Failure');
   syncHandWithActiveMalus();
+  // Fresh flags may have just been set, so give the record a chance to grow.
+  refreshLoreDiscovery();
   saveGame();
   render();
 
@@ -2278,6 +2309,119 @@ function renderLog() {
   `).join('');
 }
 
+function renderLoreKind(kind) {
+  const meta = loreKinds[kind];
+  const entries = loreEntries.filter((entry) => entry.kind === kind);
+  if (!entries.length) return '';
+
+  const cards = entries.map((entry) => {
+    const revealed = hasDiscoveredLore(entry.id);
+    const progress = getLoreProgress(entry);
+    const realm = regions.find((region) => region.id === entry.realm);
+
+    // A locked entry shows its name and nothing else. The prose stays shut.
+    if (!revealed) {
+      return `
+        <li class="lore-entry is-locked" data-lore-locked>
+          <span class="lore-entry-sigil" aria-hidden="true">?</span>
+          <div class="lore-entry-copy">
+            <p class="lore-entry-kind">${meta.label} · unrecorded</p>
+            <h3>Something you have not met yet</h3>
+            <p class="lore-entry-gate">${entry.lockedHint || 'Nothing in your chronicle has opened this yet.'}</p>
+          </div>
+        </li>
+      `;
+    }
+
+    const known = state.player.lore.entries[entry.id];
+    const chapters = entry.chapters.map((chapter) => {
+      const open = hasDiscoveredChapter(entry.id, chapter.id);
+      const record = state.player.lore.chapters[`${entry.id}:${chapter.id}`];
+      if (!open) {
+        return `
+          <li class="lore-chapter is-sealed">
+            <span class="lore-chapter-mark" aria-hidden="true">·</span>
+            <div>
+              <h4>A chapter still closed</h4>
+              <p>${describeLoreGate(chapter.requires) || 'More of this history is still out of reach.'}</p>
+            </div>
+          </li>
+        `;
+      }
+      return `
+        <li class="lore-chapter is-open">
+          <span class="lore-chapter-mark" aria-hidden="true">✦</span>
+          <div>
+            <h4>${chapter.title}</h4>
+            <p>${chapter.text}</p>
+            ${record?.reason ? `<p class="lore-chapter-why"><strong>How you learned it</strong>${record.reason}</p>` : ''}
+          </div>
+        </li>
+      `;
+    }).join('');
+
+    return `
+      <li class="lore-entry is-revealed" data-lore-id="${entry.id}">
+        <span class="lore-entry-sigil" aria-hidden="true">${entry.icon || meta.icon}</span>
+        <div class="lore-entry-copy">
+          <p class="lore-entry-kind">${meta.label}${realm ? ` · ${realm.realm}` : ''}</p>
+          <h3>${entry.title}</h3>
+          <p class="lore-entry-teaser">${entry.teaser}</p>
+          <p class="lore-entry-progress">${progress.known} of ${progress.total} chapters known${known?.at ? ` · first recorded ${known.at}` : ''}</p>
+          <ul class="lore-chapters">${chapters}</ul>
+        </div>
+      </li>
+    `;
+  }).join('');
+
+  return `
+    <section class="info-panel lore-panel">
+      <h3><span aria-hidden="true">${meta.icon}</span>${meta.label}</h3>
+      <ul class="lore-list">${cards}</ul>
+    </section>
+  `;
+}
+
+function renderLore() {
+  setPageHeading('What the city remembers about itself', 'Lore');
+  const tally = getLoreTally();
+  const standing = Object.entries(loreFactions).map(([id, faction]) => {
+    const mark = getFactionStanding(id);
+    const label = mark === 'ally' ? 'Ally' : mark === 'enemy' ? 'Enemy' : mark === 'contested' ? 'Contested' : 'Unwritten';
+    const setFlags = [...(LORE_STANDING_FRIENDLY[id] || []), ...(LORE_STANDING_HOSTILE[id] || [])]
+      .filter((flag) => state.player.flags[flag]);
+    return `
+      <div class="lore-standing-row">
+        <span class="lore-standing-name"><span aria-hidden="true">${faction.sigil}</span>${faction.name}</span>
+        <span class="lore-standing-mark is-${mark}">${label}</span>
+        ${setFlags.length ? `<span class="lore-standing-why">${setFlags.map((f) => loreFlags[f]?.label || f).join(' · ')}</span>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('viewContent').innerHTML = `
+    <section class="lore-view">
+      <div class="lore-summary">
+        <section class="info-panel lore-tally-panel">
+          <h3>The record so far</h3>
+          <div class="lore-tally">
+            <div class="lore-tally-figure"><strong>${tally.revealed}</strong><span>of ${tally.entries} subjects recorded</span></div>
+            <div class="lore-tally-figure"><strong>${tally.chapters}</strong><span>of ${tally.chaptersTotal} chapters known</span></div>
+          </div>
+          <div class="lore-tally-track"><i style="width:${tally.entries ? tally.revealed / tally.entries * 100 : 0}%"></i></div>
+          <p class="panel-hint">A subject opens only once your chronicle has proved it. Chapters open one at a time, and some stay shut for good.</p>
+        </section>
+        <section class="info-panel lore-standing-panel">
+          <h3>Where you stand</h3>
+          <div class="lore-standing">${standing}</div>
+          <p class="panel-hint">Nothing here is chosen by you directly. It follows from the encounters you have passed, and two chronicles can end on opposite sides of it.</p>
+        </section>
+      </div>
+      ${Object.keys(loreKinds).map(renderLoreKind).join('')}
+    </section>
+  `;
+}
+
 function renderChronicles() {
   setPageHeading('A record kept against the tide', 'Chronicles');
   document.getElementById('viewContent').innerHTML = `<section class="chronicles-view">${renderLog()}</section>`;
@@ -2920,6 +3064,7 @@ function render() {
     deck: renderDeck,
     persona: renderPersona,
     equipment: renderEquipment,
+    lore: renderLore,
     chronicles: renderChronicles,
     profile: renderProfile
   };
@@ -3067,6 +3212,9 @@ function wireEvents() {
     const locationLink = event.target.closest('[data-location]');
     if (locationLink) {
       state.currentLocationId = locationLink.dataset.location;
+      // Arriving somewhere is itself a reason to open new lore, so the record
+      // is refreshed on travel as well as after encounters.
+      if (markLocationVisited(state.currentLocationId)) refreshLoreDiscovery();
       currentView = 'tales';
       saveGame();
       render();
@@ -3097,6 +3245,10 @@ function boot() {
   render();
   wireEvents();
   grantMissingStarterItems();
+  // A chronicle always starts with its starting realm on the record, so the
+  // first pages of lore are open before the player has done anything at all.
+  markLocationVisited(state.currentLocationId);
+  refreshLoreDiscovery();
   if (progressionMigrationPending) {
     saveGame();
     progressionMigrationPending = false;
