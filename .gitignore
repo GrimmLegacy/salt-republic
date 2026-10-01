@@ -1,0 +1,15 @@
+# Nothing here is generated yet, but keep the door open for build output,
+# local logs and editor noise so they never reach a commit by accident.
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Harness output is regenerated on every run and is not worth versioning.
+tools/out/
+
+# Scratch experiments.
+tmp/
+*.out.txt

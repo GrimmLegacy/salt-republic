@@ -1,0 +1,13 @@
+{
+  "name": "salt-republic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Drowned Serenissima - a text-heavy narrative RPG prototype. No runtime dependencies; scripts and styles are served as-is.",
+  "scripts": {
+    "check": "node --check app.js && node --check lore.js",
+    "test": "node tools/run-tests.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

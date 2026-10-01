@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Drowned Serenissima</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <span class="brand-mark" aria-hidden="true">✦</span>
+          <div>
+            <p class="eyebrow">A Gothic Narrative RPG</p>
+            <h1>The Drowned<br />Serenissima</h1>
+          </div>
+        </div>
+
+        <section class="current-realm">
+          <div class="realm-card-heading">
+            <span>⌖ &nbsp;Current realm</span>
+            <button class="text-button" type="button" data-view="map">Open map</button>
+          </div>
+          <p id="currentRealmName">Lagoon Heart</p>
+        </section>
+
+        <section class="sidebar-status" aria-label="Character status">
+          <div class="status-card">
+            <span class="status-label">✣ &nbsp;Vigor</span>
+            <strong id="vigorDisplay">20 / 20</strong>
+            <span id="vigorTimer" class="status-progress">FULL</span>
+          </div>
+          <div class="status-card">
+            <span class="status-label">◉ &nbsp;Ducats</span>
+            <strong id="sidebarDucats">134</strong>
+          </div>
+        </section>
+
+        <section class="date-card">
+          <button class="date-card-button" type="button" data-calendar-toggle aria-haspopup="dialog" aria-label="Open the calendar of Anno Domini 1530">
+            <div class="date-row"><span>▦ &nbsp;<span id="dateLabel">1 October</span> <span id="yearLabel">1530</span></span><span id="phaseBadge" class="night-badge">☾ Night</span></div>
+            <p id="seasonLabel">Autumn (Equinoctial Deluge)</p>
+            <span id="timeLabel" class="clock-label">00:00</span>
+            <span class="calendar-hint" aria-hidden="true">Open the calendar ›</span>
+          </button>
+        </section>
+
+        <section class="peril-card">
+          <p class="section-kicker">Active peril sigils</p>
+          <div id="perilSigils" class="peril-sigils"></div>
+        </section>
+
+        <nav class="primary-navigation" aria-label="Game pages">
+          <button class="menu-link active" type="button" data-view="tales" aria-current="page"><span aria-hidden="true">▧</span>Tales &amp; locales</button>
+          <button class="menu-link" type="button" data-view="map"><span aria-hidden="true">⌖</span>Chart of realms</button>
+          <button class="menu-link" type="button" data-view="deck"><span aria-hidden="true">◈</span>Tide deck<span class="menu-badge">4/4</span><span id="deckBadge" class="menu-badge" title="Draw reserve 10 of 10; +1 every 10 min">10/10</span></button>
+          <button class="menu-link" type="button" data-view="persona"><span aria-hidden="true">◎</span>Persona &amp; deeds</button>
+          <button class="menu-link" type="button" data-view="equipment"><span aria-hidden="true">✦</span>Equipment</button>
+          <button class="menu-link" type="button" data-view="chronicles"><span aria-hidden="true">▤</span>Chronicles</button>
+          <button class="menu-link" type="button" data-view="profile"><span aria-hidden="true">◉</span>Profile</button>
+        </nav>
+
+        <footer class="sidebar-footer">
+          <span id="saveStatus" class="save-status">Autosave ready</span>
+          <span>The Drowned Serenissima</span>
+          <p class="sidebar-legal">&copy; <span id="copyrightYear">2026</span> Grimm Legacy. Non-commercial use only. <a href="mailto:grimmlegacies@gmail.com">grimmlegacies@gmail.com</a></p>
+        </footer>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div class="page-heading">
+            <p class="eyebrow" id="pageKicker">The Drowned Serenissima</p>
+            <h2 id="pageTitle">Tales &amp; locales</h2>
+          </div>
+        </header>
+        <div id="viewContent" class="view-content"></div>
+      </main>
+    </div>
+
+    <div id="resolutionOverlay" class="resolution-overlay" hidden></div>
+    <div id="calendarPanel" class="calendar-panel" hidden></div>
+
+    <script src="lore.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,3121 @@
+const STORAGE_KEY = 'salt-republic-save-v1';
+const VIGOR_MAX = 20;
+const DRAW_RESERVE_MAX = 10;
+const VIGOR_REGEN_INTERVAL = 5 * 60 * 1000;
+const DRAW_REGEN_INTERVAL = 10 * 60 * 1000;
+const DRAW_REGEN_MINUTES = DRAW_REGEN_INTERVAL / (60 * 1000);
+const NAME_MAX_LENGTH = 40;
+const MALUS_DRAW_WEIGHT = 55;
+const GAME_YEAR = 1530;
+const DAY_START_HOUR = 6;
+const DAY_END_HOUR = 18;
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const SEASONS = [
+  { name: 'Deep Winter', months: [11, 0, 1] },
+  { name: 'Thawing Spring', months: [2, 3, 4] },
+  { name: 'High Summer', months: [5, 6, 7] },
+  { name: 'Autumn (Equinoctial Deluge)', months: [8, 9, 10] }
+];
+
+const statNames = {
+  vigilance: 'Vigilance',
+  cunning: 'Cunning',
+  audacity: 'Audacity',
+  elegance: 'Elegance',
+  persuasion: 'Persuasion',
+  resolve: 'Resolve'
+};
+
+const resourceNames = {
+  ducatsOfSalt: 'Ducats of Salt',
+  whisperedSecrets: 'Whispered Secrets',
+  phosphorAmber: 'Phosphor Amber',
+  aetherCanister: 'Aether Canister'
+};
+
+const malusNames = {
+  scandal: 'Scandal',
+  wounds: 'Wounds',
+  suspicion: 'Suspicion',
+  nightmare: 'Nightmare',
+  debt: 'Debt'
+};
+
+// `mapPoint` pins each realm onto "immagini/mappa del mondo.jpg" (1376x768) using
+// percentages of the image box, so the markers stay glued to the artwork at any size.
+// `mapAnchor` decides which side of the pin its label plate unfolds on.
+const regions = [
+  {
+    id: 'aether-heights',
+    name: 'Aether Heights',
+    numeral: 'I',
+    chartLabel: 'Belfry of San Marco',
+    mapPoint: { x: 50.3, y: 23.2 },
+    mapAnchor: 'below',
+    locations: ['spire']
+  },
+  {
+    id: 'lagoon-heart',
+    name: 'Lagoon Heart',
+    numeral: 'II',
+    chartLabel: 'Sunken Palazzi',
+    mapPoint: { x: 48.3, y: 65.1 },
+    mapAnchor: 'above',
+    locations: ['grand-canal']
+  },
+  {
+    id: 'abyssal-depth',
+    name: 'Abyssal Depth',
+    numeral: 'III',
+    chartLabel: 'Leviathan Trench',
+    mapPoint: { x: 51.1, y: 79 },
+    mapAnchor: 'above',
+    locations: ['leviathan-trench']
+  },
+  {
+    id: 'astral-terminus',
+    name: 'Astral Terminus',
+    numeral: 'IV',
+    chartLabel: 'Astral Salon',
+    mapPoint: { x: 84.7, y: 46.9 },
+    mapAnchor: 'below',
+    locations: ['astronavigators-salon']
+  }
+];
+
+// Equipment slots. `key` is what gets stored in state.player.equipment.
+// The companion slot holds a living ally rather than a worn object, so it is
+// flagged: companions may grant bonuses too, but they are never "unequipped to
+// a satchel", they are simply sent away and stay in the inventory.
+const equipmentSlots = [
+  { key: 'head', label: 'Head', icon: '♁', hint: 'Anything that covers the head: caps, circlets, deep hoods.' },
+  { key: 'body', label: 'Body', icon: '❖', hint: 'The layer against the wet: coats, shrouds, salvaged armour.' },
+  { key: 'hands', label: 'Hands', icon: '✋', hint: 'Gloves and gauntlets. Water and blood are hard on bare skin.' },
+  { key: 'feet', label: 'Boots', icon: '⌂', hint: 'The flooded streets reward anything that keeps the ankles dry.' },
+  { key: 'mantle', label: 'Mantle', icon: '❧', hint: 'Cloaks, capes and shawls worn over everything else.' },
+  { key: 'trinket', label: 'Trinket', icon: '✦', hint: 'A single keepsake, seal or charm carried close to the skin.' },
+  { key: 'companion', label: 'Companion', icon: '❦', hint: 'A beast, a person or a spirit that walks beside you. They rest in the satchel when sent away.', living: true }
+];
+
+// STARTER ITEMS - placeholders so the equipment screen can be tried out today.
+// Real loot will arrive with the encounters. To add one later: give it an id, a
+// slot (a key from equipmentSlots), and any of stats / vigor / resources /
+// malusRelief / notes. Everything except id/name/slot is optional.
+const equipmentItems = [
+  {
+    id: 'starter-diving-hood',
+    name: 'Tarred Diving Hood',
+    slot: 'head',
+    rarity: 'common',
+    icon: '🎩',
+    stats: { vigilance: 1 },
+    notes: 'Stitched from the coat of a courier who did not come back up.'
+  },
+  {
+    id: 'starter-patched-coat',
+    name: 'Patched Canal Coat',
+    slot: 'body',
+    rarity: 'common',
+    icon: '🧥',
+    stats: { resolve: 1 },
+    notes: 'Four owners deep and still watertight at the shoulders.'
+  },
+  {
+    id: 'starter-keeper-gloves',
+    name: 'Tar-Tipped Keeper Gloves',
+    slot: 'hands',
+    rarity: 'common',
+    icon: '🧤',
+    stats: { cunning: 1 },
+    notes: 'The fingertips stay sensitive even after weeks in the brine.'
+  },
+  {
+    id: 'starter-copper-greaves',
+    name: 'Copper-Buckled Greaves',
+    slot: 'feet',
+    rarity: 'common',
+    icon: '🥾',
+    stats: { audacity: 1 },
+    vigor: 2,
+    notes: 'Heavy, loud, and the only boots that kept the surveyors standing.'
+  },
+  {
+    id: 'starter-reef-cloak',
+    name: 'Cloak of the Broken Reef',
+    slot: 'mantle',
+    rarity: 'uncommon',
+    icon: '🧣',
+    stats: { persuasion: 1, vigilance: 1 },
+    notes: 'Dyed in the black water off the reef; the salt never quite leaves it.'
+  },
+  {
+    id: 'starter-council-seal',
+    name: "Council's Broken Seal",
+    slot: 'trinket',
+    rarity: 'uncommon',
+    icon: '🔱',
+    stats: { elegance: 1 },
+    resources: { whisperedSecrets: 2 },
+    notes: 'Cracked across the sigil. The archive still answers to it.'
+  },
+  {
+    id: 'starter-drowned-cat',
+    name: 'Cartwheel the Tide Cat',
+    slot: 'companion',
+    rarity: 'uncommon',
+    icon: '🐈',
+    companion: true,
+    companionKind: 'Beast',
+    stats: { cunning: 1 },
+    notes: 'Turned up in the nets three days running and refuses to be put back.'
+  },
+  {
+    id: 'starter-lampwright',
+    name: 'Old Lampwright',
+    slot: 'companion',
+    rarity: 'rare',
+    icon: '🕯️',
+    companion: true,
+    companionKind: 'Ghost',
+    stats: { persuasion: 1, elegance: 1 },
+    vigor: 1,
+    malusRelief: { suspicion: 1 },
+    notes: 'He drowned in the fire of his own lamp a long time ago, and still walks the stairs he built. He will not be hurried.'
+  }
+];
+
+// STARTING KIT handed to a fresh chronicle, so the screen is usable at once.
+// Remove or extend this when real loot starts dropping from encounters.
+const startingEquipment = {
+  head: 'starter-diving-hood',
+  body: 'starter-patched-coat',
+  hands: 'starter-keeper-gloves',
+  feet: 'starter-copper-greaves',
+  mantle: null,
+  trinket: null,
+  companion: null
+};
+
+const locations = {
+  spire: {
+    id: 'spire',
+    realm: 'Aether Heights',
+    name: 'The Spire of San Marco & Cloud Docks',
+    shortName: 'The Great Clockwork Belfry of San Marco',
+    description:
+      'Thousands of feet above the drowned lagoons, massive bronze gears the size of galleons grind inside the clouds. Guild clocksmiths lubricate the escapement mechanisms with whale oil.',
+    time: 'day',
+    image: 'immagini/le 4 città principali/The Spire of San Marco & Cloud Docks.jpg',
+    actions: [
+      {
+        id: 'adjust-chronometer',
+        title: 'Adjust the Astronomical Chronometer',
+        summary: 'Climb the perilous catwalk suspended over the void and synchronize the brass pendulum against the planetary alignments.',
+        appearanceReason: 'The Spire’s chronometer has begun drifting against the known tides, and its keepers need someone to inspect it.',
+        image: "immagini/zone varie delle città/Smugglers' Anchorage at the Clouds' Edge.jpg",
+        when: 'any',
+        test: 'vigilance',
+        difficulty: 5,
+        chanceRewards: [{ resource: 'aetherCanister', amount: 1, chance: 0.5 }],
+        success: {
+          stats: { vigilance: 2 },
+          resources: { ducatsOfSalt: 1 },
+          log: 'You align the great brass pendulum with the tides of the higher heavens. The city’s bells cough awake and the air tastes of storm.'
+        },
+        failure: {
+          resources: { scandal: 1 },
+          log: 'The pendulum slips. Your grip falters and the clockwork alarms ring; a dozen gossiping officers notice your misstep.'
+        },
+        requires: []
+      }
+    ]
+  },
+  'grand-canal': {
+    id: 'grand-canal',
+    realm: 'Lagoon Heart',
+    name: 'The Grand Canal & Sunken Palazzi',
+    shortName: 'The Sunk Archives of the Doge\'s Palace',
+    description:
+      'Half-submerged marble archways lead into the subterranean chambers of the Doge\'s Palace. Here, clerks in rubber waders transcribe century-old ledgers while dark canal water laps against the vellum shelves.',
+    time: 'day',
+    image: 'immagini/le 4 città principali/The Grand Canal & Sunken Palazzi.jpg',
+    actions: [
+      {
+        id: 'take-ledger-job',
+        title: 'Take the Ledger Job at the Customs House',
+        summary: 'Stand at the customs house counter and accept the ledger nobody else will touch: a column of water-stained accounts from a year no clerk admits to.',
+        appearanceReason: 'The customs house hires whoever asks. This post has stood open since the tide swallowed the lower stair, and no one else has come for it.',
+        image: 'immagini/carte/Take the Ledger Job at the Customs House.jpg',
+        when: 'day',
+        test: 'cunning',
+        difficulty: 4,
+        success: {
+          stats: { cunning: 2 },
+          resources: { ducatsOfSalt: 3 },
+          log: 'You sign the ledger book with a hand that does not shake. The harbormaster pays you in advance and pretends not to watch you leave.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'The column collapses into the water at your touch. A customs clerk mutters your name to the guard, and the ledger book goes to someone else.'
+        },
+        requires: [],
+        repeatable: false
+      },
+      {
+        id: 'carry-sealed-cargo',
+        title: 'Carry the Sealed Cargo Past the Checkpoint',
+        summary: 'Walk a sealed salt crate through the drowned checkpoint without letting the inspectors open it, or be the one whose name they write down.',
+        appearanceReason: 'The ledger job handed you a crate with no manifest and a seal out of the Scholarium. Carrying it is simply the price of being trusted with anything.',
+        image: 'immagini/carte/Carry the Sealed Cargo Past the Checkpoint.jpg',
+        when: 'any',
+        test: 'audacity',
+        difficulty: 5,
+        chanceRewards: [{ name: 'Drowned Clerk’s Ledger Fragment', resource: 'whisperedSecrets', amount: 2, chance: 0.5 }],
+        success: {
+          stats: { audacity: 2 },
+          resources: { ducatsOfSalt: 4 },
+          log: 'You shoulder the crate through the half-light of the checkpoint. The inspector looks at the seal, then at you, and waves you through.'
+        },
+        failure: {
+          resources: { wounds: 1, scandal: 1 },
+          log: 'The crate hits the flooded floor and splits. Salt pours out like a pale bell, and the inspectors take your name down in ink that will not wash.'
+        },
+        chain: { follows: 'take-ledger-job' },
+        requires: [{ type: 'chain', action: 'take-ledger-job' }],
+        repeatable: false
+      },
+      {
+        id: 'bargain-salt-pans',
+        title: 'Bargain for the Abandoned Salt Pans',
+        summary: 'Convince the last keeper of the abandoned salt pans that a stranger with no papers deserves the lease that everyone else refuses.',
+        appearanceReason: 'The keeper admits aloud that the pans cannot be worked by anyone else. That admission is the opening you meant to use.',
+        image: 'immagini/carte/Bargain for the Abandoned Salt Pans.jpg',
+        when: 'day',
+        test: 'persuasion',
+        difficulty: 5,
+        cost: { ducatsOfSalt: 5 },
+        chanceRewards: [{ resource: 'phosphorAmber', amount: 1, chance: 0.35 }],
+        success: {
+          stats: { persuasion: 2 },
+          resources: { ducatsOfSalt: 1 },
+          log: 'The keeper laughs, then signs. The pans are yours for as long as the brine keeps rising, and the first tide already does.'
+        },
+        failure: {
+          resources: { suspicion: 1, ducatsOfSalt: -5 },
+          log: 'The keeper hears your offer, hears your name attached to it, and shuts the door. Your purse is lighter and the pans are not yours.'
+        },
+        chain: { follows: 'carry-sealed-cargo' },
+        requires: [{ type: 'chain', action: 'carry-sealed-cargo' }],
+        repeatable: false
+      },
+      {
+        id: 'sign-brine-farm-papers',
+        title: 'Sign the Brine-Farm Papers Before the Council',
+        summary: 'Stand before the drowned Council and put your name to a lease on water nobody has farmed in a century, knowing they will read every line twice.',
+        appearanceReason: 'The keeper sent the papers upward. The Council meets tonight, and the salt pans have waited long enough for a name on them.',
+        image: 'immagini/carte/Sign the Brine-Farm Papers Before the Council.jpg',
+        when: 'night',
+        test: 'resolve',
+        difficulty: 6,
+        chanceRewards: [{ name: 'Favor of the Scholarium', resource: 'whisperedSecrets', amount: 3, chance: 0.5 }],
+        success: {
+          stats: { resolve: 2 },
+          resources: { ducatsOfSalt: 2 },
+          properties: ['The Brine-Farm (La Fattoria 1)'],
+          log: 'The last clerk presses the seal into wet paper and the first row of the Brine-Farm becomes yours. Somewhere below, the nursery lights itself.'
+        },
+        failure: {
+          resources: { scandal: 2 },
+          log: 'A councillor reads your clause aloud twice and the room turns cold. The papers come back unopened, and the pans go back to waiting.'
+        },
+        chain: { follows: 'bargain-salt-pans' },
+        requires: [{ type: 'chain', action: 'bargain-salt-pans' }],
+        repeatable: false
+      },
+      {
+        id: 'decipher-treaty',
+        title: 'Decipher the Submerged Treaty of 1528',
+        summary: 'Examine a moldering vellum scroll detailing Venice\'s forgotten pact with the Tide Monarchs.',
+        appearanceReason: 'A waterlogged treaty has surfaced in the Doge’s archive, and its seal matches the drowned crown in your recent findings.',
+        image: 'immagini/carte/Decipher the Submerged Treaty of 1528.jpg',
+        when: 'day',
+        test: 'vigilance',
+        difficulty: 4,
+        chanceRewards: [{ resource: 'whisperedSecrets', amount: 2, chance: 0.5 }],
+        success: {
+          stats: { vigilance: 2 },
+          resources: { ducatsOfSalt: 1 },
+          log: 'The ink wakes under your hands. The treaty reveals a buried promise between the lagoon and a drowned crown.'
+        },
+        failure: {
+          resources: { scandal: 1 },
+          log: 'The page crumbles to damp ash in your fingers. A clerk catches your fumbling and begins whispering your name.'
+        },
+        requires: []
+      },
+      {
+        id: 'converse-scribe',
+        title: 'Converse Discretely with the Chief Scribe',
+        summary: 'Slip a discreet gratuity to the archivist in exchange for classified records on the Council of Ten.',
+        appearanceReason: 'The Chief Scribe controls the Council’s sealed ledgers, and a discreet payment may persuade them to share one.',
+        image: 'immagini/carte/Converse Discretely with the Chief Scribe.jpg',
+        when: 'day',
+        test: 'cunning',
+        difficulty: 5,
+        cost: { ducatsOfSalt: 3 },
+        success: {
+          stats: { cunning: 2 },
+          resources: { whisperedSecrets: 2 },
+          log: 'The scribe smiles without warmth and passes you a ledger of secret meetings under the seal of a black ribbon.'
+        },
+        failure: {
+          resources: { suspicion: 1, ducatsOfSalt: -3 },
+          log: 'You overpay and underread the room. The clerk turns away, and suspicion settles over your coat like a wet stain.'
+        },
+        requires: []
+      }
+    ]
+  },
+  'leviathan-trench': {
+    id: 'leviathan-trench',
+    realm: 'Abyssal Depth',
+    name: 'The Leviathan Trench & Abyssal Docks',
+    shortName: 'The Submerged Hydroponics Nursery',
+    description:
+      'Under thick reinforced glass domes eight hundred fathoms deep, brass turbines pump oxygenated brine across terraced beds of bioluminescent kelp and phosphor-orchids.',
+    time: 'day',
+    image: 'immagini/le 4 città principali/The Leviathan Trench & Abyssal Docks.jpg',
+    actions: [
+      {
+        id: 'harvest-orchids',
+        title: 'Harvest Your Phosphor-Orchids',
+        summary: 'Don your rubber apron and wade through the illuminated glass vats. The luminous orchids are ready for clipping.',
+        appearanceReason: 'Your Brine-Farm has reached harvest time; this action appears while you own the first farm property.',
+        image: 'immagini/zone varie delle città/The Brass Diving Bells of Saint Jude.jpg',
+        when: 'any',
+        test: 'vigilance',
+        difficulty: 3,
+        success: {
+          stats: { vigilance: 1 },
+          resources: { phosphorAmber: 2, ducatsOfSalt: 1 },
+          log: 'The warm glow spills around your hands. The farm answers your touch as if it has been waiting years for your return.'
+        },
+        failure: {
+          resources: { wounds: 1 },
+          log: 'A broken valve hisses in your face and the blades of the harvest rig bite your sleeve. Blood and brine mingle in the dark.'
+        },
+        requires: [{ type: 'property', value: 'The Brine-Farm (La Fattoria 1)' }]
+      },
+      {
+        id: 'install-desalinators',
+        title: 'Install Sub-Zero Desalinators',
+        summary: 'Breach the lower basalt wall and connect the abyssal cold vents. Your farm will double in capacity and yield cryogenic pearls.',
+        appearanceReason: 'Your Brine-Farm can be expanded with the cold vents, and your Audacity is high enough to attempt the dangerous installation.',
+        image: 'immagini/carte/Install Sub-Zero Desalinators.jpg',
+        when: 'any',
+        test: 'audacity',
+        difficulty: 6,
+        cost: { ducatsOfSalt: 8 },
+        success: {
+          stats: { audacity: 2, elegance: 1 },
+          properties: ['The Brine-Farm (La Fattoria 2)'],
+          log: 'You thread the cold vents into the farm\'s heart and the abyss answers with a deep, iron hiss. The nursery breathes easier.'
+        },
+        failure: {
+          resources: { wounds: 2, ducatsOfSalt: -8 },
+          log: 'The frost bites through your gloves. The vent tears loose and the ruined rig costs you more than the treasure it could have yielded.'
+        },
+        chain: { follows: 'harvest-orchids' },
+        repeatable: false,
+        requires: [{ type: 'property', value: 'The Brine-Farm (La Fattoria 1)' }, { type: 'stat', stat: 'audacity', min: 6 }]
+      },
+      {
+        id: 'scour-sunk-cathedral',
+        title: 'Scour the Sunk Cathedral Nave',
+        summary: 'Slip into a vulcanized diving suit and tread the silt of a submerged fourteenth-century nave.',
+        appearanceReason: 'The cathedral nave remains unsearched, and the falling tide has opened a short route inside.',
+        image: 'immagini/carte/Scour the Sunk Cathedral Nave.jpg',
+        when: 'any',
+        test: 'audacity',
+        difficulty: 5,
+        success: {
+          stats: { audacity: 2 },
+          resources: { ducatsOfSalt: 2, phosphorAmber: 1 },
+          log: 'You emerge from the cathedral\'s black nave with silver relics and salt crusted in your beard. The deep remembers your name.'
+        },
+        failure: {
+          resources: { wounds: 1, suspicion: 1 },
+          log: 'The silt clutches you. A loose hinge drops on your shoulders and the returning bell rings too long in your ears.'
+        },
+        requires: []
+      }
+    ]
+  },
+  'astronavigators-salon': {
+    id: 'astronavigators-salon',
+    realm: 'Astral Terminus',
+    name: "The Astronavigators' Salon & Observation Dome",
+    shortName: 'The Astronavigators’ Salon',
+    description:
+      'Beneath a brass-ribbed dome, navigators plot routes through drowned skies and the black between stars. At the platform below, the Stygian Rail waits for a timetable no living clerk remembers.',
+    time: 'night',
+    image: "immagini/le 4 città principali/The Astronavigators' Salon & Observation Dome.jpg",
+    actions: [
+      {
+        id: 'chart-stygian-rail',
+        title: 'Read the Stygian Rail’s Lost Timetable',
+        summary: 'Compare the station clock with a chart of the constellations and find the departure that appears only during the equinoctial deluge.',
+        appearanceReason: 'The observatory’s star charts align with a departure listed only during the equinoctial deluge.',
+        image: 'immagini/zone varie delle città/The Celestial Terminus & Stygian Rail.jpg',
+        when: 'night',
+        test: 'vigilance',
+        difficulty: 5,
+        chanceRewards: [{ resource: 'aetherCanister', amount: 1, chance: 0.3 }],
+        success: {
+          resources: { whisperedSecrets: 2 },
+          log: 'The impossible departure is there, inked between two stars. Somewhere below, the Stygian Rail answers with a single distant whistle.'
+        },
+        failure: {
+          resources: { nightmare: 1 },
+          log: 'The constellations rearrange themselves while you watch. By dawn, the timetable has forgotten your face.'
+        },
+        requires: []
+      },
+      {
+        id: 'convince-astral-conductors',
+        title: 'Win Passage from the Astral Conductors',
+        summary: 'Persuade the masked railway officers that your name belongs on a passenger list written before your birth.',
+        appearanceReason: 'The conductors are checking names for the next Stygian Rail departure, creating a chance to negotiate passage.',
+        image: 'immagini/carte/Win Passage from the Astral Conductors.jpg',
+        when: 'night',
+        test: 'persuasion',
+        difficulty: 5,
+        success: {
+          stats: { persuasion: 1 },
+          resources: { whisperedSecrets: 2 },
+          log: 'The conductor stamps your ticket with a seal of black wax. For one night, the stars make room for your name.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'The conductor knows your name already, but refuses to say how. Every masked passenger turns to watch you leave.'
+        },
+        requires: []
+      }
+    ]
+  }
+};
+
+const defaultState = {
+  progressionVersion: 4,
+  player: {
+    name: 'Aurelian Voss',
+    stats: {
+      vigilance: 1,
+      cunning: 1,
+      audacity: 1,
+      elegance: 1,
+      persuasion: 1,
+      resolve: 1
+    },
+    resources: {
+      ducatsOfSalt: 134,
+      whisperedSecrets: 53,
+      phosphorAmber: 6,
+      aetherCanister: 0
+    },
+    vigor: 20,
+    vigorLastRegenAt: Date.now(),
+    drawTokens: 10,
+    drawTokensLastRegenAt: Date.now(),
+    malus: {
+      scandal: 0,
+      wounds: 0,
+      suspicion: 0,
+      nightmare: 0,
+      debt: 0
+    },
+    malusSources: {},
+    statXp: {
+      vigilance: 0,
+      cunning: 0,
+      audacity: 0,
+      elegance: 0,
+      persuasion: 0,
+      resolve: 0
+    },
+    hand: ['intellect', 'might', 'persuasion', 'veilcraft'],
+    drawPile: [],
+    discardPile: [],
+    exhaustedCards: [],
+    deckInitialized: false,
+    properties: [],
+    completedEvents: [],
+    pendingMalus: [],
+    // Which item id sits in each slot, and which items the player owns but has
+    // not equipped. Both are validated on load so a stale or hand-edited save
+    // can never inject an unknown item into the bonuses.
+    equipment: { ...startingEquipment },
+    inventory: [],
+    log: []
+  },
+  currentLocationId: 'grand-canal',
+  time: 'day',
+  isLoaded: false
+};
+
+let progressionMigrationPending = false;
+let state = loadSave();
+let currentView = 'tales';
+let profileNotice = '';
+let resetArmed = false;
+let calendarMonthOffset = 0;
+let calendarSelectedDay = null;
+
+const trialCards = [
+  {
+    id: 'intellect',
+    title: 'Trial of Intellect',
+    rarity: 'common',
+    rarityIcon: '✧',
+    image: 'immagini/carte/Trial of Intellect.jpg',
+    quote: 'The drowned city leaves its answers where only a patient eye can find them.',
+    appearanceReason: 'Part of the initial four-card deal or drawn from the common reserve to fill an open hand slot.',
+    effects: { statXp: { vigilance: 1 } }
+  },
+  {
+    id: 'might',
+    title: 'Trial of Might',
+    rarity: 'common',
+    rarityIcon: '✧',
+    image: 'immagini/carte/Trial of Might.jpg',
+    quote: 'A heavy canal mechanism yields only to deliberate force.',
+    appearanceReason: 'Part of the initial four-card deal or drawn from the common reserve to fill an open hand slot.',
+    effects: { statXp: { audacity: 1 } }
+  },
+  {
+    id: 'persuasion',
+    title: 'Trial of Persuasion',
+    rarity: 'common',
+    rarityIcon: '✧',
+    image: 'immagini/carte/Trial of Persuasion.jpg',
+    quote: 'A remembered name may open a door that a purse cannot.',
+    appearanceReason: 'Part of the initial four-card deal or drawn from the common reserve to fill an open hand slot.',
+    effects: { statXp: { persuasion: 1 } }
+  },
+  {
+    id: 'veilcraft',
+    title: 'Trial of Veilcraft',
+    rarity: 'common',
+    rarityIcon: '✧',
+    image: 'immagini/carte/Trial of Veilcraft.jpg',
+    quote: 'Slip through a dark passage without inviting the watchman’s gaze.',
+    appearanceReason: 'Part of the initial four-card deal or drawn from the common reserve to fill an open hand slot.',
+    effects: { statXp: { cunning: 1 } }
+  }
+];
+
+const rarityCards = [
+  {
+    id: 'uncommon-brass-compass',
+    title: 'The Brass Compass',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '⌖',
+    image: 'immagini/carte/The Brass Compass.jpg',
+    quote: 'Its needle points toward a place you have not yet dared to name.',
+    appearanceReason: 'An uncommon tide card, drawn from the reserve according to its rarity.',
+    effects: { statXp: { vigilance: 2, resolve: 1 } }
+  },
+  {
+    id: 'rare-moonlit-pass',
+    title: 'The Moonlit Pass',
+    rarity: 'rare',
+    rarityIcon: '✧',
+    symbol: '☾',
+    image: 'immagini/carte/The Moonlit Pass.jpg',
+    quote: 'A conductor’s seal grants one passage through the drowned stations.',
+    appearanceReason: 'A rare tide card, drawn from the reserve according to its rarity.',
+    effects: { statXp: { elegance: 2, persuasion: 1 }, resources: { ducatsOfSalt: 2 } }
+  },
+  {
+    id: 'epic-drowned-oath',
+    title: 'The Drowned Oath',
+    rarity: 'epic',
+    rarityIcon: '✷',
+    symbol: '♜',
+    image: 'immagini/carte/The Drowned Oath.jpg',
+    quote: 'The old promise answers only to someone willing to pay its price.',
+    appearanceReason: 'An epic tide card, drawn from the reserve according to its rarity.',
+    effects: { statXp: { resolve: 2, audacity: 1 }, malusChanges: { nightmare: -1 } }
+  },
+  {
+    id: 'legendary-doges-seal',
+    title: 'The Doge’s Last Seal',
+    rarity: 'legendary',
+    rarityIcon: '✹',
+    symbol: '♛',
+    image: 'immagini/carte/The Doges Last Seal.jpg',
+    quote: 'One impression can still open the doors of the drowned palace.',
+    appearanceReason: 'A legendary tide card, drawn from the reserve according to its rarity.',
+    effects: { statXp: { elegance: 2, cunning: 1 }, malusChanges: { scandal: -1 } }
+  },
+  {
+    id: 'unique-first-light',
+    title: 'The First Light Beneath the Sea',
+    rarity: 'unique',
+    rarityIcon: '✺',
+    symbol: '☼',
+    image: 'immagini/carte/The First Light Beneath the Sea.jpg',
+    quote: 'For one impossible instant, the drowned city remembers the morning.',
+    appearanceReason: 'The unique tide card surfaced from the deepest reserve; no second copy exists.',
+    effects: { statXp: { vigilance: 3, resolve: 3 }, malusChanges: { nightmare: -1, wounds: -1 } }
+  }
+];
+
+const rarityWeights = {
+  common: 70,
+  uncommon: 17,
+  rare: 8,
+  epic: 3.5,
+  legendary: 1.2,
+  unique: 0.3
+};
+
+const rarityNames = {
+  common: 'Common',
+  uncommon: 'Uncommon',
+  rare: 'Rare',
+  epic: 'Epic',
+  legendary: 'Legendary',
+  unique: 'Unique'
+};
+
+const allTideCards = [...trialCards, ...rarityCards];
+
+const malusCards = [
+  {
+    id: 'scandal',
+    label: 'Scandal',
+    asset: 'scandal',
+    rarity: 'common',
+    title: 'The Slanderous Broadsheet',
+    trigger: 'Drawn while Scandal is active',
+    description: 'Your notoriety has inspired opportunistic satirists to mock you across the Rialto marketplace.'
+  },
+  {
+    id: 'wounds',
+    label: 'Wounds',
+    asset: 'wound',
+    rarity: 'common',
+    title: 'A Body Out of Joint',
+    trigger: 'Drawn while Wounds are active',
+    description: 'Every stair, rope and cold canal reminds you that the body keeps its own account.'
+  },
+  {
+    id: 'suspicion',
+    label: 'Suspicion',
+    asset: 'suspicius',
+    rarity: 'common',
+    title: 'Eyes Behind the Shutters',
+    trigger: 'Drawn while Suspicion is active',
+    description: 'You have begun to notice the same faces at every bridge, doorway and turning.'
+  },
+  {
+    id: 'nightmare',
+    label: 'Nightmare',
+    asset: 'nightmare',
+    rarity: 'common',
+    title: 'The Drowned Dream',
+    trigger: 'Drawn while Nightmare is active',
+    description: 'Sleep brings the sound of bells from a city that has no air left to ring them.'
+  },
+  {
+    id: 'debt',
+    label: 'Debt',
+    asset: 'Debt',
+    rarity: 'common',
+    title: 'A Note Beneath the Door',
+    trigger: 'Drawn while Debt is active',
+    description: 'The creditor’s seal is fresh. The date beneath it is not.'
+  }
+];
+
+function createDefaultState() {
+  return JSON.parse(JSON.stringify(defaultState));
+}
+
+function findEquipmentItem(itemId) {
+  return equipmentItems.find((item) => item.id === itemId) || null;
+}
+
+function getEquipmentSlot(slotKey) {
+  return equipmentSlots.find((slot) => slot.key === slotKey) || null;
+}
+
+// Rebuilds state.player.equipment from whatever was saved, dropping anything that
+// no longer exists in the catalogue or that belongs in a different slot. An
+// absent save gets the starting kit, so older chronicles gain the new slots.
+function sanitizeEquipment(raw) {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : startingEquipment;
+  const clean = {};
+  equipmentSlots.forEach((slot) => {
+    const candidate = source[slot.key];
+    const item = typeof candidate === 'string' ? findEquipmentItem(candidate) : null;
+    clean[slot.key] = item && item.slot === slot.key ? item.id : null;
+  });
+  return clean;
+}
+
+function sanitizeInventory(raw, equipped) {
+  const seen = new Set();
+  const equippedIds = new Set(Object.values(equipped).filter(Boolean));
+  const source = Array.isArray(raw) ? raw : [];
+  return source
+    .filter((id) => typeof id === 'string')
+    .filter((id) => {
+      if (!findEquipmentItem(id) || equippedIds.has(id) || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+}
+
+// Tops up the inventory with any catalogue item the player is missing, so the
+// screen is never empty while the real loot system is still being built out.
+function grantMissingStarterItems() {
+  const owned = new Set([...Object.values(state.player.equipment).filter(Boolean), ...state.player.inventory]);
+  equipmentItems.forEach((item) => {
+    if (!owned.has(item.id)) state.player.inventory.push(item.id);
+  });
+}
+
+function getEquippedItems() {
+  return Object.values(state.player.equipment)
+    .filter(Boolean)
+    .map(findEquipmentItem)
+    .filter(Boolean);
+}
+
+// Adds up every bonus from what is worn and carried. Gear only ever adds here:
+// bonuses are recomputed on read, never stored, so they cannot drift out of
+// sync when something is taken off.
+function getEquipmentBonuses() {
+  const totals = {
+    stats: Object.fromEntries(Object.keys(statNames).map((stat) => [stat, 0])),
+    resources: {},
+    vigor: 0,
+    malusRelief: {}
+  };
+  getEquippedItems().forEach((item) => {
+    Object.entries(item.stats || {}).forEach(([stat, amount]) => {
+      if (stat in totals.stats) totals.stats[stat] += Number(amount) || 0;
+    });
+    Object.entries(item.resources || {}).forEach(([key, amount]) => {
+      totals.resources[key] = (totals.resources[key] || 0) + (Number(amount) || 0);
+    });
+    Object.entries(item.malusRelief || {}).forEach(([key, amount]) => {
+      totals.malusRelief[key] = (totals.malusRelief[key] || 0) + (Number(amount) || 0);
+    });
+    totals.vigor += Number(item.vigor) || 0;
+  });
+  return totals;
+}
+
+function getEquipmentStatBonus(stat) {
+  return getEquipmentBonuses().stats[stat] || 0;
+}
+
+// Base level plus what the worn gear adds. Rolls and unlock checks read this,
+// so equipping a cloak genuinely changes the odds.
+function getEffectiveStat(stat) {
+  return (state.player.stats[stat] || 0) + getEquipmentStatBonus(stat);
+}
+
+// Vigor ceiling rises with gear. Reading it in one place keeps the sidebar, the
+// regen timer and the spend check from disagreeing with each other.
+function getVigorMax() {
+  return VIGOR_MAX + getEquipmentBonuses().vigor;
+}
+
+function describeItemBonuses(item) {
+  const parts = [];
+  Object.entries(item.stats || {}).forEach(([stat, amount]) => {
+    if (amount && statNames[stat]) parts.push(`${statNames[stat]} +${amount}`);
+  });
+  if (item.vigor) parts.push(`Max Vigor +${item.vigor}`);
+  Object.entries(item.resources || {}).forEach(([key, amount]) => {
+    if (amount) parts.push(`${resourceNames[key] || key} ${amount > 0 ? '+' : ''}${amount}`);
+  });
+  Object.entries(item.malusRelief || {}).forEach(([key, amount]) => {
+    if (amount) parts.push(`Eases ${malusNames[key] || key} by ${amount}`);
+  });
+  return parts;
+}
+
+function loadSave() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) {
+    return createDefaultState();
+  }
+
+  try {
+    const parsed = JSON.parse(saved);
+    const defaults = createDefaultState();
+    const savedVersion = parsed.progressionVersion || 0;
+    const legacyProgression = savedVersion < 2;
+    const savedScandalSource = parsed.player?.malusSources?.scandal;
+    const savedScandalLevel = parsed.player?.malus?.scandal ?? defaults.player.malus.scandal;
+    const hadStarterScandal = savedVersion < 4 && (
+      savedScandalSource?.event === 'A past indiscretion'
+      || (!savedScandalSource && savedScandalLevel === 1)
+    );
+    progressionMigrationPending = savedVersion < 4;
+    const savedMalus = { ...defaults.player.malus, ...(parsed.player?.malus || {}) };
+    const savedMalusSources = { ...defaults.player.malusSources, ...(parsed.player?.malusSources || {}) };
+    if (hadStarterScandal) {
+      savedMalus.scandal = 0;
+      delete savedMalusSources.scandal;
+    }
+    return {
+      ...defaults,
+      ...parsed,
+      progressionVersion: 4,
+      player: {
+        ...defaults.player,
+        ...parsed.player,
+        stats: legacyProgression ? { ...defaults.player.stats } : { ...defaults.player.stats, ...(parsed.player?.stats || {}) },
+        resources: { ...defaults.player.resources, ...(parsed.player?.resources || {}) },
+        vigor: Math.min(VIGOR_MAX, Math.max(0, Number(parsed.player?.vigor ?? defaults.player.vigor))),
+        vigorLastRegenAt: Number(parsed.player?.vigorLastRegenAt || defaults.player.vigorLastRegenAt),
+        drawTokens: Math.min(10, Math.max(0, Number(parsed.player?.drawTokens ?? defaults.player.drawTokens))),
+        drawTokensLastRegenAt: Number(parsed.player?.drawTokensLastRegenAt || defaults.player.drawTokensLastRegenAt),
+        malus: Object.fromEntries(Object.entries(savedMalus).map(([key, value]) => [key, Math.min(6, Math.max(0, Number(value) || 0))])),
+        malusSources: savedMalusSources,
+        statXp: legacyProgression ? { ...defaults.player.statXp } : { ...defaults.player.statXp, ...(parsed.player?.statXp || {}) },
+        hand: Array.isArray(parsed.player?.hand) ? parsed.player.hand : defaults.player.hand,
+        drawPile: Array.isArray(parsed.player?.drawPile) ? parsed.player.drawPile : [],
+        discardPile: Array.isArray(parsed.player?.discardPile) ? parsed.player.discardPile : [],
+        exhaustedCards: Array.isArray(parsed.player?.exhaustedCards) ? parsed.player.exhaustedCards : [],
+        completedEvents: Array.isArray(parsed.player?.completedEvents) ? parsed.player.completedEvents.filter((entry) => entry && entry.id) : [],
+        pendingMalus: Array.isArray(parsed.player?.pendingMalus) ? parsed.player.pendingMalus.filter((key) => typeof key === 'string') : [],
+        equipment: sanitizeEquipment(parsed.player?.equipment),
+        inventory: sanitizeInventory(parsed.player?.inventory, sanitizeEquipment(parsed.player?.equipment)),
+        deckInitialized: Boolean(parsed.player?.deckInitialized)
+      }
+    };
+  } catch (error) {
+    return createDefaultState();
+  }
+}
+
+function saveGame() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const saveStatus = document.getElementById('saveStatus');
+  if (saveStatus) {
+    saveStatus.textContent = 'Autosave complete';
+  }
+}
+
+function addLog(message, prefix = 'Chronicle', reason = '') {
+  state.player.log.unshift({ prefix, message, reason, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+  state.player.log = state.player.log.slice(0, 12);
+}
+
+function getStatXpToNextLevel(level) {
+  return Number((10 * Math.pow(1.2, level - 1)).toFixed(2));
+}
+
+function addStatExperience(stat, amount) {
+  if (!(stat in state.player.stats) || amount <= 0) return 0;
+  state.player.statXp[stat] = (state.player.statXp[stat] || 0) + amount;
+  let levelsGained = 0;
+  while (state.player.statXp[stat] >= getStatXpToNextLevel(state.player.stats[stat])) {
+    state.player.statXp[stat] -= getStatXpToNextLevel(state.player.stats[stat]);
+    state.player.stats[stat] += 1;
+    levelsGained += 1;
+  }
+  state.player.statXp[stat] = Number(state.player.statXp[stat].toFixed(2));
+  return levelsGained;
+}
+
+function advanceTimedResource(resourceKey, timestampKey, cap, interval, now = Date.now()) {
+  const current = Math.max(0, Number(state.player[resourceKey]) || 0);
+  let lastUpdated = Number(state.player[timestampKey]) || now;
+  if (current >= cap) return { changed: false, remaining: 0 };
+  if (lastUpdated > now) lastUpdated = now;
+
+  const elapsed = now - lastUpdated;
+  const recovered = Math.floor(elapsed / interval);
+  let changed = false;
+  if (recovered > 0) {
+    state.player[resourceKey] = Math.min(cap, current + recovered);
+    lastUpdated += recovered * interval;
+    if (state.player[resourceKey] >= cap) lastUpdated = now;
+    changed = state.player[resourceKey] !== current;
+  }
+
+  state.player[timestampKey] = lastUpdated;
+  const progress = Math.max(0, now - lastUpdated) % interval;
+  return { changed, remaining: interval - progress };
+}
+
+function refreshTimedResources(now = Date.now()) {
+  const vigor = advanceTimedResource('vigor', 'vigorLastRegenAt', getVigorMax(), VIGOR_REGEN_INTERVAL, now);
+  const draws = advanceTimedResource('drawTokens', 'drawTokensLastRegenAt', DRAW_RESERVE_MAX, DRAW_REGEN_INTERVAL, now);
+  return { vigor, draws, changed: vigor.changed || draws.changed };
+}
+
+function formatCountdown(milliseconds) {
+  const totalSeconds = Math.ceil(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function formatDrawReserve() {
+  return `${state.player.drawTokens}/${DRAW_RESERVE_MAX}`;
+}
+
+function describeDrawTimer(timer) {
+  const cadence = `1 card every ${DRAW_REGEN_MINUTES} min`;
+
+  return state.player.drawTokens >= DRAW_RESERVE_MAX
+    ? `Draw reserve full · ${cadence}`
+    : `Next card in ${formatCountdown(timer.remaining)} · ${cadence}`;
+}
+
+function consumeVigor() {
+  refreshTimedResources();
+  if (state.player.vigor < 1) return false;
+  if (state.player.vigor >= getVigorMax()) state.player.vigorLastRegenAt = Date.now();
+  state.player.vigor -= 1;
+  return true;
+}
+
+function consumeDrawToken() {
+  refreshTimedResources();
+  if (state.player.drawTokens < 1) return false;
+  if (state.player.drawTokens >= DRAW_RESERVE_MAX) state.player.drawTokensLastRegenAt = Date.now();
+  state.player.drawTokens -= 1;
+  return true;
+}
+
+function renderResourceTimers() {
+  renderGameClock();
+  const vigorDisplay = document.getElementById('vigorDisplay');
+  const vigorTimer = document.getElementById('vigorTimer');
+  if (vigorDisplay) vigorDisplay.textContent = `${state.player.vigor} / ${getVigorMax()}`;
+  if (vigorTimer) {
+    const timer = advanceTimedResource('vigor', 'vigorLastRegenAt', getVigorMax(), VIGOR_REGEN_INTERVAL);
+    vigorTimer.textContent = state.player.vigor >= getVigorMax() ? 'FULL' : `+1 in ${formatCountdown(timer.remaining)}`;
+  }
+  const drawTimer = document.getElementById('drawTimer');
+  if (drawTimer) {
+    const timer = advanceTimedResource('drawTokens', 'drawTokensLastRegenAt', DRAW_RESERVE_MAX, DRAW_REGEN_INTERVAL);
+    drawTimer.textContent = describeDrawTimer(timer);
+  }
+}
+
+function grantExperience(statExperience = {}) {
+  const levelUps = [];
+  Object.entries(statExperience).forEach(([stat, amount]) => {
+    const levels = addStatExperience(stat, amount);
+    if (levels) levelUps.push(`${statNames[stat]} +${levels} level${levels === 1 ? '' : 's'}`);
+  });
+  return levelUps;
+}
+
+function queueMalusCard(malusKey) {
+  const cardId = `malus-${malusKey}`;
+  if (state.player.hand.includes(cardId)) return;
+  if (state.player.pendingMalus.includes(malusKey)) return;
+  state.player.pendingMalus.push(malusKey);
+}
+
+function pruneMalusCard(malusKey) {
+  state.player.pendingMalus = state.player.pendingMalus.filter((key) => key !== malusKey);
+  state.player.hand = state.player.hand.filter((id) => id !== `malus-${malusKey}`);
+}
+
+function syncHandWithActiveMalus() {
+  const normalIds = new Set(allTideCards.map((card) => card.id));
+  const malusIds = new Set(malusCards.map((card) => `malus-${card.id}`));
+  const knownCards = new Set([...normalIds, ...malusIds]);
+
+  state.player.hand = [...new Set(state.player.hand)].filter((id) => knownCards.has(id));
+
+  Object.keys(state.player.malus).forEach((key) => {
+    if (state.player.malus[key] > 0) queueMalusCard(key);
+    else pruneMalusCard(key);
+  });
+
+  const inHand = new Set(state.player.hand);
+  state.player.pendingMalus = [...new Set(state.player.pendingMalus)].filter((key) => state.player.malus[key] > 0 && !inHand.has(`malus-${key}`));
+  state.player.drawPile = [...new Set(state.player.drawPile)].filter((id) => normalIds.has(id) && !inHand.has(id));
+}
+
+function initializeTideDeck() {
+  if (!state.player.deckInitialized) {
+    const cardsInHand = new Set(state.player.hand);
+    state.player.drawPile = allTideCards.map((card) => card.id).filter((id) => !cardsInHand.has(id));
+    state.player.deckInitialized = true;
+  }
+  syncHandWithActiveMalus();
+}
+
+function drawTideCard() {
+  refreshTimedResources();
+  syncHandWithActiveMalus();
+  if (state.player.hand.length >= 4) return;
+  if (state.player.drawTokens < 1 || state.player.vigor < 1) return;
+  if (!state.player.drawPile.length) {
+    state.player.drawPile = [...new Set(state.player.discardPile)].filter((id) => !state.player.exhaustedCards.includes(id));
+    state.player.discardPile = [];
+  }
+
+  const eligible = state.player.drawPile.map((id) => allTideCards.find((card) => card.id === id)).filter(Boolean);
+  const pendingMalus = state.player.pendingMalus.filter((key) => state.player.malus[key] > 0);
+  const availableRarities = [...new Set(eligible.map((card) => card.rarity))];
+  const normalWeight = availableRarities.reduce((sum, rarity) => sum + rarityWeights[rarity], 0);
+  const malusWeight = pendingMalus.length * MALUS_DRAW_WEIGHT;
+  if (!normalWeight && !malusWeight) return;
+
+  const totalWeight = normalWeight + malusWeight;
+  const roll = Math.random() * totalWeight;
+  let malusDraw = null;
+  let drawnCard = null;
+
+  if (malusWeight && roll < malusWeight) {
+    const index = Math.min(pendingMalus.length - 1, Math.floor((roll / malusWeight) * pendingMalus.length));
+    malusDraw = malusCards.find((card) => card.id === pendingMalus[index]);
+  }
+
+  if (!malusDraw) {
+    let rarityRoll = roll - malusWeight;
+    const selectedRarity = availableRarities.find((rarity) => {
+      rarityRoll -= rarityWeights[rarity];
+      return rarityRoll < 0;
+    }) || availableRarities[availableRarities.length - 1];
+    const rarityPool = eligible.filter((card) => card.rarity === selectedRarity);
+    drawnCard = rarityPool[Math.floor(Math.random() * rarityPool.length)];
+  }
+
+  if (!malusDraw && !drawnCard) return;
+  if (!consumeVigor() || !consumeDrawToken()) return;
+
+  if (malusDraw) {
+    state.player.hand.push(`malus-${malusDraw.id}`);
+    state.player.pendingMalus = state.player.pendingMalus.filter((key) => key !== malusDraw.id);
+    const odds = Math.round((MALUS_DRAW_WEIGHT / totalWeight) * 100);
+    addLog(`${malusDraw.title} surfaced in your hand.`, 'Card Drawn', `${malusDraw.trigger} It came out of the deck only because ${malusDraw.label} is upon you; playing it lowers the affliction by one level.`);
+    saveGame();
+    render();
+    openResolution({
+      eyebrow: 'An affliction card, drawn',
+      title: malusDraw.title,
+      subtitle: malusDraw.description,
+      tone: 'neutral',
+      die: { text: malusDraw.label, detail: `${odds}% of this draw` },
+      narrative: 'The tide gives up something you would rather not hold. Still, it is in your hand now.',
+      rows: [{ tone: 'gold', label: 'Hand slot', value: `${state.player.hand.length} of 4` }],
+      note: 'Playing it costs 1 Vigor and lowers the affliction by one level. It cannot be discarded.'
+    });
+    return;
+  }
+
+  state.player.drawPile = state.player.drawPile.filter((id) => id !== drawnCard.id);
+  state.player.hand.push(drawnCard.id);
+  const poolOdds = Math.round((rarityWeights[drawnCard.rarity] / totalWeight) * 100);
+  addLog(`${drawnCard.title} entered your hand.`, 'Card Drawn', `${drawnCard.appearanceReason} Base rarity chance: ${rarityWeights[drawnCard.rarity]}%.`);
+  saveGame();
+  render();
+
+  openResolution({
+    eyebrow: 'Drawn from the tide deck',
+    title: drawnCard.title,
+    subtitle: drawnCard.quote,
+    tone: 'neutral',
+    die: { text: rarityNames[drawnCard.rarity], detail: `${poolOdds}% of the pool you drew from` },
+    narrative: 'The current turns the card and gives it to you.',
+    rows: [{ tone: 'gold', label: 'Hand slot', value: `${state.player.hand.length} of 4` }],
+    note: `Base rarity chance ${rarityWeights[drawnCard.rarity]}%. Drawing costs 1 Vigor and 1 draw reserve.`
+  });
+}
+
+function discardTideCard(cardId) {
+  if (cardId.startsWith('malus-')) return;
+  if (state.player.malus[cardId] !== undefined) return;
+  const cardIndex = state.player.hand.indexOf(cardId);
+  if (cardIndex === -1) return;
+  if (!consumeVigor()) {
+    addLog('You are too exhausted to discard a card.', 'Vigor', 'Discarding a card costs 1 Vigor; Vigor returns by 1 point every 5 minutes.');
+    render();
+    return;
+  }
+  const [card] = state.player.hand.splice(cardIndex, 1);
+  state.player.discardPile.push(card);
+  const cardData = allTideCards.find((entry) => entry.id === cardId);
+  addLog(`${cardData.title} was discarded from your hand.`, 'Card Discarded', 'You chose to discard this non-malus card. Affliction cards cannot be discarded.');
+  saveGame();
+  render();
+}
+
+function playTideCard(cardId) {
+  const activeMalus = malusCards.find((card) => `malus-${card.id}` === cardId);
+  if (activeMalus) {
+    const currentLevel = state.player.malus[activeMalus.id] || 0;
+    if (!currentLevel) return;
+    if (!consumeVigor()) {
+      addLog('You are too exhausted to confront this affliction.', 'Vigor', 'Playing any card costs 1 Vigor; Vigor returns by 1 point every 5 minutes.');
+      render();
+      return;
+    }
+    const snapshot = snapshotPlayer();
+    state.player.malus[activeMalus.id] = Math.max(0, currentLevel - 1);
+    if (state.player.malus[activeMalus.id] === 0) {
+      delete state.player.malusSources[activeMalus.id];
+      pruneMalusCard(activeMalus.id);
+    }
+    const resolveLevels = addStatExperience('resolve', 1);
+    const levelText = state.player.malus[activeMalus.id] === 0 ? 'The affliction has lifted; its card leaves your hand.' : `The affliction remains at level ${state.player.malus[activeMalus.id]} and its card stays in your hand.`;
+    addLog(`${activeMalus.title} is played. ${levelText}`, 'Affliction Played', `You chose to confront ${activeMalus.label}; playing the card costs 1 Vigor, reduces its malus by one level and grants 1 Resolve XP${resolveLevels ? ', increasing Resolve by one level' : ''}.`);
+    syncHandWithActiveMalus();
+    saveGame();
+    render();
+
+    openResolution({
+      eyebrow: 'Menace affliction played',
+      title: activeMalus.title,
+      subtitle: activeMalus.description,
+      tone: 'neutral',
+      die: { text: '−1', detail: `${activeMalus.label} reduced by one level` },
+      narrative: levelText,
+      rows: diffSnapshots(snapshot, state.player),
+      note: 'Playing any card costs 1 Vigor.'
+    });
+    return;
+  }
+
+  const cardIndex = state.player.hand.indexOf(cardId);
+  const card = allTideCards.find((entry) => entry.id === cardId);
+  if (cardIndex === -1 || !card) return;
+  if (!consumeVigor()) {
+    addLog('You are too exhausted to play a card.', 'Vigor', 'Playing any card costs 1 Vigor; Vigor returns by 1 point every 5 minutes.');
+    render();
+    return;
+  }
+  const snapshot = snapshotPlayer();
+  state.player.hand.splice(cardIndex, 1);
+  const levelUps = grantExperience(card.effects?.statXp);
+  const malusChanges = [];
+  Object.entries(card.effects?.malusChanges || {}).forEach(([malus, change]) => {
+    const previousLevel = state.player.malus[malus] || 0;
+    const nextLevel = Math.min(6, Math.max(0, previousLevel + change));
+    state.player.malus[malus] = nextLevel;
+    if (nextLevel === 0) delete state.player.malusSources[malus];
+    if (nextLevel !== previousLevel) malusChanges.push(`${malus} ${change > 0 ? '+' : ''}${nextLevel - previousLevel} level`);
+  });
+  Object.entries(card.effects?.resources || {}).forEach(([resource, amount]) => {
+    state.player.resources[resource] = (state.player.resources[resource] || 0) + amount;
+  });
+  if (card.rarity === 'unique') state.player.exhaustedCards.push(card.id);
+  else state.player.discardPile.push(card.id);
+  const rewardText = Object.entries(card.effects?.statXp || {}).map(([stat, amount]) => `${statNames[stat]} +${amount} XP`).join(', ');
+  const levelText = [...levelUps, ...malusChanges].join('; ');
+  addLog(`${card.title} is played. ${rewardText}${levelText ? ` (${levelText})` : ''}.`, 'Card Played', `${card.appearanceReason} Playing a card costs 1 Vigor.`);
+  syncHandWithActiveMalus();
+  saveGame();
+  render();
+
+  openResolution({
+    eyebrow: `${card.rarityIcon} ${rarityNames[card.rarity]} tide card`,
+    title: card.title,
+    subtitle: card.quote,
+    tone: 'neutral',
+    die: { text: rarityNames[card.rarity], detail: `${rarityWeights[card.rarity]}% base rarity` },
+    narrative: card.quote,
+    rows: diffSnapshots(snapshot, state.player),
+    note: `Playing a card costs 1 Vigor.${card.rarity === 'unique' ? ' This unique card is now exhausted and cannot return.' : ''}`
+  });
+}
+
+function canAccessAction(action) {
+  return describeActionUnlock(action).met;
+}
+
+function canAfford(cost) {
+  if (!cost) return true;
+
+  return Object.entries(cost).every(([key, value]) => {
+    if (key in state.player.resources) {
+      return state.player.resources[key] >= value;
+    }
+    return true;
+  });
+}
+
+function spendCost(cost) {
+  if (!cost) return;
+
+  Object.entries(cost).forEach(([key, value]) => {
+    if (key in state.player.resources) {
+      state.player.resources[key] = (state.player.resources[key] || 0) - value;
+    }
+  });
+}
+
+function applyReward(reward, source = null) {
+  if (!reward) return;
+
+  if (reward.stats) {
+    Object.entries(reward.stats).forEach(([key, value]) => {
+      addStatExperience(key, value);
+    });
+  }
+
+  if (reward.experience) {
+    grantExperience(reward.experience);
+  }
+
+  if (reward.resources) {
+    Object.entries(reward.resources).forEach(([key, value]) => {
+      if (key in state.player.resources) {
+        state.player.resources[key] = (state.player.resources[key] || 0) + value;
+      } else if (key in state.player.malus) {
+        const previousLevel = state.player.malus[key] || 0;
+        const nextLevel = Math.min(6, Math.max(0, previousLevel + value));
+        state.player.malus[key] = nextLevel;
+        if (nextLevel > previousLevel && source?.action) {
+          const sourceReward = source.outcome === 'Failure' ? source.action.failure : source.action.success;
+          state.player.malusSources[key] = {
+            event: source.action.title,
+            outcome: source.outcome,
+            reason: sourceReward?.log || `${source.action.title} left a lasting mark.`
+          };
+        } else if (nextLevel === 0) {
+          delete state.player.malusSources[key];
+        }
+      }
+    });
+  }
+
+  if (reward.properties) {
+    reward.properties.forEach((property) => {
+      if (!state.player.properties.includes(property)) {
+        state.player.properties.push(property);
+      }
+    });
+  }
+}
+
+const RESOLUTION_ROLL_MS = 1300;
+const RESOLUTION_SETTLE_MS = 900;
+const SUSPENSE_LINES = [
+  'The die turns…',
+  'The lagoon holds its breath…',
+  'Fate weighs itself…',
+  'A moment decides everything…',
+  'The water waits for an answer…',
+  'Nothing is decided yet…'
+];
+
+let resolutionTimers = [];
+
+function snapshotPlayer() {
+  return {
+    stats: { ...state.player.stats },
+    statXp: { ...state.player.statXp },
+    resources: { ...state.player.resources },
+    malus: { ...state.player.malus },
+    properties: [...state.player.properties]
+  };
+}
+
+function diffSnapshots(before, after) {
+  const rows = [];
+
+  Object.entries(statNames).forEach(([stat, label]) => {
+    const levels = after.stats[stat] - before.stats[stat];
+    const xp = Math.round(((after.statXp[stat] || 0) - (before.statXp[stat] || 0)) * 100) / 100;
+    if (levels) {
+      rows.push({ tone: 'good', label, value: `Level +${levels}${xp > 0 ? ` · ${xp} XP` : ''}` });
+    } else if (xp > 0) {
+      rows.push({ tone: 'good', label, value: `${xp} XP` });
+    }
+  });
+
+  Object.entries(resourceNames).forEach(([key, label]) => {
+    const delta = (after.resources[key] || 0) - (before.resources[key] || 0);
+    if (delta) rows.push({ tone: delta > 0 ? 'good' : 'bad', label, value: `${delta > 0 ? '+' : ''}${delta}` });
+  });
+
+  Object.entries(malusNames).forEach(([key, label]) => {
+    const delta = (after.malus[key] || 0) - (before.malus[key] || 0);
+    if (delta) rows.push({ tone: delta > 0 ? 'bad' : 'good', label, value: `${delta > 0 ? '+' : ''}${delta} level${Math.abs(delta) === 1 ? '' : 's'}` });
+  });
+
+  after.properties.filter((property) => !before.properties.includes(property)).forEach((property) => {
+    rows.push({ tone: 'gold', label: 'Property claimed', value: property });
+  });
+
+  return rows;
+}
+
+function getTestChance(action) {
+  const statValue = getEffectiveStat(action.test);
+  const difficulty = action.difficulty || 0;
+
+  return Math.min(95, Math.max(25, 60 + (statValue - difficulty) * 8));
+}
+
+function chanceTone(chance) {
+  if (chance >= 70) return 'good';
+  if (chance >= 45) return 'mid';
+
+  return 'bad';
+}
+
+function rollTest(action) {
+  const chance = getTestChance(action);
+  const roll = Math.floor(Math.random() * 100) + 1;
+
+  return { roll, chance, success: roll <= chance };
+}
+
+function renderResolutionDie(die) {
+  if (!die) return '';
+
+  if (die.text) {
+    return `
+      <div class="resolution-die is-text">
+        <div class="die-face"><span class="die-text">${die.text}</span></div>
+        ${die.detail ? `<p class="die-detail">${die.detail}</p>` : ''}
+      </div>
+    `;
+  }
+
+  const filled = Math.min(100, die.value);
+  const threshold = Math.min(100, die.threshold);
+
+  return `
+    <div class="resolution-die">
+      <div class="die-face"><span class="die-value">${die.value}</span></div>
+      <p class="die-detail">${die.detail}</p>
+      <div class="die-track" aria-hidden="true"><i style="width:${filled}%"></i><b style="left:${threshold}%"></b></div>
+    </div>
+  `;
+}
+
+function buildResolutionMarkup(payload) {
+  const rows = (payload.rows || []).map((row) => `
+    <div class="resolution-row tone-${row.tone}">
+      <span class="resolution-row-label">${row.label}</span>
+      <span class="resolution-row-value">${row.value}</span>
+    </div>
+  `).join('');
+
+  return `
+    <div class="resolution-window tone-${payload.tone || 'neutral'}" role="dialog" aria-modal="true" aria-labelledby="resolutionTitle">
+      <p class="eyebrow">${payload.eyebrow}</p>
+      <h2 class="resolution-title" id="resolutionTitle">${payload.title}</h2>
+      ${payload.subtitle ? `<p class="resolution-subtitle">${payload.subtitle}</p>` : ''}
+      ${renderResolutionDie(payload.die)}
+      <p class="resolution-suspense" data-suspense>${SUSPENSE_LINES[0]}</p>
+      <div class="resolution-body" data-body>
+        <p class="resolution-narrative">${payload.narrative || ''}</p>
+        ${rows ? `<div class="resolution-rows" data-rows>${rows}</div>` : ''}
+        ${payload.note ? `<p class="resolution-note">${payload.note}</p>` : ''}
+      </div>
+      <button type="button" class="resolution-close" data-resolution-close disabled>Continue</button>
+    </div>
+  `;
+}
+
+function clearResolutionTimers() {
+  resolutionTimers.forEach((timer) => clearTimeout(timer));
+  resolutionTimers = [];
+}
+
+function closeResolution() {
+  const overlay = document.getElementById('resolutionOverlay');
+  if (!overlay || overlay.hidden) return;
+  clearResolutionTimers();
+  overlay.classList.remove('is-open');
+  overlay.hidden = true;
+  overlay.innerHTML = '';
+}
+
+function openResolution(payload) {
+  const overlay = document.getElementById('resolutionOverlay');
+  if (!overlay) return;
+  clearResolutionTimers();
+
+  overlay.innerHTML = buildResolutionMarkup(payload);
+  overlay.hidden = false;
+  overlay.classList.add('is-open', 'is-rolling');
+
+  SUSPENSE_LINES.forEach((line, index) => {
+    if (!index) return;
+    resolutionTimers.push(setTimeout(() => {
+      const suspense = overlay.querySelector('[data-suspense]');
+      if (suspense) suspense.textContent = line;
+    }, 220 * index));
+  });
+
+  resolutionTimers.push(setTimeout(() => {
+    overlay.classList.remove('is-rolling');
+    overlay.classList.add('is-revealed');
+  }, RESOLUTION_ROLL_MS));
+
+  resolutionTimers.push(setTimeout(() => {
+    overlay.classList.add('is-settled');
+    const closeButton = overlay.querySelector('[data-resolution-close]');
+    if (closeButton) closeButton.disabled = false;
+  }, RESOLUTION_ROLL_MS + RESOLUTION_SETTLE_MS));
+}
+
+function resolveAction(actionId) {
+  const location = locations[state.currentLocationId];
+  const action = location.actions.find((entry) => entry.id === actionId);
+
+  if (!action) {
+    return;
+  }
+
+  if (!canAccessAction(action)) {
+    addLog(`A locked path blocks your way: ${action.title}.`, 'Locked', getActionLockReason(action));
+    render();
+    return;
+  }
+
+  if (!canAfford(action.cost)) {
+    addLog(`Your purse is not sufficient for ${action.title}.`, 'Economy', `${summarizeUnlock(action)} You cannot afford its listed cost yet.`);
+    render();
+    return;
+  }
+
+  if (!consumeVigor()) {
+    addLog('You are too exhausted to take another action.', 'Vigor', 'Every city action costs 1 Vigor; Vigor returns by 1 point every 5 minutes.');
+    render();
+    return;
+  }
+
+  spendCost(action.cost);
+  const snapshot = snapshotPlayer();
+  const test = rollTest(action);
+  const { success } = test;
+  const outcomeReward = success ? action.success : action.failure;
+  const explicitStatXp = outcomeReward.stats || {};
+  const eventXp = explicitStatXp[action.test] || (success ? 3 : 1);
+  const xpGains = { ...explicitStatXp, [action.test]: eventXp };
+  const startingStats = { ...state.player.stats };
+  if (!(action.test in explicitStatXp)) addStatExperience(action.test, eventXp);
+  const experienceText = Object.entries(xpGains).map(([stat, amount]) => `${statNames[stat]} +${amount} XP`).join('; ');
+  let dropped = [];
+
+  if (success) {
+    applyReward(action.success, { action, outcome: 'Success' });
+    dropped = grantChanceRewards(action);
+    const levelChanges = Object.entries(statNames).filter(([stat]) => state.player.stats[stat] > startingStats[stat]).map(([stat, label]) => `${label} +${state.player.stats[stat] - startingStats[stat]} level${state.player.stats[stat] - startingStats[stat] === 1 ? '' : 's'}`);
+    addLog(`${action.success.log || `${action.title} succeeds.`} ${experienceText}${levelChanges.length ? `; ${levelChanges.join(', ')}` : ''}.${describeChanceOutcome(dropped)}`, 'Success', `${summarizeUnlock(action)} ${action.appearanceReason}`);
+  } else {
+    applyReward(action.failure, { action, outcome: 'Failure' });
+    const levelChanges = Object.entries(statNames).filter(([stat]) => state.player.stats[stat] > startingStats[stat]).map(([stat, label]) => `${label} +${state.player.stats[stat] - startingStats[stat]} level${state.player.stats[stat] - startingStats[stat] === 1 ? '' : 's'}`);
+    addLog(`${action.failure.log || `${action.title} fails and leaves a mark upon you.`} ${experienceText}${levelChanges.length ? `; ${levelChanges.join(', ')}` : ''}.`, 'Failure', `${summarizeUnlock(action)} ${action.appearanceReason}`);
+  }
+
+  recordEventCompletion(action, success ? 'Success' : 'Failure');
+  syncHandWithActiveMalus();
+  saveGame();
+  render();
+
+  const phase = getDayPhase();
+  openResolution({
+    eyebrow: `${statNames[action.test]} test · Difficulty ${action.difficulty} · ${phase.icon} ${phase.label}`,
+    title: action.title,
+    subtitle: location.realm,
+    tone: success ? 'success' : 'failure',
+    die: { value: test.roll, threshold: test.chance, detail: `You needed ${test.chance} or lower to pass` },
+    narrative: outcomeReward.log || (success ? `${action.title} succeeds.` : `${action.title} fails and leaves a mark upon you.`),
+    rows: diffSnapshots(snapshot, state.player),
+    note: success ? (dropped.length ? describeChanceOutcome(dropped).trim() : 'No chance reward fell this time.') : 'A failed test yields no chance reward.'
+  });
+}
+
+function renderSidebar() {
+  const regeneration = refreshTimedResources();
+  const location = locations[state.currentLocationId];
+  document.getElementById('currentRealmName').textContent = location.realm;
+  document.getElementById('sidebarDucats').textContent = state.player.resources.ducatsOfSalt || 0;
+  document.querySelector('.menu-badge').textContent = `${state.player.hand.length}/4`;
+  const deckBadge = document.getElementById('deckBadge');
+  if (deckBadge) {
+    deckBadge.textContent = formatDrawReserve();
+    deckBadge.title = `Draw reserve ${state.player.drawTokens} of ${DRAW_RESERVE_MAX}; +1 every ${DRAW_REGEN_MINUTES} min`;
+  }
+  renderResourceTimers();
+  document.querySelectorAll('.menu-link').forEach((link) => {
+    const active = link.dataset.view === currentView;
+    link.classList.toggle('active', active);
+    if (active) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+  renderPerils();
+  if (regeneration.changed) saveGame();
+}
+
+function setPageHeading(kicker, title) {
+  document.getElementById('pageKicker').textContent = kicker;
+  document.getElementById('pageTitle').textContent = title;
+}
+
+function getGameClock(now = new Date()) {
+  const month = now.getMonth();
+  const hour = now.getHours();
+  return {
+    year: GAME_YEAR,
+    realYear: now.getFullYear(),
+    month,
+    monthName: MONTH_NAMES[month],
+    day: now.getDate(),
+    weekday: WEEKDAY_NAMES[now.getDay()],
+    hour,
+    minute: now.getMinutes(),
+    season: SEASONS.find((season) => season.months.includes(month)).name,
+    isDay: hour >= DAY_START_HOUR && hour < DAY_END_HOUR
+  };
+}
+
+function getDayPhase(clock = getGameClock()) {
+  return clock.isDay ? { label: 'Day', icon: '☼' } : { label: 'Night', icon: '☾' };
+}
+
+function formatGameClock(clock) {
+  return `${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`;
+}
+
+function describeEncounterWindow(action, clock = getGameClock()) {
+  if (action.when === 'day') return { label: 'Day only', icon: '☼', open: clock.isDay };
+  if (action.when === 'night') return { label: 'Night only', icon: '☾', open: !clock.isDay };
+
+  return { label: 'Any hour', icon: '◐', open: true };
+}
+
+function getViewedMonth() {
+  const base = getGameClock();
+  const total = base.month + calendarMonthOffset;
+  const year = base.year + Math.floor(total / 12);
+  const month = ((total % 12) + 12) % 12;
+  return { year, month, monthName: MONTH_NAMES[month], isCurrentMonth: calendarMonthOffset === 0 };
+}
+
+function getSeasonOfMonth(month) {
+  return SEASONS.find((season) => season.months.includes(month));
+}
+
+function describeDayRelation(day, viewed) {
+  const clock = getGameClock();
+  if (viewed.isCurrentMonth) {
+    if (day === clock.day) return 'Today';
+    if (day < clock.day) {
+      const passed = clock.day - day;
+      return `${passed} day${passed === 1 ? '' : 's'} ago`;
+    }
+    const ahead = day - clock.day;
+    return `In ${ahead} day${ahead === 1 ? '' : 's'}`;
+  }
+
+  return `In ${viewed.monthName}, Anno Domini ${viewed.year}`;
+}
+
+function renderDaySheet(viewed) {
+  const clock = getGameClock();
+  const day = calendarSelectedDay ?? clock.day;
+  const weekday = WEEKDAY_NAMES[new Date(clock.realYear, viewed.month, day).getDay()];
+  const season = getSeasonOfMonth(viewed.month);
+  const location = locations[state.currentLocationId];
+  const open = getOpenActions(location).filter((action) => isActionRevealed(action));
+  const byDay = open.filter((action) => action.when === 'day');
+  const byNight = open.filter((action) => action.when === 'night');
+  const anyHour = open.filter((action) => action.when !== 'day' && action.when !== 'night');
+
+  const column = (icon, title, list, note) => `
+    <div class="day-column">
+      <p class="day-column-title"><span aria-hidden="true">${icon}</span>${title}</p>
+      ${list.length
+        ? `<ul class="day-list">${list.map((action) => `<li>${action.title}</li>`).join('')}</ul>`
+        : `<p class="day-empty">${note}</p>`}
+    </div>
+  `;
+
+  return `
+    <section class="day-sheet">
+      <header class="day-sheet-head">
+        <p class="eyebrow">${describeDayRelation(day, viewed)}</p>
+        <h3>${day} ${viewed.monthName}</h3>
+        <p class="calendar-weekday-name">${weekday} · ${season.name}</p>
+      </header>
+      <p class="panel-hint">Open encounters in ${location.realm} on this day. Encounters you already passed do not come back.</p>
+      <div class="day-columns">
+        ${column('☼', 'By day', byDay, 'Nothing that waits for daylight.')}
+        ${column('☾', 'By night', byNight, 'Nothing that waits for nightfall.')}
+      </div>
+      ${anyHour.length ? `<p class="day-any"><span aria-hidden="true">◐</span>Any hour: ${anyHour.map((action) => action.title).join(' · ')}</p>` : ''}
+      <p class="day-note">Weekly and dated events will be announced here once the city starts keeping them.</p>
+    </section>
+  `;
+}
+
+function renderCalendarPanel() {
+  const clock = getGameClock();
+  const phase = getDayPhase(clock);
+  const viewed = getViewedMonth();
+  const panel = document.getElementById('calendarPanel');
+  const firstWeekday = new Date(clock.realYear, viewed.month, 1).getDay();
+  const daysInMonth = new Date(clock.realYear, viewed.month + 1, 0).getDate();
+  const cells = [];
+
+  for (let index = 0; index < firstWeekday; index += 1) {
+    cells.push('<span class="calendar-cell empty" aria-hidden="true"></span>');
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const isToday = viewed.isCurrentMonth && day === clock.day;
+    const isSelected = day === (calendarSelectedDay ?? clock.day);
+    const tone = isToday ? (clock.isDay ? ' is-day' : ' is-night') : '';
+    cells.push(`<button type="button" class="calendar-cell${isToday ? ' is-today' : ''}${tone}${isSelected ? ' is-selected' : ''}" data-calendar-day="${day}" aria-label="${day} ${viewed.monthName}"${isToday ? ' aria-current="date"' : ''}>${day}</button>`);
+  }
+
+  panel.innerHTML = `
+    <aside class="calendar-drawer" role="dialog" aria-modal="true" aria-label="Calendar of Anno Domini ${GAME_YEAR}">
+      <header class="calendar-head">
+        <p class="eyebrow">Anno Domini ${GAME_YEAR}</p>
+        <h2>${String(clock.day).padStart(2, '0')} ${clock.monthName}</h2>
+        <p class="calendar-weekday-name">${clock.weekday}</p>
+      </header>
+      <div class="calendar-meta">
+        <div><span>Season</span><strong>${clock.season}</strong></div>
+        <div><span>Hour</span><strong id="calendarPhase">${phase.icon} ${phase.label}</strong></div>
+        <div><span>Clock</span><strong id="calendarClock">${formatGameClock(clock)}</strong></div>
+        <div><span>Daylight</span><strong>${DAY_START_HOUR}:00 – ${DAY_END_HOUR}:00</strong></div>
+      </div>
+      <div class="calendar-nav">
+        <button type="button" class="calendar-nav-button" data-calendar-prev aria-label="Previous month">‹</button>
+        <span class="calendar-nav-label">${viewed.monthName} ${viewed.year}</span>
+        <button type="button" class="calendar-nav-button" data-calendar-next aria-label="Next month">›</button>
+        <button type="button" class="calendar-nav-button wide" data-calendar-today>Today</button>
+      </div>
+      <div class="calendar-seasons">
+        ${SEASONS.map((season) => {
+          const active = season.months.includes(viewed.month);
+          return `<span class="calendar-season${active ? ' is-active' : ''}">${season.name}</span>`;
+        }).join('')}
+      </div>
+      <div class="calendar-grid">${WEEKDAY_SHORT.map((name) => `<span class="calendar-weekday">${name}</span>`).join('')}${cells.join('')}</div>
+      ${renderDaySheet(viewed)}
+      <button type="button" class="calendar-close" data-calendar-close>Close</button>
+    </aside>
+  `;
+}
+
+function renderGameClock() {
+  const clock = getGameClock();
+  const phase = getDayPhase(clock);
+  const setText = (id, text) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = text;
+  };
+
+  setText('dateLabel', `${clock.day} ${clock.monthName}`);
+  setText('yearLabel', GAME_YEAR);
+  setText('seasonLabel', clock.season);
+  setText('phaseBadge', `${phase.icon} ${phase.label}`);
+  setText('timeLabel', formatGameClock(clock));
+  setText('calendarClock', formatGameClock(clock));
+  setText('calendarPhase', `${phase.icon} ${phase.label}`);
+}
+
+function openCalendar() {
+  const panel = document.getElementById('calendarPanel');
+  if (!panel) return;
+  renderCalendarPanel();
+  panel.hidden = false;
+  panel.classList.add('is-open');
+}
+
+function closeCalendar() {
+  const panel = document.getElementById('calendarPanel');
+  if (!panel || panel.hidden) return;
+  panel.classList.remove('is-open');
+  panel.hidden = true;
+}
+
+function toggleCalendar() {
+  const panel = document.getElementById('calendarPanel');
+  if (panel && !panel.hidden) closeCalendar();
+  else openCalendar();
+}
+
+function renderTales() {
+  const location = locations[state.currentLocationId];
+  setPageHeading(location.realm, 'Tales & locales');
+  document.getElementById('viewContent').innerHTML = `
+    <section class="hero-card">
+      <div class="hero-art" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <p class="eyebrow">Realm: ${location.realm}</p>
+        <h2>${location.shortName}</h2>
+        <p>${location.description}</p>
+        <button class="hero-map-button" type="button" data-view="map">Change realm <span>(chart of realms)</span></button>
+      </div>
+    </section>
+    <section class="story-panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Tales &amp; encounters in</p>
+          <h2>${location.name}</h2>
+        </div>
+        <span class="scene-counter">${getVisibleActions(location).length} actions</span>
+      </div>
+      <div id="actionList" class="action-list"></div>
+    </section>
+  `;
+  document.querySelector('.hero-art').style.backgroundImage = `linear-gradient(90deg, rgba(13, 12, 10, 0.92), rgba(13, 12, 10, 0.68) 58%, rgba(13, 12, 10, 0.34)), url("${location.image}")`;
+  renderActions();
+}
+
+function getMapSites() {
+  return regions.map((region) => ({ region, location: locations[region.locations[0]] }));
+}
+
+function renderMap() {
+  setPageHeading('The Drowned Serenissima', 'Chart of Realms');
+  const sites = getMapSites();
+  document.getElementById('viewContent').innerHTML = `
+    <section class="map-page">
+      <header class="map-header">
+        <div>
+          <p class="eyebrow">Chart of realms</p>
+          <h2>The Drowned Serenissima</h2>
+        </div>
+        <div class="map-legend">
+          <span class="map-legend-item"><i class="map-legend-dot is-current"></i>Current realm</span>
+          <span class="map-legend-item"><i class="map-legend-dot"></i>Charted realm</span>
+        </div>
+      </header>
+
+      <div class="map-viewport" id="mapViewport">
+        <div class="map-canvas" id="mapCanvas">
+          <img class="realm-map" src="immagini/mappa del mondo.jpg" alt="Chart of the Drowned Serenissima" draggable="false" />
+          <div class="map-pins" id="mapPins">
+            ${sites.map(renderMapPin).join('')}
+          </div>
+        </div>
+        <div class="map-readout" id="mapReadout" role="status" aria-live="polite"></div>
+        <div class="map-zoom-controls" role="group" aria-label="Chart zoom">
+          <button type="button" class="map-zoom-button" data-map-zoom="out" aria-label="Zoom out" title="Zoom out">−</button>
+          <button type="button" class="map-zoom-button" data-map-zoom="reset" aria-label="Reset chart view" title="Reset view">⟲</button>
+          <button type="button" class="map-zoom-button" data-map-zoom="in" aria-label="Zoom in" title="Zoom in">+</button>
+        </div>
+        <p class="map-hint">Click a beacon to travel · drag to pan · scroll to zoom</p>
+      </div>
+    </section>
+  `;
+  mountMapInteraction();
+}
+
+function renderMapPin(site) {
+  const { region, location } = site;
+  const point = region.mapPoint;
+  const isCurrent = location.id === state.currentLocationId;
+  return `
+    <button
+      type="button"
+      class="map-pin ${isCurrent ? 'is-current' : ''}"
+      style="--pin-x:${point.x}%;--pin-y:${point.y}%"
+      data-map-pin="${location.id}"
+      data-anchor="${region.mapAnchor}"
+      data-location="${location.id}"
+      aria-label="${region.name}: ${location.shortName}${isCurrent ? ' (current realm)' : ''}. Enter this realm."
+    >
+      <span class="map-pin-halo" aria-hidden="true"></span>
+      <span class="map-pin-core" aria-hidden="true"></span>
+      <span class="map-pin-label" aria-hidden="true">${region.numeral}. ${region.chartLabel}</span>
+    </button>
+  `;
+}
+
+// The chart is a pannable, zoomable plane. Artwork and beacons both live on
+// #mapCanvas so a single transform moves them together and they never drift apart.
+const mapView = { x: 0, y: 0, zoom: 1, dragging: false, pointerId: null, startX: 0, startY: 0, originX: 0, originY: 0, moved: false };
+const MAP_ZOOM_MIN = 1;
+const MAP_ZOOM_MAX = 3.4;
+
+function clampMapView() {
+  const viewport = document.getElementById('mapViewport');
+  if (!viewport) return;
+  const bounds = viewport.getBoundingClientRect();
+  // At zoom 1 the canvas exactly fills the viewport, so any slack is what zoom created.
+  const overflowX = ((mapView.zoom - 1) * bounds.width) / 2;
+  const overflowY = ((mapView.zoom - 1) * bounds.height) / 2;
+  mapView.x = Math.max(-overflowX, Math.min(overflowX, mapView.x));
+  mapView.y = Math.max(-overflowY, Math.min(overflowY, mapView.y));
+}
+
+function applyMapTransform() {
+  const canvas = document.getElementById('mapCanvas');
+  if (!canvas) return;
+  clampMapView();
+  canvas.style.transform = `translate3d(${mapView.x}px, ${mapView.y}px, 0) scale(${mapView.zoom})`;
+  const viewport = document.getElementById('mapViewport');
+  if (viewport) viewport.classList.toggle('is-zoomed', mapView.zoom > 1.02);
+}
+
+function zoomMapAt(factor, clientX, clientY) {
+  const viewport = document.getElementById('mapViewport');
+  if (!viewport) return;
+  const previousZoom = mapView.zoom;
+  const nextZoom = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, previousZoom * factor));
+  if (nextZoom === previousZoom) return;
+  // Keep the point under the cursor anchored while the scale changes around it.
+  // The canvas maps p -> center + translate + (p - center) * zoom, so holding a
+  // point steady across a zoom step means shifting by -(local) * (zNew - zOld).
+  const bounds = viewport.getBoundingClientRect();
+  const localX = clientX - bounds.left - bounds.width / 2;
+  const localY = clientY - bounds.top - bounds.height / 2;
+  const zoomDelta = nextZoom - previousZoom;
+  mapView.x -= localX * zoomDelta;
+  mapView.y -= localY * zoomDelta;
+  mapView.zoom = nextZoom;
+  applyMapTransform();
+}
+
+function resetMapView() {
+  mapView.x = 0;
+  mapView.y = 0;
+  mapView.zoom = 1;
+  applyMapTransform();
+}
+
+function showMapReadout(locationId) {
+  const readout = document.getElementById('mapReadout');
+  const site = getMapSites().find((entry) => entry.location.id === locationId);
+  if (!readout || !site) return;
+  const { region, location } = site;
+  const isCurrent = location.id === state.currentLocationId;
+  readout.innerHTML = `
+    <p class="map-readout-eyebrow">${region.numeral} · ${region.name}</p>
+    <p class="map-readout-name">${location.shortName}</p>
+    <p class="map-readout-state">${isCurrent ? 'You are here' : 'Click to travel'}</p>
+  `;
+  readout.classList.add('is-visible');
+}
+
+function hideMapReadout() {
+  const readout = document.getElementById('mapReadout');
+  if (readout) readout.classList.remove('is-visible');
+}
+
+function mountMapInteraction() {
+  const viewport = document.getElementById('mapViewport');
+  if (!viewport) return;
+  resetMapView();
+
+  const pins = Array.from(viewport.querySelectorAll('[data-map-pin]'));
+  pins.forEach((pin) => {
+    pin.addEventListener('mouseenter', () => showMapReadout(pin.dataset.mapPin));
+    pin.addEventListener('focus', () => showMapReadout(pin.dataset.mapPin));
+    pin.addEventListener('mouseleave', hideMapReadout);
+    pin.addEventListener('blur', hideMapReadout);
+  });
+
+  // Swallow the click that ends a drag, so panning never counts as travel.
+  viewport.addEventListener('click', (event) => {
+    if (!mapView.moved) return;
+    event.stopPropagation();
+    event.preventDefault();
+    mapView.moved = false;
+  }, true);
+
+  viewport.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    mapView.dragging = true;
+    mapView.moved = false;
+    mapView.pointerId = event.pointerId;
+    mapView.startX = event.clientX;
+    mapView.startY = event.clientY;
+    mapView.originX = mapView.x;
+    mapView.originY = mapView.y;
+    viewport.classList.add('is-panning');
+  });
+
+  viewport.addEventListener('pointermove', (event) => {
+    if (!mapView.dragging || event.pointerId !== mapView.pointerId) return;
+    const dx = event.clientX - mapView.startX;
+    const dy = event.clientY - mapView.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) mapView.moved = true;
+    mapView.x = mapView.originX + dx;
+    mapView.y = mapView.originY + dy;
+    applyMapTransform();
+  });
+
+  const endMapDrag = (event) => {
+    if (!mapView.dragging) return;
+    if (event.pointerId !== undefined && event.pointerId !== mapView.pointerId) return;
+    mapView.dragging = false;
+    mapView.pointerId = null;
+    viewport.classList.remove('is-panning');
+  };
+  viewport.addEventListener('pointerup', endMapDrag);
+  viewport.addEventListener('pointercancel', endMapDrag);
+
+  viewport.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    zoomMapAt(event.deltaY < 0 ? 1.12 : 1 / 1.12, event.clientX, event.clientY);
+  }, { passive: false });
+
+  document.querySelectorAll('[data-map-zoom]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const mode = button.dataset.mapZoom;
+      const bounds = viewport.getBoundingClientRect();
+      const centerX = bounds.left + bounds.width / 2;
+      const centerY = bounds.top + bounds.height / 2;
+      if (mode === 'in') zoomMapAt(1.35, centerX, centerY);
+      else if (mode === 'out') zoomMapAt(1 / 1.35, centerX, centerY);
+      else resetMapView();
+    });
+  });
+}
+
+function renderDeck() {
+  const activeCards = malusCards.filter((card) => state.player.pendingMalus.includes(card.id));
+  const handCards = state.player.hand.map((id) => allTideCards.find((card) => card.id === id)).filter(Boolean);
+  const heldMalus = state.player.hand.map((id) => malusCards.find((card) => `malus-${card.id}` === id)).filter(Boolean);
+  const cardsInHand = handCards.length + heldMalus.length;
+  const canDraw = cardsInHand < 4 && state.player.drawTokens > 0 && state.player.vigor > 0 && (state.player.drawPile.length > 0 || state.player.discardPile.length > 0 || heldMalus.length < activeCards.length);
+  const rarityOdds = Object.entries(rarityWeights).map(([rarity, weight]) => `<span class="rarity-odds rarity-${rarity}">${rarityNames[rarity]} <b>${weight}%</b></span>`).join('');
+  setPageHeading('Divination & fortune hand', 'The Tide Deck');
+  document.getElementById('viewContent').innerHTML = `
+    <section class="deck-view">
+      <p class="deck-epigraph">“Drifting fortunes drawn from the black currents of the Venetian abyss.”</p>
+      <div class="deck-status-bar">
+        <div class="deck-stat"><span>Cards in hand</span><strong>${cardsInHand} <small>/ 4 max</small></strong></div>
+        <div class="deck-stat"><span>Afflictions undrawn</span><strong>${activeCards.length} <small>/ 5</small></strong></div>
+        <div class="deck-stat"><span>Draw reserve</span><strong>${state.player.drawTokens} <small>/ ${DRAW_RESERVE_MAX}</small></strong><small>+1 every ${DRAW_REGEN_MINUTES} min</small></div>
+        <div class="hand-limit">${cardsInHand >= 4 ? `Hand full (${cardsInHand}/4)` : `${4 - cardsInHand} open slot${cardsInHand === 3 ? '' : 's'}`}</div>
+      </div>
+      <div class="deck-draw-row">
+        <div class="rarity-odds-list"><span class="odds-label">Draw odds</span>${rarityOdds}</div>
+        <div class="draw-control"><button class="draw-card-button" type="button" data-card-draw ${canDraw ? '' : 'disabled'} title="Costs 1 Vigor and 1 draw reserve · reserve refills by 1 card every ${DRAW_REGEN_MINUTES} min, up to ${DRAW_RESERVE_MAX}">Draw a tide card <span aria-hidden="true">↻</span></button><span id="drawTimer" class="draw-timer">Draw reserve full</span></div>
+      </div>
+      <section class="deck-section">
+        <div class="deck-section-heading"><h3>Cards in hand</h3><span>${cardsInHand} / 4</span></div>
+        ${activeCards.length
+          ? `<p class="malus-pending">${activeCards.length} affliction card${activeCards.length === 1 ? ' is' : 's are'} still out in the tide deck: ${activeCards.map((card) => card.label).join(', ')}. Every draw can turn ${activeCards.length === 1 ? 'it' : 'them'} up${cardsInHand >= 4 ? ', but your hand is full: play or discard a card to free a slot first' : ''}.</p>`
+          : ''}
+        <div class="deck-card-grid">
+          ${heldMalus.map((card) => renderMalusCard(card)).join('')}
+          ${handCards.map((card) => renderTideCard(card)).join('')}
+        </div>
+      </section>
+    </section>
+  `;
+}
+
+function renderTideCard(card) {
+  const artwork = card.image
+    ? `<img src="${card.image}" alt="${card.title}" />`
+    : `<div class="card-art-placeholder rarity-${card.rarity}" aria-label="${card.rarity} card artwork to be added"><span>${card.symbol}</span><small>Artwork to be added</small></div>`;
+  return `
+    <article class="deck-card common-card rarity-${card.rarity}">
+      ${artwork}
+      <button class="card-discard" type="button" data-card-discard="${card.id}" aria-label="Discard ${card.title}" title="Discard card · costs 1 Vigor" ${state.player.vigor < 1 ? 'disabled' : ''}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14m-6 4v7m4-7v7" /></svg>
+      </button>
+      <div class="deck-card-copy">
+        <span class="card-ribbon">${card.rarityIcon} &nbsp;${rarityNames[card.rarity]} tide card</span>
+        <span class="card-cycle">☼ &nbsp;Day &amp; night</span>
+        <span class="card-odds" title="Base chance of drawing a ${rarityNames[card.rarity].toLowerCase()} card from the tide deck">${rarityWeights[card.rarity]}% draw chance</span>
+        <h4>${card.title}</h4>
+        <p>${card.quote}</p>
+        <p class="appearance-reason"><strong>Why this card appeared</strong>${card.appearanceReason}</p>
+        <p class="card-effect">${formatCardEffects(card.effects)}</p>
+        <div class="card-actions"><button type="button" data-card-play="${card.id}" ${state.player.vigor < 1 ? 'disabled' : ''} title="Costs 1 Vigor">Play card · 1 Vigor <span>›</span></button></div>
+      </div>
+    </article>
+  `;
+}
+
+function renderMalusCard(card) {
+  const value = state.player.malus[card.id];
+  const level = value >= 3 ? 'high' : 'low';
+  const severity = level === 'high' ? 'High' : 'Low';
+  const image = `immagini/carte/malus ${card.asset} ${level}.jpg`;
+  const source = state.player.malusSources?.[card.id];
+  const appearanceReason = source
+    ? `${card.label} became active after ${source.event} (${source.outcome.toLowerCase()}): ${source.reason}`
+    : `${card.label} is active at level ${value}; this card is drawn only while the malus is active. Its originating event predates the chronicle saved here.`;
+  return `
+    <article class="deck-card malus-card">
+      <img src="${image}" alt="${card.label} ${level} affliction card" />
+      <div class="deck-card-copy">
+        <span class="card-ribbon">Menace affliction</span>
+        <span class="card-cycle">☼ &nbsp;Day &amp; night</span>
+        <p class="malus-trigger">${card.trigger} · ${severity} level ${value} / 6</p>
+        <h4>${card.title}</h4>
+        <p>${card.description}</p>
+        <p class="appearance-reason"><strong>Why this card appeared</strong>${appearanceReason}</p>
+        <p class="card-effect">Play to reduce ${card.label} by 1 level and gain 1 Resolve XP. This card cannot be discarded.</p>
+        <div class="card-actions affliction-actions"><button type="button" data-card-play="malus-${card.id}" ${state.player.vigor < 1 ? 'disabled' : ''} title="Costs 1 Vigor">Endure affliction · 1 Vigor <span>›</span></button></div>
+      </div>
+    </article>
+  `;
+}
+
+function formatCardEffects(effects = {}) {
+  const descriptions = [];
+  Object.entries(effects.statXp || {}).forEach(([stat, amount]) => descriptions.push(`${statNames[stat]} +${amount} XP`));
+  Object.entries(effects.malusChanges || {}).forEach(([malus, amount]) => descriptions.push(`${malus} ${amount > 0 ? '+' : ''}${amount} level`));
+  Object.entries(effects.resources || {}).forEach(([resource, amount]) => descriptions.push(`${resource} ${amount > 0 ? '+' : ''}${amount}`));
+  return descriptions.join(' · ');
+}
+
+function renderPersona() {
+  setPageHeading('A life measured in deeds', 'Persona & deeds');
+  const resourceEntries = Object.entries(resourceNames);
+  document.getElementById('viewContent').innerHTML = `
+    <section class="persona-view">
+      <div class="persona-banner">
+        <p class="eyebrow">Current persona</p>
+        <h3>${state.player.name}</h3>
+        <p>${locations[state.currentLocationId].realm} · ${locations[state.currentLocationId].name}</p>
+      </div>
+      <div class="persona-columns">
+        <section class="info-panel"><h3>Attributes</h3><div class="progression-list">
+          ${Object.entries(statNames).map(([key, label]) => {
+            const xp = state.player.statXp[key] || 0;
+            const threshold = getStatXpToNextLevel(state.player.stats[key]);
+            const progress = Math.min(100, xp / threshold * 100);
+            return `<div class="progression-row"><div class="progression-label"><span>${label}</span><strong>Level ${state.player.stats[key]}</strong></div><div class="progression-track"><i style="width:${progress}%"></i></div><span class="progression-xp">${xp} / ${threshold} XP to next level</span></div>`;
+          }).join('')}
+        </div></section>
+        <section class="info-panel malus-panel"><h3>Malus &amp; recovery</h3><div class="progression-list">
+          ${Object.entries(malusNames).map(([key, label]) => {
+            const level = state.player.malus[key] || 0;
+            const progress = level / 6 * 100;
+            const severity = level === 0 ? 'Dormant' : level >= 3 ? 'High' : 'Low';
+            return `<div class="progression-row malus-progression"><div class="progression-label"><span>${label}</span><strong>${level ? `Level ${level} / 6 · ${severity}` : 'Dormant'}</strong></div><div class="progression-track"><i style="width:${progress}%"></i></div><span class="progression-xp">${level ? `${severity} malus` : 'No active affliction'}</span></div>`;
+          }).join('')}
+        </div></section>
+        <section class="info-panel"><h3>Inventory</h3><div class="info-list">
+          ${resourceEntries.map(([key, label]) => `<div class="info-row"><span>${label}</span><strong>${state.player.resources[key] || 0}</strong></div>`).join('')}
+        </div></section>
+        <section class="info-panel property-panel"><h3>Properties</h3>
+          ${state.player.properties.length ? `<div class="info-list">${state.player.properties.map((property) => `<div class="info-row"><span>${property}</span><strong>Owned</strong></div>`).join('')}</div>` : '<p class="deck-empty">No properties claimed.</p>'}
+        </section>
+      </div>
+    </section>
+  `;
+}
+
+// Swapping gear is one click: clicking an owned item wears it, clicking what is
+// worn takes it off back to the satchel. Anything already in the target slot is
+// returned first, so a click never silently destroys the piece it replaces.
+function equipItem(itemId) {
+  const item = findEquipmentItem(itemId);
+  if (!item) return;
+
+  const slot = getEquipmentSlot(item.slot);
+  if (!slot) return;
+
+  if (state.player.equipment[item.slot] === itemId) {
+    unequipSlot(item.slot);
+    return;
+  }
+
+  const previous = state.player.equipment[item.slot];
+  if (previous) state.player.inventory.push(previous);
+  state.player.inventory = state.player.inventory.filter((id) => id !== itemId);
+  state.player.equipment[item.slot] = itemId;
+
+  addLog(`${item.name} is ${slot.living ? 'brought forward' : 'worn'}.`, 'Equipment', describeItemBonuses(item).join(' · ') || 'It carries no bonus of its own yet.');
+  saveGame();
+  render();
+}
+
+function unequipSlot(slotKey) {
+  const slot = getEquipmentSlot(slotKey);
+  const current = state.player.equipment?.[slotKey];
+  if (!slot || !current) return;
+
+  const item = findEquipmentItem(current);
+  state.player.equipment[slotKey] = null;
+  if (!state.player.inventory.includes(current)) state.player.inventory.push(current);
+
+  addLog(`${item ? item.name : 'The piece'} is taken off.`, 'Equipment', slot.living ? 'They wait by the door until you need them again.' : 'It goes back into the satchel.');
+  saveGame();
+  render();
+}
+
+function renderEquipmentSlot(slot) {
+  const item = state.player.equipment[slot.key] ? findEquipmentItem(state.player.equipment[slot.key]) : null;
+  const bonuses = item ? describeItemBonuses(item) : [];
+
+  if (!item) {
+    return `
+      <li class="equip-slot is-empty ${slot.living ? 'is-companion' : ''}">
+        <span class="equip-slot-icon" aria-hidden="true">${slot.icon}</span>
+        <div class="equip-slot-copy">
+          <span class="equip-slot-label">${slot.label}</span>
+          <span class="equip-slot-empty">${slot.living ? 'No companion at your side' : 'Empty'}</span>
+          <span class="equip-slot-hint">${slot.hint}</span>
+        </div>
+      </li>
+    `;
+  }
+
+  return `
+    <li class="equip-slot is-filled ${slot.living ? 'is-companion' : ''}">
+      <span class="equip-slot-icon" aria-hidden="true">${item.icon || slot.icon}</span>
+      <div class="equip-slot-copy">
+        <span class="equip-slot-label">${slot.label}${slot.living && item.companionKind ? ` · ${item.companionKind}` : ''}</span>
+        <span class="equip-slot-name">${item.name}</span>
+        ${bonuses.length ? `<span class="equip-bonus-line">${bonuses.map((bonus) => `<em>${bonus}</em>`).join('')}</span>` : ''}
+        ${item.notes ? `<span class="equip-slot-hint">${item.notes}</span>` : ''}
+      </div>
+      <button type="button" class="equip-remove" data-equip-remove="${slot.key}" title="${slot.living ? 'Send away' : 'Take off'} ${item.name}">${slot.living ? 'Send away' : 'Remove'}</button>
+    </li>
+  `;
+}
+
+function renderEquipmentItemCard(item) {
+  const worn = state.player.equipment[item.slot] === item.id;
+  const slot = getEquipmentSlot(item.slot);
+  const bonuses = describeItemBonuses(item);
+  const slotName = slot ? (slot.living ? 'Companion' : slot.label) : item.slot;
+
+  return `
+    <li class="gear-card rarity-${item.rarity || 'common'} ${worn ? 'is-worn' : ''}">
+      <button type="button" class="gear-card-button" data-equip-item="${item.id}" aria-pressed="${worn}" title="${worn ? 'Take off this piece' : `Put on: ${item.name}`}">
+        <span class="gear-icon" aria-hidden="true">${item.icon || '◆'}</span>
+        <span class="gear-copy">
+          <span class="gear-name">${item.name}</span>
+          <span class="gear-meta"><span class="gear-slot">${slotName}</span>${item.rarity && rarityNames[item.rarity] ? `<span class="gear-rarity">${rarityNames[item.rarity]}</span>` : ''}</span>
+          ${bonuses.length ? `<span class="gear-bonuses">${bonuses.map((bonus) => `<em>${bonus}</em>`).join('')}</span>` : ''}
+          ${item.notes ? `<span class="gear-notes">${item.notes}</span>` : ''}
+        </span>
+        <span class="gear-state">${worn ? 'Worn' : 'Wear'}</span>
+      </button>
+    </li>
+  `;
+}
+
+function renderEquipment() {
+  setPageHeading('What you carry, and who walks with you', 'Equipment');
+  const bonuses = getEquipmentBonuses();
+  const statLines = Object.entries(statNames).map(([key, label]) => {
+    const bonus = bonuses.stats[key] || 0;
+    return `<div class="info-row"><span>${label}</span><strong>${state.player.stats[key] || 0}${bonus ? ` <em class="equip-bonus">+${bonus}</em>` : ''}</strong></div>`;
+  });
+  const extraLines = [];
+  if (bonuses.vigor) extraLines.push(`<div class="info-row"><span>Max Vigor</span><strong>${VIGOR_MAX} <em class="equip-bonus">+${bonuses.vigor}</em></strong></div>`);
+  Object.entries(bonuses.resources).forEach(([key, amount]) => {
+    extraLines.push(`<div class="info-row"><span>${resourceNames[key] || key}</span><strong><em class="equip-bonus">+${amount}</em></strong></div>`);
+  });
+  Object.entries(bonuses.malusRelief).forEach(([key, amount]) => {
+    extraLines.push(`<div class="info-row"><span>${malusNames[key] || key}</span><strong><em class="equip-bonus">eased ${amount}</em></strong></div>`);
+  });
+
+  const satchel = state.player.inventory.map(findEquipmentItem).filter(Boolean);
+  const companionItem = state.player.equipment.companion ? findEquipmentItem(state.player.equipment.companion) : null;
+  const companionChoices = equipmentItems.filter((item) => item.companion);
+
+  document.getElementById('viewContent').innerHTML = `
+    <section class="equipment-view">
+      <div class="equip-columns">
+        <section class="info-panel equip-slots-panel">
+          <h3>Worn &amp; carried</h3>
+          <ul class="equip-slots">
+            ${equipmentSlots.map(renderEquipmentSlot).join('')}
+          </ul>
+        </section>
+
+        <section class="info-panel equip-summary-panel">
+          <h3>Bonuses in effect</h3>
+          <p class="panel-hint">Only what you are wearing counts. Take a piece off and its bonus leaves with it.</p>
+          <div class="info-list">${statLines.join('')}${extraLines.join('')}</div>
+          <div class="equip-companion-block">
+            <h4>${companionItem ? companionItem.name : 'No companion yet'}</h4>
+            <p>${companionItem ? (companionItem.notes || 'They walk beside you.') : 'Find a beast, a person or a spirit worth following: they take the companion slot and grant their own bonuses.'}</p>
+            ${companionChoices.length ? `<div class="equip-companion-picks">${companionChoices.map((item) => `<button type="button" class="companion-pick ${companionItem && companionItem.id === item.id ? 'is-active' : ''}" data-equip-item="${item.id}" title="${item.notes || item.name}">${item.icon || '❦'} ${item.name}${item.companionKind ? ` <span>(${item.companionKind})</span>` : ''}</button>`).join('')}</div>` : ''}
+          </div>
+        </section>
+      </div>
+
+      <section class="info-panel equip-satchel-panel">
+        <h3>Satchel <span class="equip-count">${satchel.length}</span></h3>
+        <p class="panel-hint">Everything you own but have not put on. Click a piece to wear it, click it again to take it off.</p>
+        ${satchel.length
+          ? `<ul class="gear-list">${satchel.map(renderEquipmentItemCard).join('')}</ul>`
+          : '<p class="deck-empty">Your satchel is empty. Anything you find will be listed here.</p>'}
+      </section>
+    </section>
+  `;
+}
+
+function renderLog() {
+  if (!state.player.log.length) {
+    return '<p class="deck-empty">Your chronicle is still empty. Every choice here becomes part of the city’s memory.</p>';
+  }
+  return state.player.log.map((entry) => `
+    <article class="chronicle-entry">
+      <div><span class="log-prefix">${entry.prefix}</span><time>${entry.time}</time></div>
+      <p class="chronicle-reason"><strong>Why this appeared</strong>${entry.reason || 'This record predates cause tracking; its original trigger was not saved.'}</p>
+      <p>${entry.message}</p>
+    </article>
+  `).join('');
+}
+
+function renderChronicles() {
+  setPageHeading('A record kept against the tide', 'Chronicles');
+  document.getElementById('viewContent').innerHTML = `<section class="chronicles-view">${renderLog()}</section>`;
+}
+
+function getChronicleStats() {
+  const allActions = getAllActions().map((entry) => entry.action);
+  const uniqueActions = allActions.filter((action) => action.repeatable === false);
+
+  return {
+    deedsResolved: (state.player.completedEvents || []).length,
+    uniqueTotal: uniqueActions.length,
+    uniqueResolved: uniqueActions.filter((action) => getEventRecord(action.id)).length,
+    repeatableTotal: allActions.length - uniqueActions.length,
+    properties: state.player.properties.length,
+    chronicleEntries: state.player.log.length,
+    chanceDrops: state.player.log.filter((entry) => (entry.message || '').includes('Chance yielded')).length
+  };
+}
+
+function renamePlayer(name) {
+  const trimmed = String(name ?? '').trim().replace(/\s+/g, ' ');
+  if (!trimmed) {
+    return { ok: false, reason: 'A chronicle cannot be written under an empty name.' };
+  }
+
+  if (trimmed.length > NAME_MAX_LENGTH) {
+    return { ok: false, reason: `Keep the name under ${NAME_MAX_LENGTH} characters.` };
+  }
+
+  if (trimmed === state.player.name) {
+    return { ok: true, unchanged: true };
+  }
+
+  const previous = state.player.name;
+  state.player.name = trimmed;
+  addLog(`You answer to a new name: ${previous} is now ${trimmed}.`, 'Identity', 'You renamed yourself from the Profile page. Nothing else in the chronicle was touched.');
+  saveGame();
+
+  return { ok: true, name: trimmed };
+}
+
+function buildSaveFileName() {
+  const slug = state.player.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'chronicle';
+  const now = new Date();
+  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+
+  return `salt-republic-${slug}-${stamp}.json`;
+}
+
+function exportSave() {
+  const payload = {
+    app: 'the-drowned-serenissima',
+    format: 1,
+    exportedAt: new Date().toISOString(),
+    state
+  };
+  const fileName = buildSaveFileName();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+
+  addLog('The chronicle was written out to a file for safekeeping.', 'Backup', 'You exported your save from the Profile page. The file carries your name, attributes, resources, properties, resolved encounters and the whole chronicle.');
+  saveGame();
+  profileNotice = `Exported as ${fileName}. Keep that file somewhere safe.`;
+  render();
+}
+
+function isImportedStateSane(candidate) {
+  if (!candidate || !candidate.player || typeof candidate.player !== 'object') return false;
+  const stats = candidate.player.stats;
+  if (!stats || Object.keys(stats).length !== Object.keys(statNames).length) return false;
+  if (!Object.keys(statNames).every((key) => Number.isFinite(Number(stats[key])))) return false;
+  const resources = candidate.player.resources || {};
+  if (!Object.keys(resourceNames).every((key) => Number.isFinite(Number(resources[key])))) return false;
+
+  return Array.isArray(candidate.player.log);
+}
+
+function importSave(file) {
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onerror = () => {
+    profileNotice = 'That file could not be read from your computer.';
+    render();
+  };
+  reader.onload = () => {
+    let parsed = null;
+    try {
+      parsed = JSON.parse(String(reader.result));
+    } catch (error) {
+      profileNotice = 'That file is not a readable chronicle: it is not valid JSON.';
+      render();
+      return;
+    }
+
+    const incoming = parsed && typeof parsed === 'object' && parsed.state && typeof parsed.state === 'object' ? parsed.state : parsed;
+    const playerData = incoming && typeof incoming === 'object' ? incoming.player : null;
+    if (!playerData || typeof playerData !== 'object' || typeof playerData.stats !== 'object' || !playerData.stats) {
+      profileNotice = 'That file is not a Salt Republic chronicle: it carries no player data.';
+      render();
+      return;
+    }
+
+    const backup = localStorage.getItem(STORAGE_KEY);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(incoming));
+    const reloaded = loadSave();
+
+    if (!isImportedStateSane(reloaded)) {
+      if (backup) localStorage.setItem(STORAGE_KEY, backup);
+      else localStorage.removeItem(STORAGE_KEY);
+      profileNotice = 'The chronicle inside that file is damaged. Nothing was changed.';
+      render();
+      return;
+    }
+
+    state = reloaded;
+    state.isLoaded = true;
+    syncHandWithActiveMalus();
+    addLog(`The chronicle of ${state.player.name} was restored from a file.`, 'Backup', 'You imported a save from the Profile page; it replaced the chronicle that was open in this browser.');
+    saveGame();
+    profileNotice = `Restored ${state.player.name}: ${state.player.log.length} chronicle entries and ${state.player.completedEvents.length} deeds resolved.`;
+    render();
+  };
+
+  reader.readAsText(file);
+}
+
+function resetGame() {
+  localStorage.removeItem(STORAGE_KEY);
+  state = createDefaultState();
+  currentView = 'tales';
+  resetArmed = false;
+  profileNotice = '';
+  initializeTideDeck();
+  addLog('The chronicle is wiped clean. The lagoon breathes beneath the city again, and a quiet path opens before you.', 'New Beginning', `You erased the autosave yourself from the Profile page. You begin again as ${state.player.name} in ${locations[state.currentLocationId].realm}, owning nothing: the Brine-Farm and every other path must be earned again.`);
+  saveGame();
+  render();
+}
+
+function renderProfile() {
+  const location = locations[state.currentLocationId];
+  const stats = getChronicleStats();
+  const resolvedUnique = getAllActions()
+    .map((entry) => entry.action)
+    .filter((action) => action.repeatable === false && getEventRecord(action.id));
+  const succeededUnique = resolvedUnique.filter((action) => getEventRecord(action.id).outcome === 'Success');
+  const failedUnique = resolvedUnique.filter((action) => getEventRecord(action.id).outcome !== 'Success');
+
+  setPageHeading('Name and standing', 'Profile');
+  document.getElementById('viewContent').innerHTML = `
+    <section class="profile-view">
+      <p class="eyebrow">The current life</p>
+      <h3>${state.player.name}</h3>
+      <p>Resident of ${location.realm} · ${location.name}</p>
+
+      <div class="profile-facts">
+        <div><span>Properties</span><strong>${stats.properties}</strong></div>
+        <div><span>Deeds resolved</span><strong>${stats.deedsResolved}</strong></div>
+        <div><span>Unique encounters</span><strong>${stats.uniqueResolved} / ${stats.uniqueTotal}</strong></div>
+        <div><span>Repeatable encounters</span><strong>${stats.repeatableTotal}</strong></div>
+        <div><span>Chronicle entries</span><strong>${stats.chronicleEntries}</strong></div>
+        <div><span>Chance rewards</span><strong>${stats.chanceDrops}</strong></div>
+      </div>
+
+      <section class="info-panel profile-panel">
+        <h3>Your name</h3>
+        <p class="panel-hint">The name written on this chronicle. It travels with your deeds; nothing else in your life changes.</p>
+        <div class="profile-controls">
+          <input id="profileNameInput" class="profile-input" type="text" maxlength="${NAME_MAX_LENGTH}" value="${state.player.name}" aria-label="Your name" />
+          <button type="button" class="profile-button" data-rename-player>Rename</button>
+        </div>
+        ${profileNotice ? `<p class="profile-notice${resetArmed ? ' danger' : ''}">${profileNotice}</p>` : ''}
+      </section>
+
+      <section class="info-panel profile-panel">
+        <h3>Unique encounters resolved</h3>
+        <p class="panel-hint">Every unique encounter you have already resolved. They no longer appear in their realm, but the deed stays on record here, ready for a later story to build on it.</p>
+        ${succeededUnique.length
+          ? `<div class="info-list">${succeededUnique.map((action) => {
+              const record = getEventRecord(action.id);
+              return `<div class="info-row"><span>${action.title}</span><strong>${record.outcome}${record.at ? ` · ${record.at}` : ''}</strong></div>`;
+            }).join('')}</div>`
+          : '<p class="deck-empty">None yet. The four opening deeds at Lagoon Heart hold the first ones.</p>'}
+      </section>
+
+      <section class="info-panel profile-panel">
+        <h3>Unique encounters still open</h3>
+        <p class="panel-hint">Unique encounters you attempted but did not pass. They never left their realm, so you can always take them again.</p>
+        ${failedUnique.length
+          ? `<div class="info-list">${failedUnique.map((action) => {
+              const record = getEventRecord(action.id);
+              return `<div class="info-row"><span>${action.title}</span><strong>${record.outcome}${record.at ? ` · ${record.at}` : ''}</strong></div>`;
+            }).join('')}</div>`
+          : '<p class="deck-empty">Nothing left half done.</p>'}
+      </section>
+
+      <section class="info-panel profile-panel">
+        <h3>Backup your chronicle</h3>
+        <p class="panel-hint">A save only lives in this browser, on this address alone. Export it to keep a copy or carry it to another computer; import a file to put a chronicle back where it left off.</p>
+        <div class="profile-controls">
+          <button type="button" class="profile-button" data-export-save>Export save</button>
+          <label class="profile-button" for="saveFileInput">Import save</label>
+          <input id="saveFileInput" class="save-file-input" type="file" accept="application/json,.json" aria-label="Import a chronicle file" />
+        </div>
+      </section>
+
+      <section class="info-panel profile-panel danger-panel">
+        <h3>Reset the chronicle</h3>
+        <p class="panel-hint">Erases the autosave: name, attributes, resources, properties, every resolved encounter and the whole chronicle. A fresh start gives you nothing, and the Brine-Farm has to be earned again through the opening chain.</p>
+        <div class="profile-controls">
+          ${resetArmed
+            ? '<button type="button" class="profile-button danger" data-reset-game>Yes, erase everything</button><button type="button" class="profile-button" data-cancel-reset>Keep playing</button>'
+            : '<button type="button" class="profile-button danger" data-arm-reset>Reset the chronicle</button>'}
+        </div>
+        ${resetArmed ? '<p class="profile-notice danger">This cannot be undone.</p>' : ''}
+      </section>
+    </section>
+  `;
+}
+
+function getAllActions() {
+  return Object.values(locations).flatMap((location) => location.actions.map((action) => ({ action, location })));
+}
+
+function findActionById(actionId) {
+  return getAllActions().find((entry) => entry.action.id === actionId)?.action || null;
+}
+
+function isChainedBehindPendingStep(action) {
+  return (action.requires || []).some((requirement) => requirement.type === 'chain' && !hasSucceeded(requirement.action));
+}
+
+function getOpenActions(location) {
+  return location.actions.filter((action) => !(action.repeatable === false && hasSucceeded(action.id)));
+}
+
+function getVisibleActions(location) {
+  // Anything the chronicle has not actually opened for this player stays hidden:
+  // locked steps, wrong hour and unresolved chains all read as "not here yet",
+  // so the player is never shown a card they cannot use or spoil what is coming.
+  return getOpenActions(location).filter((action) => isActionRevealed(action));
+}
+
+function isActionRevealed(action) {
+  return describeEncounterWindow(action).open && !isChainedBehindPendingStep(action) && describeActionUnlock(action).met;
+}
+
+function findGrantorForProperty(property) {
+  return getAllActions().find((entry) => (entry.action.success?.properties || []).includes(property)) || null;
+}
+
+function getEventRecord(actionId) {
+  return (state.player.completedEvents || []).find((entry) => entry.id === actionId) || null;
+}
+
+function hasSucceeded(actionId) {
+  return getEventRecord(actionId)?.outcome === 'Success';
+}
+
+function recordEventCompletion(action, outcome) {
+  const records = (state.player.completedEvents || []).filter((entry) => entry.id !== action.id);
+  records.unshift({
+    id: action.id,
+    title: action.title,
+    outcome,
+    at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+  state.player.completedEvents = records.slice(0, 24);
+}
+
+function describeRequirement(requirement) {
+  if (requirement.type === 'property') {
+    const owned = state.player.properties.includes(requirement.value);
+    const grantor = owned ? null : findGrantorForProperty(requirement.value);
+    return {
+      type: 'property',
+      met: owned,
+      label: `Own the property “${requirement.value}”`,
+      phrase: `owning “${requirement.value}”`,
+      infinitive: `own the property “${requirement.value}”`,
+      detail: owned
+        ? 'You own it.'
+        : grantor
+          ? `You do not own it yet. Claim it by resolving “${grantor.action.title}” in ${grantor.location.realm}.`
+          : 'You do not own it yet.'
+    };
+  }
+
+  if (requirement.type === 'stat') {
+    const statLabel = statNames[requirement.stat] || requirement.stat;
+    const current = getEffectiveStat(requirement.stat);
+    const missing = Math.max(0, requirement.min - current);
+    return {
+      type: 'stat',
+      met: missing === 0,
+      label: `Reach ${statLabel} ${requirement.min}`,
+      phrase: `reaching ${statLabel} ${requirement.min}`,
+      infinitive: `reach ${statLabel} ${requirement.min}`,
+      detail: missing === 0
+        ? `${statLabel} stands at ${current}.`
+        : `${statLabel} stands at ${current}; ${missing} level${missing === 1 ? '' : 's'} short.`
+    };
+  }
+
+  if (requirement.type === 'chain') {
+    const target = findActionById(requirement.action);
+    const title = target ? target.title : requirement.action;
+    const record = getEventRecord(requirement.action);
+    const at = record?.at ? ` at ${record.at}` : '';
+    return {
+      type: 'chain',
+      met: hasSucceeded(requirement.action),
+      label: `Continue the chain from “${title}”`,
+      phrase: `continuing from “${title}”`,
+      infinitive: `continue from “${title}”`,
+      detail: !record
+        ? 'You have not attempted that event yet.'
+        : record.outcome === 'Success'
+          ? `You already resolved it as success${at}.`
+          : `You failed it${at}. The step stays closed until you resolve it again.`
+    };
+  }
+
+  if (requirement.type === 'resource') {
+    const resourceLabel = resourceNames[requirement.key] || requirement.key;
+    const current = state.player.resources[requirement.key] || 0;
+    const missing = Math.max(0, requirement.min - current);
+    return {
+      type: 'resource',
+      met: missing === 0,
+      label: `Hold ${requirement.min} ${resourceLabel}`,
+      phrase: `holding ${requirement.min} ${resourceLabel}`,
+      infinitive: `hold ${requirement.min} ${resourceLabel}`,
+      detail: missing === 0 ? `You hold ${current}.` : `You hold ${current}; ${missing} short.`
+    };
+  }
+
+  return { type: 'unknown', met: true, label: 'No recorded condition', phrase: '', infinitive: '', detail: '' };
+}
+
+function describeChainLink(action) {
+  if (!action.chain || !action.chain.follows) return null;
+  const target = findActionById(action.chain.follows);
+  const title = target ? target.title : action.chain.follows;
+  const record = getEventRecord(action.chain.follows);
+  const succeeded = hasSucceeded(action.chain.follows);
+  const gating = (action.requires || []).some((requirement) => requirement.type === 'chain' && requirement.action === action.chain.follows);
+  return {
+    met: succeeded,
+    gating,
+    label: action.chain.label || `Sequel of “${title}”`,
+    detail: !record
+      ? (gating
+          ? `This step opens only once you resolve “${title}”.`
+          : `The next step after “${title}”; it stays open on its own and does not lock.`)
+      : record.outcome === 'Success'
+        ? `You already resolved “${title}” as success; this is the step that follows it.`
+        : `You failed “${title}”. It never left this place, so this step is still waiting.`
+  };
+}
+
+function describeActionUnlock(action) {
+  const conditions = (action.requires || []).map((requirement) => describeRequirement(requirement));
+  const unique = action.repeatable === false;
+  const resolved = unique && hasSucceeded(action.id);
+  const attempted = unique && Boolean(getEventRecord(action.id));
+  return {
+    kind: conditions.length ? 'conditioned' : 'initial',
+    unique,
+    resolved,
+    attempted,
+    conditions,
+    chainLink: describeChainLink(action),
+    met: conditions.every((condition) => condition.met) && !resolved,
+    unmet: conditions.filter((condition) => !condition.met)
+  };
+}
+
+function joinPhrases(phrases) {
+  if (phrases.length <= 1) return phrases[0] || '';
+
+  return `${phrases.slice(0, -1).join(', ')} and ${phrases[phrases.length - 1]}`;
+}
+
+function summarizeUnlock(action) {
+  const unlock = describeActionUnlock(action);
+  let sentence;
+
+  if (unlock.resolved) {
+    sentence = 'Already resolved: this encounter is unique and cannot be taken again.';
+  } else if (unlock.attempted) {
+    sentence = 'Still open: this unique encounter was attempted and failed, so it stayed in its realm until you pass it.';
+  } else if (unlock.kind === 'initial') {
+    sentence = 'Available from the start: this encounter is open from the first day and no earlier deed of yours was needed to unlock it.';
+  } else if (unlock.met) {
+    sentence = `Unlocked by ${joinPhrases(unlock.conditions.map((condition) => condition.phrase))}.`;
+  } else {
+    sentence = `Still locked: you have yet to ${joinPhrases(unlock.unmet.map((condition) => condition.infinitive))}.`;
+  }
+
+  if (unlock.chainLink) sentence += ` ${unlock.chainLink.detail}`;
+
+  return sentence;
+}
+
+function getActionLockReason(action) {
+  const unlock = describeActionUnlock(action);
+  if (unlock.met) return '';
+  if (unlock.resolved) return 'This encounter is unique: it resolves once and cannot be repeated.';
+
+  return unlock.unmet.map((condition) => `${condition.label} — ${condition.detail}`).join(' ');
+}
+
+function describeCost(cost) {
+  if (!cost) return '';
+
+  return Object.entries(cost).map(([key, value]) => `${value} ${resourceNames[key] || key}`).join(' + ');
+}
+
+function formatPercent(value) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatEffectAmount(key, amount) {
+  const sign = amount >= 0 ? '+' : '';
+  if (key in statNames) return `${statNames[key]} +${amount} XP`;
+  if (key in malusNames) return `${malusNames[key]} ${sign}${amount} level${Math.abs(amount) === 1 ? '' : 's'}`;
+
+  return `${resourceNames[key] || key} ${sign}${amount}`;
+}
+
+function formatOutcomeEffects(effect = {}) {
+  const parts = [];
+  Object.entries(effect.resources || {}).forEach(([key, value]) => parts.push(formatEffectAmount(key, value)));
+  Object.entries(effect.experience || {}).forEach(([key, value]) => parts.push(formatEffectAmount(key, value)));
+  Object.entries(effect.stats || {}).forEach(([key, value]) => parts.push(formatEffectAmount(key, value)));
+  (effect.properties || []).forEach((property) => parts.push(`Unlocks ${property}`));
+
+  return parts.join(' · ');
+}
+
+function formatChanceRewards(action) {
+  return (action.chanceRewards || [])
+    .map((entry) => {
+      const reward = formatEffectAmount(entry.resource, entry.amount);
+      return entry.name ? `${formatPercent(entry.chance)} ${entry.name} (${reward})` : `${formatPercent(entry.chance)} ${reward}`;
+    })
+    .join(' · ');
+}
+
+function describeChanceOutcome(dropped) {
+  if (!dropped.length) return '';
+
+  return ` Chance yielded ${dropped.map((entry) => entry.name || formatEffectAmount(entry.resource, entry.amount)).join(' and ')}.`;
+}
+
+function grantChanceRewards(action) {
+  const dropped = (action.chanceRewards || []).filter((entry) => Math.random() < entry.chance);
+  if (!dropped.length) return [];
+
+  const resources = {};
+  dropped.forEach((entry) => {
+    resources[entry.resource] = (resources[entry.resource] || 0) + entry.amount;
+  });
+  applyReward({ resources }, { action, outcome: 'Success' });
+
+  return dropped;
+}
+
+function renderEncounterKind(unlock) {
+  if (unlock.unique) {
+    return '<p class="encounter-kind unique"><strong>Unique</strong>This encounter belongs to the story and happens once. Resolve it and it leaves this place for good, recorded in your profile as a deed already done.</p>';
+  }
+
+  return '<p class="encounter-kind repeatable"><strong>Repeatable</strong>This encounter stays open. Return to it as often as your Vigor allows and farm it for its yields.</p>';
+}
+
+function renderActionRewards(action) {
+  const lines = ['<p class="reward-heading">What this encounter can yield</p>'];
+  const cost = action.cost ? describeCost(action.cost) : '';
+  const success = formatOutcomeEffects(action.success);
+  const chances = formatChanceRewards(action);
+  const failure = formatOutcomeEffects(action.failure);
+
+  lines.push(`<p class="reward-line cost"><b>Cost</b>1 Vigor${cost ? ` · ${cost}` : ''}</p>`);
+  if (success) lines.push(`<p class="reward-line success"><b>On success</b>${success}</p>`);
+  if (chances) lines.push(`<p class="reward-line chance"><b>Chance drops</b>${chances}</p>`);
+  if (failure) lines.push(`<p class="reward-line failure"><b>On failure</b>${failure}</p>`);
+
+  return `<div class="action-rewards">${lines.join('')}</div>`;
+}
+
+function renderActionUnlock(action) {
+  const unlock = describeActionUnlock(action);
+  const location = locations[state.currentLocationId];
+  const items = [];
+
+  if (unlock.kind === 'initial') {
+    items.push(`
+      <li class="unlock-item initial">
+        <span class="unlock-mark" aria-hidden="true">✦</span>
+        <span class="unlock-text"><b>Available from the start.</b>This one was never locked. It stands in ${location.realm} from the first day, and nothing in your chronicle had to open it.</span>
+      </li>
+    `);
+  } else if (unlock.attempted && !unlock.resolved) {
+    items.push(`
+      <li class="unlock-item retry">
+        <span class="unlock-mark" aria-hidden="true">↻</span>
+        <span class="unlock-text"><b>Failed before, still open.</b>You did not pass it last time, so it never left this place. Take it again.</span>
+      </li>
+    `);
+  }
+
+  unlock.conditions.forEach((condition) => {
+    items.push(`
+      <li class="unlock-item ${condition.met ? 'met' : 'unmet'}">
+        <span class="unlock-mark" aria-hidden="true">${condition.met ? '✓' : '✕'}</span>
+        <span class="unlock-text"><b>${condition.label}</b><span class="unlock-detail">${condition.detail}</span></span>
+      </li>
+    `);
+  });
+
+  if (unlock.chainLink) {
+    items.push(`
+      <li class="unlock-item link ${unlock.chainLink.met ? 'met' : ''}">
+        <span class="unlock-mark" aria-hidden="true">◈</span>
+        <span class="unlock-text"><b>${unlock.chainLink.label}</b><span class="unlock-detail">${unlock.chainLink.detail}</span></span>
+      </li>
+    `);
+  }
+
+  return `
+    <div class="unlock-block ${unlock.met ? 'is-open' : 'is-locked'}">
+      <p class="unlock-heading">How this unlocked</p>
+      <ul class="unlock-list">${items.join('')}</ul>
+      <p class="unlock-story">Why it surfaces here: ${action.appearanceReason}</p>
+    </div>
+  `;
+}
+
+function renderActions() {
+  const location = locations[state.currentLocationId];
+  const visibleActions = getVisibleActions(location);
+  const list = document.getElementById('actionList');
+
+  if (!visibleActions.length) {
+    const open = getOpenActions(location);
+    const reasons = [];
+    if (open.some((action) => isChainedBehindPendingStep(action))) reasons.push('Some are still waiting on an earlier step of their story.');
+    if (open.some((action) => !describeEncounterWindow(action).open)) reasons.push('Some only happen in another hour.');
+    if (open.some((action) => !describeActionUnlock(action).met)) reasons.push('Some need more from you before they surface here.');
+    const suffix = reasons.length ? ` ${reasons.join(' ')}` : open.length ? ' Every encounter in this place is already resolved.' : '';
+    list.innerHTML = `<p class="deck-empty">Nothing is open to you here right now.${suffix}</p>`;
+    return;
+  }
+
+  list.innerHTML = visibleActions.map((action) => {
+    const unlock = describeActionUnlock(action);
+    const encounterWindow = describeEncounterWindow(action);
+    const accessible = unlock.met;
+    const inWindow = encounterWindow.open;
+    const affordable = canAfford(action.cost);
+    const hasVigor = state.player.vigor > 0;
+    const chance = getTestChance(action);
+    const canCommit = accessible && inWindow && affordable && hasVigor;
+    const commitLabel = !accessible
+      ? 'Locked'
+      : !inWindow
+        ? encounterWindow.label
+        : !affordable
+          ? 'Unaffordable'
+          : !hasVigor
+            ? 'Resting'
+            : 'Commit · 1 Vigor';
+    return `
+      <article class="action-card ${accessible ? '' : 'locked'}">
+        <div class="action-thumb" aria-hidden="true"></div>
+        <div class="action-body">
+          <h4>${action.title}</h4>
+          <p>${action.summary}</p>
+          ${renderActionUnlock(action)}
+          ${renderEncounterKind(unlock)}
+          ${inWindow ? '' : `<p class="window-notice"><span aria-hidden="true">${encounterWindow.icon}</span>This encounter is here but waits for ${encounterWindow.label === 'Night only' ? 'nightfall' : 'daylight'}. Come back to it in the right hour.</p>`}
+          ${renderActionRewards(action)}
+          ${!affordable ? `<p class="lock-reason">Cost stands in the way: ${describeCost(action.cost)} must be paid before you commit.</p>` : ''}
+          <div class="action-meta">
+            <span class="meta-pill success">${statNames[action.test]} test</span>
+            <span class="meta-pill">Diff ${action.difficulty}</span>
+            <span class="meta-pill odds-${chanceTone(chance)}" title="${statNames[action.test]} ${state.player.stats[action.test] || 0} against difficulty ${action.difficulty}. Roll 1-100 and you pass at ${chance} or lower.">${chance}% to pass</span>
+            <span class="meta-pill">1 Vigor</span>
+            <span class="meta-pill ${inWindow ? 'when-open' : 'when-shut'}">${encounterWindow.icon} ${encounterWindow.label}</span>
+            ${unlock.unique ? '<span class="meta-pill unique">Unique</span>' : '<span class="meta-pill repeatable">Repeatable</span>'}
+            ${accessible ? '<span class="meta-pill success">Unlocked</span>' : '<span class="meta-pill locked">Locked</span>'}
+          </div>
+        </div>
+        <button class="action-button ${canCommit ? '' : 'locked'}" data-action-id="${action.id}" ${canCommit ? '' : 'disabled'} title="${hasVigor ? 'Costs 1 Vigor' : 'Out of Vigor; wait for regeneration'}">
+          ${commitLabel}
+        </button>
+      </article>
+    `;
+  }).join('');
+  list.querySelectorAll('.action-thumb').forEach((thumb, index) => {
+    thumb.style.backgroundImage = `linear-gradient(180deg, rgba(15, 12, 9, 0.08), rgba(15, 12, 9, 0.3)), url("${visibleActions[index].image}")`;
+  });
+}
+
+function renderPerils() {
+  const labels = {
+    scandal: ['Scandal', '<svg viewBox="0 0 24 24"><path d="M12 3.5a7.5 7.5 0 0 0-7.5 7.5v2.1c0 1.3.7 2.5 1.8 3.2l1.2.8v2.4h9v-2.4l1.2-.8a3.8 3.8 0 0 0 1.8-3.2V11A7.5 7.5 0 0 0 12 3.5Z"/><path d="M8 10h2m4 0h2M9 14h6m-5.5 3.5v2m5-2v2"/><circle cx="9" cy="10.5" r="1.2"/><circle cx="15" cy="10.5" r="1.2"/></svg>'],
+    wounds: ['Wounds', '<svg viewBox="0 0 24 24"><path d="M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z"/></svg>'],
+    suspicion: ['Suspicion', '<svg viewBox="0 0 24 24"><path d="M3 12s3.2-6 9-6 9 6 9 6-3.2 6-9 6-9-6-9-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>'],
+    nightmare: ['Nightmare', '<svg viewBox="0 0 24 24"><path d="M19 15.5A8 8 0 0 1 8.5 5a8.5 8.5 0 1 0 10.5 10.5Z"/><path d="m16 4 .7 1.5L18 6l-1.3.5L16 8l-.7-1.5L14 6l1.3-.5z"/></svg>'],
+    debt: ['Debt', '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15 8.5c-.7-.7-1.5-1-2.8-1-1.5 0-2.7.8-2.7 2s1 1.8 2.7 2.3 2.7 1 2.7 2.2-1.2 2.2-2.9 2.2c-1.2 0-2.3-.4-3-1.2M12 5.5v13"/></svg>']
+  };
+  const activePerils = Object.entries(state.player.malus).filter(([, value]) => value > 0);
+  const container = document.getElementById('perilSigils');
+  container.innerHTML = activePerils.length
+    ? activePerils.map(([key, value]) => {
+      const [label, icon] = labels[key];
+      const progress = Math.min(value, 6) / 6 * 100;
+      const level = value >= 3 ? 'High' : 'Low';
+      return `<div class="peril-sigil" title="${label}: ${level}, level ${value}" aria-label="${label}, level ${value} of 6"><span class="peril-symbol" aria-hidden="true">${icon}</span><span class="peril-count" aria-hidden="true">${value}</span><div class="peril-details"><div class="peril-detail-heading"><b>${label}</b><span>${value}/6 · ${level}</span></div><span class="peril-track" aria-hidden="true"><i style="width:${progress}%"></i></span></div></div>`;
+    }).join('')
+    : '<span class="no-perils">No active perils</span>';
+}
+
+function render() {
+  renderSidebar();
+  const renderers = {
+    tales: renderTales,
+    map: renderMap,
+    deck: renderDeck,
+    persona: renderPersona,
+    equipment: renderEquipment,
+    chronicles: renderChronicles,
+    profile: renderProfile
+  };
+  renderers[currentView]();
+  renderResourceTimers();
+}
+
+function wireEvents() {
+  document.addEventListener('click', (event) => {
+    const closeResolutionButton = event.target.closest('[data-resolution-close]');
+    if (closeResolutionButton && !closeResolutionButton.disabled) {
+      closeResolution();
+      return;
+    }
+
+    if (event.target.id === 'resolutionOverlay') {
+      closeResolution();
+      return;
+    }
+
+    const calendarToggle = event.target.closest('[data-calendar-toggle]');
+    if (calendarToggle) {
+      toggleCalendar();
+      return;
+    }
+
+    if (event.target.closest('[data-calendar-close]') || event.target.id === 'calendarPanel') {
+      closeCalendar();
+      return;
+    }
+
+    if (event.target.closest('[data-calendar-prev]')) {
+      calendarMonthOffset -= 1;
+      calendarSelectedDay = null;
+      renderCalendarPanel();
+      return;
+    }
+
+    if (event.target.closest('[data-calendar-next]')) {
+      calendarMonthOffset += 1;
+      calendarSelectedDay = null;
+      renderCalendarPanel();
+      return;
+    }
+
+    if (event.target.closest('[data-calendar-today]')) {
+      calendarMonthOffset = 0;
+      calendarSelectedDay = null;
+      renderCalendarPanel();
+      return;
+    }
+
+    const calendarDay = event.target.closest('[data-calendar-day]');
+    if (calendarDay) {
+      calendarSelectedDay = Number(calendarDay.dataset.calendarDay);
+      renderCalendarPanel();
+      return;
+    }
+
+    const drawButton = event.target.closest('[data-card-draw]');
+    if (drawButton && !drawButton.disabled) {
+      drawTideCard();
+      return;
+    }
+
+    const discardButton = event.target.closest('[data-card-discard]');
+    if (discardButton) {
+      discardTideCard(discardButton.dataset.cardDiscard);
+      return;
+    }
+
+    const playButton = event.target.closest('[data-card-play]');
+    if (playButton) {
+      playTideCard(playButton.dataset.cardPlay);
+      return;
+    }
+
+    const renameButton = event.target.closest('[data-rename-player]');
+    if (renameButton) {
+      const nameInput = document.getElementById('profileNameInput');
+      const outcome = renamePlayer(nameInput ? nameInput.value : '');
+      if (outcome.ok) {
+        profileNotice = outcome.unchanged ? 'That is already the name on your chronicle.' : `You are recorded as ${state.player.name} from now on.`;
+      } else {
+        profileNotice = outcome.reason;
+      }
+      render();
+      return;
+    }
+
+    const exportButton = event.target.closest('[data-export-save]');
+    if (exportButton) {
+      exportSave();
+      return;
+    }
+
+    const importInput = document.getElementById('saveFileInput');
+    if (importInput && event.target === importInput) {
+      importSave(importInput.files && importInput.files[0]);
+      importInput.value = '';
+      return;
+    }
+
+    const armResetButton = event.target.closest('[data-arm-reset]');
+    if (armResetButton) {
+      resetArmed = true;
+      render();
+      return;
+    }
+
+    const cancelResetButton = event.target.closest('[data-cancel-reset]');
+    if (cancelResetButton) {
+      resetArmed = false;
+      render();
+      return;
+    }
+
+    const resetButton = event.target.closest('[data-reset-game]');
+    if (resetButton) {
+      resetGame();
+      return;
+    }
+
+    const equipRemove = event.target.closest('[data-equip-remove]');
+    if (equipRemove) {
+      unequipSlot(equipRemove.dataset.equipRemove);
+      return;
+    }
+
+    const equipTarget = event.target.closest('[data-equip-item]');
+    if (equipTarget) {
+      equipItem(equipTarget.dataset.equipItem);
+      return;
+    }
+
+    const viewLink = event.target.closest('[data-view]');
+    if (viewLink) {
+      currentView = viewLink.dataset.view;
+      profileNotice = '';
+      resetArmed = false;
+      render();
+      return;
+    }
+
+    const locationLink = event.target.closest('[data-location]');
+    if (locationLink) {
+      state.currentLocationId = locationLink.dataset.location;
+      currentView = 'tales';
+      saveGame();
+      render();
+      return;
+    }
+
+    const actionButton = event.target.closest('[data-action-id]');
+    if (actionButton) resolveAction(actionButton.dataset.actionId);
+  });
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    closeResolution();
+    closeCalendar();
+  });
+}
+
+function boot() {
+  initializeTideDeck();
+  const copyrightYear = document.getElementById('copyrightYear');
+  if (copyrightYear) copyrightYear.textContent = new Date().getFullYear();
+  const logLengthBeforeDeduplication = state.player.log.length;
+  state.player.log = state.player.log.filter((entry, index, entries) => index === 0 || entry.prefix !== 'Arrival' || entries[index - 1].prefix !== 'Arrival');
+  if (state.player.log.length !== logLengthBeforeDeduplication) saveGame();
+  if (!state.player.log.length) {
+    addLog('The lagoon breathes beneath the city. A quiet path opens before you.', 'Arrival', `This chronicle opens in ${locations[state.currentLocationId].realm}, the realm saved for this life.`);
+  }
+  render();
+  wireEvents();
+  grantMissingStarterItems();
+  if (progressionMigrationPending) {
+    saveGame();
+    progressionMigrationPending = false;
+  }
+  window.setInterval(() => {
+    const regeneration = refreshTimedResources();
+    renderResourceTimers();
+    document.getElementById('deckBadge').textContent = formatDrawReserve();
+    if (regeneration.changed) {
+      saveGame();
+      render();
+    }
+  }, 1000);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  boot();
+});
+
+window.addEventListener('beforeunload', () => {
+  saveGame();
+});
