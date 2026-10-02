@@ -34,10 +34,10 @@ const motes = {
   maxDeltaMs: 48,
   // Tetto assoluto: oltre questo il guadagno estetico e' nullo e il costo per
   // il processore si sente.
-  maxParticles: 110,
+  maxParticles: 130,
   // Densita' sulla superficie. Con 100000px quadrati si ha circa una particella
-  // ogni 110x110px: abbastanza da sentire l'aria mossa senza nascondere nulla.
-  particlesPerPixel: 0.00095,
+  // ogni 90x90px: abbastanza da sentire l'aria mossa senza nascondere nulla.
+  particlesPerPixel: 0.0013,
 
   start() {
     this.canvas = document.getElementById('motesCanvas');
