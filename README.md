@@ -8,8 +8,10 @@ A prototype for a text-heavy narrative game inspired by the tone and structure o
 - narrative locations with repeated daily actions
 - stat-based challenge resolution
 - an in-game resolution window with a rolling d100, suspense beat and the full outcome ledger (stats, XP, level ups, resources, afflictions, properties, chance drops)
-- your cards are never taken away: an affliction card is drawn at random from the tide deck and never replaces what you were saving
-- an affliction card leaves the hand the moment its malus is gone, whether you cleared it by playing the card or with a tide card
+- an affliction card is drawn at random from the tide deck and never replaces what you were saving
+- playing an affliction card spends it: it leaves the hand on every use, so an affliction lasting several levels has to be fought one draw at a time
+- an affliction card also leaves the hand the moment its malus is gone, cleared by a tide card or by anything else
+- if an affliction grows after its card was spent, the card can be drawn again: a new affliction is a new matter
 - requirement-based unlocking for unique story paths
 - every story event states how it became available: open from the start, unlocked by a stat, a property, a chain step or a resource
 - encounters marked Unique (one-time story beats) or Repeatable (farmable)

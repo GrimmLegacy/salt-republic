@@ -659,5 +659,145 @@ log(`email is a mailto= ${html.includes('mailto:grimmlegacies@gmail.com')}`);
 log(`year is dynamic  = ${html.includes('id="copyrightYear"')}`);
 log(`placed under the title = ${html.indexOf('sidebar-legal') > html.indexOf('The Drowned Serenissima</span>')}`);
 
+log('=== 39) Playing an affliction card spends it, even if the malus remains ===');
+// Il caso segnalato: usare la carta deve toglierla dalla mano. Con livello > 1 la
+// malus resta attiva, ma la carta e' comunque consumata e va ripescata.
+state.player.malus = { scandal: 0, wounds: 3, suspicion: 0, nightmare: 0, debt: 0 };
+state.player.malusSources = { wounds: { event: 'A brawl', outcome: 'Failure', reason: 'you were seen' } };
+state.player.pendingMalus = ['wounds'];
+state.player.hand = ['intellect', 'malus-wounds'];
+state.player.dismissedMalus = [];
+state.player.vigor = 20;
+syncHandWithActiveMalus();
+log(`card in hand before play = ${state.player.hand.includes('malus-wounds')}`);
+playTideCard('malus-wounds');
+closeResolution();
+log(`wounds level 3 -> 2 = ${state.player.malus.wounds === 2}`);
+log(`card left the hand  = ${!state.player.hand.includes('malus-wounds')}`);
+log(`malus still active  = ${state.player.malus.wounds > 0}`);
+log(`it stays out of the deck queue = ${!state.player.pendingMalus.includes('wounds')}`);
+
+// Il punto delicato: senza il registro, la sincronizzazione rimetterebbe la carta
+// in coda e quindi di nuovo in mano al primo salvataggio o ricaricamento.
+syncHandWithActiveMalus();
+syncHandWithActiveMalus();
+log(`still gone after re-sync = ${!state.player.hand.includes('malus-wounds')}`);
+log(`recorded as spent = ${JSON.stringify(state.player.dismissedMalus)}`);
+
+log('');
+log('=== 40) The spent card is not re-offered, and clears at zero ===');
+log(`no re-queue while active = ${!state.player.pendingMalus.includes('wounds')}`);
+
+// Quando l'afflizione arriva a zero il record sparisce: resta la regola normale,
+// la carta esce dalla mano.
+state.player.malus.wounds = 0;
+delete state.player.malusSources.wounds;
+syncHandWithActiveMalus();
+log(`at zero: record cleared = ${state.player.dismissedMalus.length === 0}`);
+log(`at zero: card absent   = ${!state.player.hand.includes('malus-wounds')}`);
+
+// Se il malus risale la carta torna pescabile: un'afflizione nuova non deve
+// ereditare la carta gia' spesa.
+state.player.malus.wounds = 1;
+syncHandWithActiveMalus();
+log(`malus rose again -> re-queued = ${state.player.pendingMalus.includes('wounds')}`);
+state.player.malus.wounds = 0;
+state.player.pendingMalus = [];
+state.player.hand = ['intellect', 'might'];
+state.player.dismissedMalus = [];
+syncHandWithActiveMalus();
+
+log('');
+log('=== 41) The spent record survives a save and reload ===');
+state.player.malus = { scandal: 0, wounds: 2, suspicion: 0, nightmare: 0, debt: 0 };
+state.player.pendingMalus = ['wounds'];
+state.player.dismissedMalus = [];
+state.player.hand = ['intellect', 'malus-wounds'];
+state.player.vigor = 20;
+syncHandWithActiveMalus();
+playTideCard('malus-wounds');
+closeResolution();
+saveGame();
+const spentSave = store[STORAGE_KEY];
+// Rimette a forza la carta in mano e cancella il record: il ricaricamento deve
+// ripristinare la consumazione, altrimenti la carta ricomparirebbe.
+state.player.dismissedMalus = [];
+state.player.hand = ['intellect', 'malus-wounds'];
+state.player.pendingMalus = ['wounds'];
+syncHandWithActiveMalus();
+log(`card force-restored by hand = ${state.player.hand.includes('malus-wounds')}`);
+tryImport(spentSave);
+log(`after reload: card gone   = ${!state.player.hand.includes('malus-wounds')}`);
+log(`after reload: still active = ${state.player.malus.wounds > 0}`);
+log(`after reload: record kept  = ${JSON.stringify(state.player.dismissedMalus)}`);
+
+log('');
+log('=== 42) A hand-edited save cannot inject a bogus spent record ===');
+// `dismissedMalus` arriva da un file importato: un id inesistente o una forma
+// sbagliata non devono mai far crashare il caricamento.
+const junkSave = JSON.parse(spentSave);
+junkSave.player.dismissedMalus = ['ghost-affliction', { id: 'also-ghost' }, 42, null, 'wounds'];
+tryImport(JSON.stringify(junkSave));
+log(`no crash on junk = ${Array.isArray(state.player.dismissedMalus)}`);
+log(`only real ids kept = ${JSON.stringify(state.player.dismissedMalus.map((entry) => entry.id))}`);
+log(`a bare string is dropped even for a real id = ${!state.player.dismissedMalus.some((entry) => entry?.id === 'wounds')}`);
+log(`all entries well-formed = ${state.player.dismissedMalus.every((entry) => entry && typeof entry === 'object' && typeof entry.id === 'string')}`);
+
+log('');
+log('=== 43) Drawing shows a card, not a die ===');
+// Al peso non c'e' nessun test da superare: mostrare un dado prometterebbe una
+// probabilita' che il gioco non sta facendo. Deve girare una carta.
+state.player.malus = { scandal: 0, wounds: 0, suspicion: 0, nightmare: 0, debt: 0 };
+state.player.pendingMalus = [];
+state.player.dismissedMalus = [];
+state.player.hand = ['intellect', 'might'];
+state.player.drawPile = allTideCards.map((card) => card.id).filter((id) => !state.player.hand.includes(id));
+state.player.discardPile = [];
+state.player.drawTokens = 3;
+state.player.vigor = 20;
+const pileBefore = state.player.drawPile.length;
+const handBefore = state.player.hand.length;
+drawTideCard();
+const drawnHtml = overlayEl.innerHTML;
+log(`card markup present  = ${drawnHtml.includes('resolution-draw') && drawnHtml.includes('draw-card-inner')}`);
+log(`no die shown         = ${!drawnHtml.includes('die-face')}`);
+log(`card has a back face = ${drawnHtml.includes('draw-back')}`);
+log(`card flips face      = ${drawnHtml.includes('draw-front')}`);
+log(`pile shrank by one   = ${state.player.drawPile.length === pileBefore - 1}`);
+log(`hand grew by one     = ${state.player.hand.length === handBefore + 1}`);
+closeResolution();
+
+log('');
+log('=== 44) An affliction draw also shows a card, not a die ===');
+state.player.malus.wounds = 1;
+state.player.pendingMalus = ['wounds'];
+state.player.dismissedMalus = [];
+state.player.hand = ['intellect', 'might', 'persuasion'];
+state.player.drawPile = allTideCards.map((card) => card.id).filter((id) => !state.player.hand.includes(id));
+state.player.drawTokens = 3;
+state.player.vigor = 20;
+syncHandWithActiveMalus();
+// Forza il ramo malus: il peso malus occupa l'inizio dell'intervallo totale, quindi
+// il rotolo minimo lo seleziona sempre.
+Math.random = () => 0;
+drawTideCard();
+Math.random = realRandom;
+const malusHtml = overlayEl.innerHTML;
+log(`malus card shown   = ${malusHtml.includes('resolution-draw')}`);
+log(`no die shown       = ${!malusHtml.includes('die-face')}`);
+log(`affliction in hand = ${state.player.hand.includes('malus-wounds')}`);
+closeResolution();
+
+log('');
+log('=== 45) An action test still shows the die ===');
+// Il dado resta per i test veri: la distinzione deve valere solo sul pescato.
+Math.random = () => 0;
+const scriptedTest = rollTest({ stats: { resolve: 3 }, difficulty: 40 });
+Math.random = realRandom;
+const dieHtml = renderResolutionDie({ value: scriptedTest.roll, threshold: scriptedTest.chance, detail: 'x' });
+log(`die kept for tests  = ${dieHtml.includes('die-face') && dieHtml.includes('die-track')}`);
+log(`draw renders a card = ${renderResolutionDraw({ detail: 'x' }).includes('resolution-draw')}`);
+log(`nothing drawn -> empty = ${renderResolutionDraw(null) === ''}`);
+
 fs.writeFileSync('tools/out/reward-check.out.txt', out.join('\n'), 'utf8');
 console.log('REWARD HARNESS DONE');

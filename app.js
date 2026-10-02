@@ -576,6 +576,10 @@ const defaultState = {
     properties: [],
     completedEvents: [],
     pendingMalus: [],
+    // Carte afflizione gia' usate ma con malus ancora attivo: non tornano in
+    // mano finche' l'afflizione non arriva a zero. Viene validato al caricamento
+    // con gli stessi id ammessi in `pendingMalus`.
+    dismissedMalus: [],
     // Which item id sits in each slot, and which items the player owns but has
     // not equipped. Both are validated on load so a stale or hand-edited save
     // can never inject an unknown item into the bonuses.
@@ -937,6 +941,11 @@ function loadSave() {
         exhaustedCards: Array.isArray(parsed.player?.exhaustedCards) ? parsed.player.exhaustedCards : [],
         completedEvents: Array.isArray(parsed.player?.completedEvents) ? parsed.player.completedEvents.filter((entry) => entry && entry.id) : [],
         pendingMalus: Array.isArray(parsed.player?.pendingMalus) ? parsed.player.pendingMalus.filter((key) => typeof key === 'string') : [],
+        dismissedMalus: Array.isArray(parsed.player?.dismissedMalus)
+          ? parsed.player.dismissedMalus
+            .filter((entry) => entry && typeof entry === 'object' && malusCards.some((card) => card.id === entry.id))
+            .map((entry) => ({ id: entry.id, level: Math.min(6, Math.max(0, Number(entry.level) || 0)) }))
+          : [],
         equipment: sanitizeEquipment(parsed.player?.equipment),
         inventory: sanitizeInventory(parsed.player?.inventory, sanitizeEquipment(parsed.player?.equipment)),
         flags: sanitizeFlags(parsed.player?.flags),
@@ -1121,11 +1130,37 @@ function queueMalusCard(malusKey) {
   state.player.pendingMalus.push(malusKey);
 }
 
+// Fa usare la carta malus e poi la toglie dalla mano, SEMPRE.
+//
+// La scelta e' deliberata: la carta non e' uno strumento che tieni, e' il
+// costo di una lotta. Usarla la consuma, e per abbassare un'afflizione a livello
+// alto serve pescarla di nuovo: il gioco ti mette il prezzo davanti, e il prezzo
+// e' che il prossimo pescato potrebbe non essere quella.
+//
+// Prima la carta restava finche' l'afflizione non arrivava a zero, il che
+// rendeva il primo uso gratis e gli altri no. Il README promise gia' da prima
+// che "your cards are never taken away", quindi la frase andava corretta: qui si
+// intende che una carta AFFLIZIONE viene pescata solo per il malus che porta e
+// non sostituisce mai una carta tua.
 function pruneMalusCard(malusKey) {
   state.player.pendingMalus = state.player.pendingMalus.filter((key) => key !== malusKey);
   state.player.hand = state.player.hand.filter((id) => id !== `malus-${malusKey}`);
 }
 
+// Tiene la mano coerente con il mondo intorno.
+//
+// Il punto delicato e' `dismissed`. Una carta afflizione, quando la si usa,
+// sparisce dalla mano anche se l'afflizione resta attiva: va ripescata per
+// abbassarla ancora. Senza questo registro, la riga sotto la rimetterebbe in
+// coda a ogni sincronizzazione e la carta ricomparirebbe subito, rendendo la
+// consumazione inutile.
+//
+// Il registro ricorda, per ogni afflizione consumata, il livello che aveva
+// quando la carta e' stata usata. Se il malus torna a salire (per un incontro o
+// una carta), il livello supera quello memorizzato e la carta torna
+// disponibile: un'afflizione nuova e' un affare nuovo e non deve ereditare la
+// carta gia' spesa. Scendere non basta invece: l'abbassamento e' proprio quello
+// che la carta consumata sta ancora pagando.
 function syncHandWithActiveMalus() {
   const normalIds = new Set(allTideCards.map((card) => card.id));
   const malusIds = new Set(malusCards.map((card) => `malus-${card.id}`));
@@ -1133,14 +1168,47 @@ function syncHandWithActiveMalus() {
 
   state.player.hand = [...new Set(state.player.hand)].filter((id) => knownCards.has(id));
 
+  if (!Array.isArray(state.player.dismissedMalus)) state.player.dismissedMalus = [];
+  const validIds = new Set(malusCards.map((card) => card.id));
+  state.player.dismissedMalus = state.player.dismissedMalus.filter((entry) => entry && validIds.has(entry.id) && (state.player.malus[entry.id] || 0) > 0);
+  // Rimuove i record il cui malus non e' piu' attivo, e cancella dalle mano e
+  // dalla coda le carte delle afflizioni chiuse.
+  state.player.dismissedMalus.forEach((entry) => pruneMalusCard(entry.id));
+
   Object.keys(state.player.malus).forEach((key) => {
-    if (state.player.malus[key] > 0) queueMalusCard(key);
-    else pruneMalusCard(key);
+    const level = state.player.malus[key] || 0;
+    if (level <= 0) {
+      pruneMalusCard(key);
+      // L'afflizione e' sparita: la carta non e' piu' "consumata", e se il
+      // malus tornasse a salire la si potrebbe pescare di nuovo.
+      state.player.dismissedMalus = state.player.dismissedMalus.filter((entry) => entry?.id !== key);
+      return;
+    }
+    if (state.player.dismissedMalus.some((entry) => entry?.id === key && level <= (entry.level ?? 0))) return;
+    // Il malus e' salito oltre il livello segnato: e' un'afflizione nuova, la
+    // carta torna disponibile anche se ne avevi gia' speso una.
+    state.player.dismissedMalus = state.player.dismissedMalus.filter((entry) => entry?.id !== key);
+    queueMalusCard(key);
   });
 
   const inHand = new Set(state.player.hand);
   state.player.pendingMalus = [...new Set(state.player.pendingMalus)].filter((key) => state.player.malus[key] > 0 && !inHand.has(`malus-${key}`));
   state.player.drawPile = [...new Set(state.player.drawPile)].filter((id) => normalIds.has(id) && !inHand.has(id));
+}
+
+// Segna una carta afflizione come usata, insieme al livello che aveva in questo
+// momento: dopo questa chiamata non torna in mano finche' il malus non supera
+// quel livello. Va chiamata subito dopo averla giocata.
+function dismissMalusCard(malusKey) {
+  if (!Array.isArray(state.player.dismissedMalus)) state.player.dismissedMalus = [];
+  const level = state.player.malus[malusKey] || 0;
+  const at = { id: malusKey, level };
+  const existing = state.player.dismissedMalus.findIndex((entry) => entry?.id === malusKey);
+  // Se una carta identica era gia' stata consumata, si tiene solo la consumazione
+  // piu' recente: e' quella che conta, perche' riflette l'afflizione ancora aperta.
+  if (existing === -1) state.player.dismissedMalus.push(at);
+  else state.player.dismissedMalus[existing] = at;
+  pruneMalusCard(malusKey);
 }
 
 function initializeTideDeck() {
@@ -1204,10 +1272,13 @@ function drawTideCard() {
       title: malusDraw.title,
       subtitle: malusDraw.description,
       tone: 'neutral',
-      die: { text: malusDraw.label, detail: `${odds}% of this draw` },
+      draw: {
+        image: `immagini/carte/malus ${malusDraw.asset} low.jpg`,
+        detail: `${malusDraw.label} · ${odds}% of this draw`
+      },
       narrative: 'The tide gives up something you would rather not hold. Still, it is in your hand now.',
       rows: [{ tone: 'gold', label: 'Hand slot', value: `${state.player.hand.length} of 4` }],
-      note: 'Playing it costs 1 Vigor and lowers the affliction by one level. It cannot be discarded.'
+      note: 'Playing it costs 1 Vigor and lowers the affliction by one level. The card is spent when you play it, so an affliction lasting several levels has to be fought one draw at a time.'
     });
     return;
   }
@@ -1224,7 +1295,11 @@ function drawTideCard() {
     title: drawnCard.title,
     subtitle: drawnCard.quote,
     tone: 'neutral',
-    die: { text: rarityNames[drawnCard.rarity], detail: `${poolOdds}% of the pool you drew from` },
+    draw: {
+      image: drawnCard.image,
+      sigil: drawnCard.symbol,
+      detail: `${rarityNames[drawnCard.rarity]} · ${poolOdds}% of the pool you drew from`
+    },
     narrative: 'The current turns the card and gives it to you.',
     rows: [{ tone: 'gold', label: 'Hand slot', value: `${state.player.hand.length} of 4` }],
     note: `Base rarity chance ${rarityWeights[drawnCard.rarity]}%. Drawing costs 1 Vigor and 1 draw reserve.`
@@ -1244,7 +1319,7 @@ function discardTideCard(cardId) {
   const [card] = state.player.hand.splice(cardIndex, 1);
   state.player.discardPile.push(card);
   const cardData = allTideCards.find((entry) => entry.id === cardId);
-  addLog(`${cardData.title} was discarded from your hand.`, 'Card Discarded', 'You chose to discard this non-malus card. Affliction cards cannot be discarded.');
+  addLog(`${cardData.title} was discarded from your hand.`, 'Card Discarded', 'You chose to discard this non-malus card. Affliction cards cannot be discarded; to get rid of one you must play it and lower the malus it carries.');
   saveGame();
   render();
 }
@@ -1263,11 +1338,17 @@ function playTideCard(cardId) {
     state.player.malus[activeMalus.id] = Math.max(0, currentLevel - 1);
     if (state.player.malus[activeMalus.id] === 0) {
       delete state.player.malusSources[activeMalus.id];
-      pruneMalusCard(activeMalus.id);
     }
+    // Usare la carta la consuma a ogni uso, non solo quando l'afflizione arriva
+    // a zero. Se il livello e' ancora > 0 la carta torna disponibile solo con un
+    // nuovo pescato.
+    const afflictionLifted = state.player.malus[activeMalus.id] === 0;
+    dismissMalusCard(activeMalus.id);
     const resolveLevels = addStatExperience('resolve', 1);
-    const levelText = state.player.malus[activeMalus.id] === 0 ? 'The affliction has lifted; its card leaves your hand.' : `The affliction remains at level ${state.player.malus[activeMalus.id]} and its card stays in your hand.`;
-    addLog(`${activeMalus.title} is played. ${levelText}`, 'Affliction Played', `You chose to confront ${activeMalus.label}; playing the card costs 1 Vigor, reduces its malus by one level and grants 1 Resolve XP${resolveLevels ? ', increasing Resolve by one level' : ''}.`);
+    const levelText = afflictionLifted
+      ? 'The affliction has lifted and its card is gone from your hand.'
+      : `The affliction falls to level ${state.player.malus[activeMalus.id]}, and the card is spent: you would have to draw it again to push it lower.`;
+    addLog(`${activeMalus.title} is played. ${levelText}`, 'Affliction Played', `You chose to confront ${activeMalus.label}; playing the card costs 1 Vigor, reduces its malus by one level, spends the card and grants 1 Resolve XP${resolveLevels ? ', increasing Resolve by one level' : ''}.`);
     syncHandWithActiveMalus();
     saveGame();
     render();
@@ -1280,7 +1361,7 @@ function playTideCard(cardId) {
       die: { text: '−1', detail: `${activeMalus.label} reduced by one level` },
       narrative: levelText,
       rows: diffSnapshots(snapshot, state.player),
-      note: 'Playing any card costs 1 Vigor.'
+      note: 'Playing any card costs 1 Vigor. Affliction cards are spent when played: draw them again to keep working on the same malus.'
     });
     return;
   }
@@ -1504,6 +1585,26 @@ function renderResolutionDie(die) {
   `;
 }
 
+function renderResolutionDraw(draw) {
+  if (!draw) return '';
+
+  const art = draw.image
+    ? `<img src="${draw.image}" alt="" />`
+    : `<span class="draw-sigil" aria-hidden="true">${draw.sigil || '✦'}</span>`;
+
+  return `
+    <div class="resolution-draw">
+      <div class="draw-card">
+        <div class="draw-card-inner">
+          <div class="draw-face draw-back" aria-hidden="true"><span class="draw-back-mark">✦</span></div>
+          <div class="draw-face draw-front">${art}</div>
+        </div>
+      </div>
+      ${draw.detail ? `<p class="die-detail">${draw.detail}</p>` : ''}
+    </div>
+  `;
+}
+
 function buildResolutionMarkup(payload) {
   const rows = (payload.rows || []).map((row) => `
     <div class="resolution-row tone-${row.tone}">
@@ -1517,7 +1618,7 @@ function buildResolutionMarkup(payload) {
       <p class="eyebrow">${payload.eyebrow}</p>
       <h2 class="resolution-title" id="resolutionTitle">${payload.title}</h2>
       ${payload.subtitle ? `<p class="resolution-subtitle">${payload.subtitle}</p>` : ''}
-      ${renderResolutionDie(payload.die)}
+      ${payload.draw ? renderResolutionDraw(payload.draw) : renderResolutionDie(payload.die)}
       <p class="resolution-suspense" data-suspense>${SUSPENSE_LINES[0]}</p>
       <div class="resolution-body" data-body>
         <p class="resolution-narrative">${payload.narrative || ''}</p>
@@ -2236,7 +2337,7 @@ function renderMalusCard(card) {
         <h4>${card.title}</h4>
         <p>${card.description}</p>
         <p class="appearance-reason"><strong>Why this card appeared</strong>${appearanceReason}</p>
-        <p class="card-effect">Play to reduce ${card.label} by 1 level and gain 1 Resolve XP. This card cannot be discarded.</p>
+        <p class="card-effect">Play to reduce ${card.label} by 1 level and gain 1 Resolve XP. This card is spent when played, and cannot be discarded.</p>
         <div class="card-actions affliction-actions"><button type="button" data-card-play="malus-${card.id}" ${state.player.vigor < 1 ? 'disabled' : ''} title="Costs 1 Vigor">Endure affliction · 1 Vigor <span>›</span></button></div>
       </div>
     </article>
