@@ -654,6 +654,121 @@ const trialCards = [
   }
 ];
 
+// Le carte che fanno lavorare una fazione.
+//
+// Sono in due gruppi perche' il gioco le tratta in modo diverso:
+//
+// - le quattro carte comuni sono aperte dal primo giorno. Servono a dare al
+//   giocatore un modo per capire che cosa sia la reputazione e per iniziare a
+//   costruirla prima ancora di conoscere i titoli.
+// - le quattro uncommon restano chiuse fino al livello 5 della loro fazione,
+//   dichiarato in `requires`. Non per nascondere un premio, ma per dare a quel
+//   livello una ricompensa che non sia solo un numero che sale: la carta porta
+//   con se' la storia di chi ti ha accettato, e arriva quando quella storia e'
+//   gia' iniziata.
+//
+// L'effetto si chiama `standing` e contiene la fazione e i punti:
+//
+//     effects: { standing: { faction: 'clockwrights', points: 3 } }
+//
+// I punti sono gli stessi che usano gli incontri in citta', non una scala nuova:
+// una carta deve valere quanto il lavoro che ti ha fatto accettare, senno' il
+// giocatore sceglie di giocare solo carte e smette di uscire dalle porte.
+const factionCards = [
+  {
+    id: 'common-clockwright-deed',
+    title: 'A Job on the Gallows',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '⛭',
+    image: 'immagini/carte/A Job on the Gallos.jpg',
+    quote: 'The guild does not ask who you are. It hands you a rag and points at the rust.',
+    appearanceReason: 'A common tide card. Once the guild knows your face, the bell-winders start leaving work on the gallery rail for you.',
+    effects: { statXp: { vigilance: 1 }, standing: { faction: 'clockwrights', points: 3 } }
+  },
+  {
+    id: 'common-council-copy',
+    title: 'Copying a Debt Three Times',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '✍',
+    image: 'immagini/carte/Copying a Debt Three Times.jpg',
+    quote: 'Three clerks make the same mistake and only one of them is paid for it.',
+    appearanceReason: 'A common tide card. The clerks hire whoever is willing to read the same page until their hand stops shaking.',
+    effects: { statXp: { resolve: 1 }, standing: { faction: 'council', points: 3 } }
+  },
+  {
+    id: 'common-combine-shifts',
+    title: 'Six Hours on the Vats',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '☾',
+    image: 'immagini/carte/Six Hours on the Vats.jpg',
+    quote: 'The phosphor needs clipping and the clipping cannot be done by people who will not come back tomorrow.',
+    appearanceReason: 'A common tide card. The farm posts shifts on a board and nobody signs them twice until they have proved they will not leave.',
+    effects: { statXp: { resolve: 1 }, standing: { faction: 'brine-combine', points: 3 } }
+  },
+  {
+    id: 'common-salon-timetable',
+    title: 'Copying the Timetable by Hand',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '◈',
+    image: 'immagini/carte/Copying the Timetable by Hand.jpg',
+    quote: 'Nobody may read the platform timetable. Somebody must still write it out.',
+    appearanceReason: 'A common tide card. The Salon outsources its handwriting to whoever cannot be trusted with a route and can be trusted with a pen.',
+    effects: { statXp: { elegance: 1 }, standing: { faction: 'astral-salon', points: 3 } }
+  },
+  {
+    id: 'uncommon-guild-escapement-key',
+    title: 'The Escapement Key That Is Not On the List',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '⚙',
+    image: 'immagini/carte/The Escapement Key That Is Not On the List.jpg',
+    quote: 'There is a key to the great bell that appears in no inventory, and the foreman has begun leaving it where you will find it.',
+    appearanceReason: 'An uncommon tide card. It comes out of the reserve only once the guild has you at level 5: by then they have stopped inventing reasons to leave things lying about.',
+    effects: { statXp: { vigilance: 2, resolve: 1 }, standing: { faction: 'clockwrights', points: 5 } },
+    requires: [{ type: 'faction', faction: 'clockwrights', min: 5 }]
+  },
+  {
+    id: 'uncommon-council-red-clause',
+    title: 'The Clause Underlined Twice',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '❖',
+    image: 'immagini/carte/The Clause Underlined Twice.jpg',
+    quote: 'Someone underlined your sentence and then, ten years later, someone underlined that they had underlined it.',
+    appearanceReason: 'An uncommon tide card. The archive only shows this one to a name it has already decided to keep.',
+    effects: { statXp: { cunning: 2, persuasion: 1 }, standing: { faction: 'council', points: 5 } },
+    requires: [{ type: 'faction', faction: 'council', min: 5 }]
+  },
+  {
+    id: 'uncommon-combine-rising-water',
+    title: 'The Warm Water Rises Another Hand',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '≋',
+    image: 'immagini/carte/The Warm Water Rises Another Hand.jpg',
+    quote: 'The vents have been opened without your asking. The Combine does that now, and does not explain itself.',
+    appearanceReason: 'An uncommon tide card. It surfaces in the deck only when the farm has begun to take your measure.',
+    effects: { statXp: { audacity: 2, resolve: 1 }, standing: { faction: 'brine-combine', points: 5 } },
+    requires: [{ type: 'faction', faction: 'brine-combine', min: 5 }]
+  },
+  {
+    id: 'uncommon-salon-last-name',
+    title: 'The Name That Was Already on the List',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '✺',
+    image: 'immagini/carte/The Name That Was Already on the List.jpg',
+    quote: 'You wrote your own name into a passenger list dated before you were born. The Salon has stopped mentioning it.',
+    appearanceReason: 'An uncommon tide card. It does not come out early: the Salon lets you find this one yourself, once you are known.',
+    effects: { statXp: { elegance: 2, cunning: 1 }, standing: { faction: 'astral-salon', points: 5 } },
+    requires: [{ type: 'faction', faction: 'astral-salon', min: 5 }]
+  }
+];
+
 const rarityCards = [
   {
     id: 'uncommon-brass-compass',
@@ -730,7 +845,7 @@ const rarityNames = {
   unique: 'Unique'
 };
 
-const allTideCards = [...trialCards, ...rarityCards];
+const allTideCards = [...trialCards, ...rarityCards, ...factionCards];
 
 const malusCards = [
   {
@@ -1220,6 +1335,21 @@ function initializeTideDeck() {
   syncHandWithActiveMalus();
 }
 
+// Una carta e' nel mazzo, ma e' ancora chiusa.
+//
+// Le carte possono dichiarare `requires` con gli stessi requisiti degli
+// incontri: se ne dichiarano, si applicano come per un incontro. Una carta senza
+// requisiti e' sempre aperta.
+//
+// Il controllo vale sul pescato, non sul mazzo: una carta chiusa resta nel
+// mucchio e si apre da sola quando il livello arriva. Toglierla dal mazzo la
+// farebbe sparire, che e' il contrario di un premio.
+function isCardAvailable(cardId) {
+  const card = allTideCards.find((entry) => entry.id === cardId);
+  if (!card || !Array.isArray(card.requires) || !card.requires.length) return true;
+  return card.requires.every((requirement) => describeRequirement(requirement).met);
+}
+
 function drawTideCard() {
   refreshTimedResources();
   syncHandWithActiveMalus();
@@ -1230,7 +1360,12 @@ function drawTideCard() {
     state.player.discardPile = [];
   }
 
-  const eligible = state.player.drawPile.map((id) => allTideCards.find((card) => card.id === id)).filter(Boolean);
+  // Una carta chiusa non entra nel sorteggio, ma resta nel mazzo: e' il premio di
+  // un livello che ancora non e' stato raggiunto, e toglierla dal mucchio la
+  // farebbe sparire per sempre. Il filtro e' sul momento del pescato e non sullo
+  // stato del mazzo, cosi' la carta si apre da sola quando il livello arriva.
+  const available = state.player.drawPile.filter((id) => isCardAvailable(id));
+  const eligible = available.map((id) => allTideCards.find((card) => card.id === id)).filter(Boolean);
   const pendingMalus = state.player.pendingMalus.filter((key) => state.player.malus[key] > 0);
   const availableRarities = [...new Set(eligible.map((card) => card.rarity))];
   const normalWeight = availableRarities.reduce((sum, rarity) => sum + rarityWeights[rarity], 0);
@@ -1388,11 +1523,15 @@ function playTideCard(cardId) {
   Object.entries(card.effects?.resources || {}).forEach(([resource, amount]) => {
     state.player.resources[resource] = (state.player.resources[resource] || 0) + amount;
   });
+  // La reputazione guadagnata dalla carta. I punti si sommano a quello che aveva
+  // gia', letto sulla copia fatta all'inizio, non a quello appena modificato.
+  const standingResult = applyCardStanding(card, snapshot);
   if (card.rarity === 'unique') state.player.exhaustedCards.push(card.id);
   else state.player.discardPile.push(card.id);
   const rewardText = Object.entries(card.effects?.statXp || {}).map(([stat, amount]) => `${statNames[stat]} +${amount} XP`).join(', ');
   const levelText = [...levelUps, ...malusChanges].join('; ');
-  addLog(`${card.title} is played. ${rewardText}${levelText ? ` (${levelText})` : ''}.`, 'Card Played', `${card.appearanceReason} Playing a card costs 1 Vigor.`);
+  const standingText = standingResult ? ` ${standingResult.faction.name} +${standingResult.gained} standing.` : '';
+  addLog(`${card.title} is played. ${rewardText}${levelText ? ` (${levelText})` : ''}.${standingText}`, 'Card Played', `${card.appearanceReason} Playing a card costs 1 Vigor.`);
   syncHandWithActiveMalus();
   saveGame();
   render();
@@ -1404,9 +1543,30 @@ function playTideCard(cardId) {
     tone: 'neutral',
     die: { text: rarityNames[card.rarity], detail: `${rarityWeights[card.rarity]}% base rarity` },
     narrative: card.quote,
-    rows: diffSnapshots(snapshot, state.player),
+    // La riga di standing entra insieme alle altre: il giocatore deve vedere
+    // subito che cosa gli ha fatto guadagnare, non indovinarlo dalla pagina
+    // delle fazioni dopo.
+    rows: [...diffSnapshots(snapshot, state.player), ...describeCardStanding(standingResult)],
     note: `Playing a card costs 1 Vigor.${card.rarity === 'unique' ? ' This unique card is now exhausted and cannot return.' : ''}`
   });
+}
+
+// Le righe che la finestra mostra per la reputazione guadagnata da una carta.
+//
+// Stessa forma di `describeStandingChange`, che e' quella degli incontri in
+// citta': le due sono la stessa notizia detta in due momenti diversi, e se
+// dicessero cose diverse il giocatore non saprebbe quale delle due sia quella
+// vera.
+function describeCardStanding(standing) {
+  if (!standing || !standing.gained) return [];
+  const rows = [{ tone: 'gold', label: `${standing.faction.name} standing`, value: `+${standing.gained}` }];
+  if (standing.promoted) {
+    rows.push({ tone: 'gold', label: 'Standing', value: `Level ${standing.levelBefore} to ${standing.levelAfter}` });
+  }
+  if (standing.newTitle) {
+    rows.push({ tone: 'gold', label: 'They call you', value: standing.tier.title });
+  }
+  return rows;
 }
 
 function canAccessAction(action) {
@@ -1506,7 +1666,46 @@ function snapshotPlayer() {
     statXp: { ...state.player.statXp },
     resources: { ...state.player.resources },
     malus: { ...state.player.malus },
+    // Anche la reputazione, perche' una carta puo' darla: senza questa copia la
+    // finestra di risoluzione non avrebbe con cosa mostrare il guadagno.
+    reputation: { ...(state.player.reputation || {}) },
     properties: [...state.player.properties]
+  };
+}
+
+// La reputazione che una carta concede, se concede.
+//
+// Non chiama `awardFactionStanding`: quello e' legato al lavoro svolto in una
+// zona, prende la fazione dal luogo e toglie punti all'avversaria. Una carta e'
+// un'altra cosa. Qui la fazione e' scritta sulla carta, i punti sono quelli
+// dichiarati, e l'avversaria non paga nulla: la carta e' una cortesia del mazzo,
+// non un impegno nella citta'. Se il mazzo potesse spendere il favore di un
+// rivale, il giocatore potrebbe comprare la neutralita' a prezzo.
+function applyCardStanding(card, before) {
+  const effect = card.effects?.standing;
+  if (!effect) return null;
+  const faction = factions[effect.faction];
+  // Una carta che nomina una fazione inesistente e' un dato rotto: si ignora
+  // l'effetto invece di fermare il gioco, cosi' la carta resta giocabile e il
+  // problema si vede in un test e non in una partita.
+  if (!faction) return null;
+
+  const points = Number(effect.points) || 0;
+  const beforeXp = (before?.reputation?.[faction.id] ?? 0);
+  const beforeLevel = factionLevelFromXp(beforeXp);
+  setFactionXp(faction.id, beforeXp + points);
+  const afterXp = getFactionXp(faction.id);
+  const afterLevel = factionLevelFromXp(afterXp);
+
+  return {
+    faction,
+    points,
+    gained: Math.round(afterXp - beforeXp),
+    levelBefore: beforeLevel,
+    levelAfter: afterLevel,
+    promoted: afterLevel > beforeLevel,
+    tier: factionTierForLevel(faction, afterLevel),
+    newTitle: factionTierForLevel(faction, afterLevel).level !== factionTierForLevel(faction, beforeLevel).level
   };
 }
 
@@ -2349,6 +2548,13 @@ function formatCardEffects(effects = {}) {
   Object.entries(effects.statXp || {}).forEach(([stat, amount]) => descriptions.push(`${statNames[stat]} +${amount} XP`));
   Object.entries(effects.malusChanges || {}).forEach(([malus, amount]) => descriptions.push(`${malus} ${amount > 0 ? '+' : ''}${amount} level`));
   Object.entries(effects.resources || {}).forEach(([resource, amount]) => descriptions.push(`${resource} ${amount > 0 ? '+' : ''}${amount}`));
+  // La reputazione si scrive per nome, non per id: "clockwrights +5" non dice
+  // niente a chi sta leggendo la carta, e un id di fazione non deve finire mai
+  // davanti agli occhi del giocatore.
+  const standing = effects.standing;
+  if (standing && factions[standing.faction]) {
+    descriptions.push(`${factions[standing.faction].name} standing +${standing.points}`);
+  }
   return descriptions.join(' · ');
 }
 
@@ -2705,7 +2911,7 @@ function renderFactionCard(faction) {
     `;
 
   return `
-    <article class="faction-card ${toneClass}" style="--faction-colour: ${faction.colour}">
+    <article class="faction-card ${toneClass}" style="--faction-colour: ${faction.colour}; --faction-image: url('${faction.image}')">
       <header class="faction-head">
         <span class="faction-sigil" aria-hidden="true">${faction.sigil}</span>
         <div class="faction-heading">
@@ -3637,6 +3843,11 @@ function renderActions() {
     const hasVigor = state.player.vigor > 0;
     const chance = getTestChance(action);
     const canCommit = accessible && inWindow && affordable && hasVigor;
+    // Il bottone dice solo "Initiate". Il costo in Vigor era gia' scritto due volte
+    // nella scheda, nella riga dei costi e nella lista delle pastiglie: ripeterlo qui
+    // non aggiungeva niente e rubava spazio al pulsante. Gli altri casi restano
+    // parlanti perche' dicono perche' non si puo' agire, e non sono un costo: sono
+    // lo stato della scheda.
     const commitLabel = !accessible
       ? 'Locked'
       : !inWindow
@@ -3645,7 +3856,7 @@ function renderActions() {
           ? 'Unaffordable'
           : !hasVigor
             ? 'Resting'
-            : 'Commit · 1 Vigor';
+            : 'Initiate';
     return `
       <article class="action-card ${accessible ? '' : 'locked'}">
         <div class="action-thumb" aria-hidden="true"></div>

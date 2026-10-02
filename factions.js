@@ -108,6 +108,10 @@ const factions = {
     motto: 'Time is kept, not waited for.',
     rival: 'brine-combine',
     colour: '#d39a38',
+    // Sfondo della scheda su Chronicles. Il nome del file non coincide con quello
+    // della fazione ("Clockwrights" senza l'apostrofo della casa), quindi il
+    // percorso e' scritto qui a mano e non derivato dal nome.
+    image: 'immagini/The Clockwrights Guild.jpg',
     introduction: 'The guild that oils the escapement of the great bell. They have never once asked why it drifts.',
     tiers: [
       { level: 1, title: 'Unrecorded', note: 'Nobody at the galleries knows your name. Work is work; the guild takes the credit and gives nothing back.' },
@@ -135,6 +139,7 @@ const factions = {
     motto: 'Nobody signs anything.',
     rival: 'astral-salon',
     colour: '#9d7d5e',
+    image: 'immagini/The Council of Ten.jpg',
     introduction: 'Ten sealed voices in a flooded chamber, deciding what is written down and who is written out.',
     tiers: [
       { level: 1, title: 'Petitioner', note: 'You are a signature that has not been read yet. The clerks take your papers and do not look up.' },
@@ -161,6 +166,7 @@ const factions = {
     motto: 'The farm answers to whoever keeps it.',
     rival: 'clockwrights',
     colour: '#79bca9',
+    image: 'immagini/The Brine-Farm Combine.jpg',
     introduction: 'Turbines, glass vats and eight hundred fathoms of warm water. The farm has never once asked who owns it.',
     tiers: [
       { level: 1, title: 'Hand on the Vats', note: 'You clip what is ready and take what you are given. The amber is sold by others and counted for you.' },
@@ -188,6 +194,7 @@ const factions = {
     motto: 'The stars are charts. The dead between them are not.',
     rival: 'council',
     colour: '#8ec9c8',
+    image: 'immagini/The Astronavigators.jpg',
     introduction: 'They plot routes through skies that drowned first, and check names before they check tickets.',
     tiers: [
       { level: 1, title: 'Applicant', note: 'You asked for the timetable. Nobody refused you, which is how you know they intend to.' },

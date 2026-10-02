@@ -1299,7 +1299,15 @@ button {
   color: #e27c83;
 }
 
+/* Il bottone che impegna l'azione sta al centro della scheda, non a sinistra.
+   Il testo e la freccia viaggiano insieme: tenere la freccia ancorata al bordo
+   destro mentre il testo e' centrato la staccherebbe dal pulsante, che e' la
+   parte che il giocatore sta per premere. */
 .action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   width: 100%;
   min-height: 39px;
   padding: 9px 15px;
@@ -1311,12 +1319,12 @@ button {
   cursor: pointer;
   font-size: 0.67rem;
   font-weight: 700;
-  text-align: left;
+  letter-spacing: 0.06em;
+  text-align: center;
   text-transform: uppercase;
 }
 
 .action-button::after {
-  float: right;
   content: '›';
   font-size: 1rem;
   line-height: 0.8;
@@ -3023,12 +3031,23 @@ summary:focus-visible {
   gap: 18px;
 }
 
+/* Lo sfondo della fazione sta sotto il testo in un velo scuro. L'immagine e'
+   accesa quanto basta perche si riconosca il luogo, non tanto da sciogliersi
+   dietro i titoli: una riga di questa scheda senza velo e' illeggibile.
+   Il percorso viene da `--faction-image`, che il rendering scrive inline,
+   perche' il nome del file non segue il nome della fazione. */
 .faction-card {
   padding: 20px;
   border: 1px solid rgba(197, 151, 79, 0.2);
   border-left: 3px solid var(--faction-colour, var(--gold));
   border-radius: 6px;
-  background: var(--panel);
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(rgba(8, 7, 10, 0.78), rgba(8, 7, 10, 0.88)),
+    var(--faction-image);
+  background-position: center, center;
+  background-size: cover, cover;
+  background-repeat: no-repeat;
 }
 
 /* Una fazione a cui si e' saliti parecchio e una che ti ha segnato: non devono
