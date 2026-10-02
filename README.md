@@ -31,6 +31,120 @@ A prototype for a text-heavy narrative game inspired by the tone and structure o
 - choice log kept in the UI
 - readable, low-strain visual styling for story-heavy play
 
+## The lore and how it unlocks
+
+The Lore page is a record the player fills in, not a codex they read. A subject
+stays closed until the chronicle has actually proved it, and it then opens one
+chapter at a time, so a place you have only just walked into shows you its
+surface and keeps its history shut. Nothing is ever spoiled in advance: a closed
+subject shows that something exists and why it is out of reach, and that is all.
+
+The data lives in `lore.js`, which `index.html` loads before `app.js`.
+
+### How branching works
+
+Choices write **flags**. An encounter declares them on its outcome:
+
+```js
+success: { sets: { cargoCarried: true, checkpointMercy: true }, /* ... */ },
+failure: { sets: { checkpointBetrayal: true, scholariumDebt: true }, /* ... */ }
+```
+
+Lore gates and future encounters then read those flags with
+`{ type: 'flag', id: 'cargoCarried' }`. Faction standing is **derived** from them
+rather than stored, so it can never contradict the choices that produced it, and
+two chronicles can end on opposite sides of the same faction.
+
+Gate types available in lore entries and chapters: `always`, `flag`, `negFlag`,
+`event`, `attempted`, `location`, `property`, `stat`, `faction`, `standing`,
+`lore`, `chapter`, `companion`. An **entry** opens when *any* of its `unlocks` is
+true; a **chapter** needs *all* of its own `requires`. That is what lets a vessel
+surface on a single hint while its deeper history stays shut.
+
+### What unlocks what
+
+Regenerate these tables from the source with `node tools/update-lore-docs.js`, so
+they cannot drift away from the gates the game actually uses.
+
+| Flag | Meaning | Lean | Set by |
+| --- | --- | --- | --- |
+| `ledgerTrusted` | The customs house trusts you | helpful | **Take the Ledger Job at the Customs House** (success) |
+| `cargoCarried` | You carried the Scholarium crate | helpful | **Carry the Sealed Cargo Past the Checkpoint** (success) |
+| `pansLeased` | You lease the abandoned salt pans | helpful | **Bargain for the Abandoned Salt Pans** (success) |
+| `brineFarmSigned` | The Brine-Farm lease is yours | helpful | **Sign the Brine-Farm Papers Before the Council** (success) |
+| `treatyRead` | You read the Treaty of 1528 | helpful | **Decipher the Submerged Treaty of 1528** (success) |
+| `councilRecords` | You hold Council of Ten records | helpful | **Converse Discretely with the Chief Scribe** (success) |
+| `desaltinators` | The cold vents feed your farm | helpful | **Install Sub-Zero Desalinators** (success) |
+| `cathedralScoured` | You walked the drowned nave | helpful | **Scour the Sunk Cathedral Nave** (success) |
+| `railTimetable` | You found the lost departure | helpful | **Read the Stygian Rail’s Lost Timetable** (success) |
+| `railPassage` | The Conductors stamped your ticket | helpful | **Win Passage from the Astral Conductors** (success) |
+| `checkpointMercy` | You spared a name at the checkpoint | helpful | **Carry the Sealed Cargo Past the Checkpoint** (success) |
+| `checkpointBetrayal` | You named someone at the checkpoint | hostile | **Carry the Sealed Cargo Past the Checkpoint** (failure) |
+| `scholariumDebt` | The Scholarium holds a debt over you | hostile | **Carry the Sealed Cargo Past the Checkpoint** (failure) |
+| Id | Kind | Subject | Opens when | Chapters |
+| --- | --- | --- | --- | --- |
+| `place-spire` | Places | The Great Clockwork Belfry | from the start | 3 (1 flag-gated) |
+| `person-fenn` | People | Fenn, of the Guild | from the start | 2 |
+| `place-archives` | Places | The Sunk Archives of the Doge's Palace | from the start | 3 (2 flag-gated) |
+| `person-scribe` | People | The Chief Scribe | flag `ledgerTrusted` | 2 (1 flag-gated) |
+| `faction-council` | Factions | The Council of Ten | resolving **Take the Ledger Job at the Customs House** | 3 (2 flag-gated) |
+| `faction-scholarium` | Factions | The Scholarium | resolving **Carry the Sealed Cargo Past the Checkpoint** | 2 (1 flag-gated) |
+| `place-salt-pans` | Places | The Abandoned Salt Pans | from the start | 3 (2 flag-gated) |
+| `person-keeper` | People | The Last Keeper of the Pans | flag `pansLeased` | 2 (1 flag-gated) |
+| `place-trench` | Places | The Leviathan Trench | from the start | 3 (1 flag-gated) |
+| `event-drowning` | Events | The Drowning of Anno Domini 1502 | resolving **Take the Ledger Job at the Customs House** | 2 (1 flag-gated) |
+| `place-salon` | Places | The Astronavigators' Salon | from the start | 3 (2 flag-gated) |
+| `person-conductors` | People | The Masked Conductors | flag `railTimetable` | 2 (1 flag-gated) |
+| `person-doge` | People | The Doge of the Drowned City | flag `brineFarmSigned` | 2 (1 flag-gated) |
+| Subject | Chapter | Needs |
+| --- | --- | --- |
+| `place-spire` | Moved stone by stone | with its subject |
+| `place-spire` | What the keepers are paid in | resolving **Adjust the Astronomical Chronometer** |
+| `place-spire` | Why the pendulum drifts | flag `railTimetable` |
+| `person-fenn` | The only name on the ladder | with its subject |
+| `person-fenn` | The oil that was not paid for | resolving **Adjust the Astronomical Chronometer** |
+| `place-archives` | The clerks in waders | with its subject |
+| `place-archives` | The palace ruled vacant | flag `ledgerTrusted` |
+| `place-archives` | Under the fourth step | flag `treatyRead` |
+| `person-scribe` | The job as it is actually done | with its subject |
+| `person-scribe` | The black ribbon | flag `councilRecords` |
+| `faction-council` | How they take a decision | with its subject |
+| `faction-council` | The checkpoint lists | flag `checkpointBetrayal` |
+| `faction-council` | The line you left blank | flag `checkpointMercy` |
+| `faction-scholarium` | What they ask in payment | with its subject |
+| `faction-scholarium` | The mark you now carry | flag `scholariumDebt` |
+| `place-salt-pans` | Abandoned in a single season | with its subject |
+| `place-salt-pans` | The keeper who signed anyway | flag `pansLeased` |
+| `place-salt-pans` | What the vent carries | flag `desaltinators` |
+| `person-keeper` | The one condition | with its subject |
+| `person-keeper` | The third tenant | flag `desaltinators` |
+| `place-trench` | Glass domes and brass turbines | with its subject |
+| `place-trench` | The nave that should not be here | resolving **Scour the Sunk Cathedral Nave** |
+| `place-trench` | What the nursery is farming | flag `cathedralScoured` |
+| `event-drowning` | A winter with no name | with its subject |
+| `event-drowning` | The water is going down | flag `desaltinators` |
+| `place-salon` | Routes that no longer exist | with its subject |
+| `place-salon` | The Stygian Rail | flag `railTimetable` |
+| `place-salon` | What the Rail is for | flag `railPassage` |
+| `person-conductors` | Why the masks | with its subject |
+| `person-conductors` | They knew your name | flag `railPassage` |
+| `person-doge` | The winter of 1502 | with its subject |
+| `person-doge` | The hand on the timetable | flag `railPassage` |
+| Faction | Ally if you hold | Hostile if you hold |
+| --- | --- | --- |
+| The Council of Ten | `councilRecords` | `checkpointBetrayal` |
+| The Scholarium | `cargoCarried`, `ledgerTrusted` | `scholariumDebt` |
+| The Guild of Clocksmiths | `railTimetable` | — |
+| The Tide Monarchs | `treatyRead` | — |
+
+### Adding lore
+
+Append an object to `loreEntries` in `lore.js`. Only `id`, `kind`, `title`,
+`teaser`, `unlocks` and `chapters` are required; `realm`, `icon` and `lockedHint`
+are optional. The harness in `tools/lore-check.js` will then verify that every
+gate resolves, every chapter carries prose, and that nothing hidden leaks on a
+fresh save.
+
 ## Run locally
 
 Open the folder in a browser, or serve it with a small local server:
@@ -45,6 +159,21 @@ Then open:
 ```text
 http://localhost:8000
 ```
+
+## Development
+
+Node 18 or newer is only needed for the checks and the harnesses; the game
+itself has no runtime dependencies and no build step.
+
+```bash
+npm run check       # syntax check app.js and lore.js
+npm test            # run every harness in tools/
+npm run docs:lore   # regenerate the unlock tables in this file from lore.js
+```
+
+The harnesses live in `tools/` and write their output to `tools/out/`, which is
+git-ignored. Each one loads `lore.js` before `app.js`, matching the order
+`index.html` uses, so a save boot cannot fail on a missing lore binding.
 
 ## Notes
 
