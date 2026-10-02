@@ -2994,6 +2994,38 @@ summary:focus-visible {
 }
 
 /* ============================================================================
+   Strato di particelle
+   ============================================================================ */
+
+/* `z-index: 1` e non un valore alto: il canvas sta sopra il fondo della pagina
+   ma sotto tutto il contenuto, che a sua volta si posiziona sopra con il
+   proprio stacking. `pointer-events: none` e' essenziale: senza, il canvas
+   coprirebbe l'intera pagina e ogni clic andrebbe a lui invece che ai bottoni. */
+.motes-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.app-shell,
+.welcome-screen {
+  position: relative;
+  z-index: 2;
+}
+
+/* Chi ha chiesto meno animazioni non le vede affatto. Il canvas resta nel DOM
+   e semplicemente non viene animato: la pagina resta identica ma ferma, che e'
+   esattamente cio' che chiede questa impostazione. */
+@media (prefers-reduced-motion: reduce) {
+  .motes-canvas {
+    display: none;
+  }
+}
+
+/* ============================================================================
    Schermata di benvenuto
    ============================================================================ */
 
@@ -3008,15 +3040,19 @@ summary:focus-visible {
   background: var(--bg);
 }
 
-/* Lo sfondo e' solo un gradiente scuro, non un'immagine: la home deve
-   caricare subito anche su rete lenta, e il gioco non deve aspettare un file
-   pesante prima di far entrare qualcuno. */
+/* Lo sfondo e' la veduta notturna della laguna annegata. Va velata, non
+   mostrata cosi' com'e': nell'immagine ci sono zone chiare (le lampade, i
+   canali) che dietro un testo chiaro lo renderebbero illeggibile. La velatura
+   e' quindi piu' forte al centro, dove stanno le colonne, e lascia respirare i
+   bordi, cosi' l'atmosfera si vede senza che il testo ne soffra. */
 .welcome-art {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(180, 124, 47, 0.16), transparent 62%),
-    radial-gradient(ellipse at 50% 108%, rgba(94, 146, 149, 0.14), transparent 58%);
+    linear-gradient(90deg, rgba(9, 12, 14, 0.9) 0%, rgba(9, 12, 14, 0.72) 42%, rgba(9, 12, 14, 0.82) 100%),
+    radial-gradient(ellipse at 50% 46%, rgba(9, 12, 14, 0.58), rgba(9, 12, 14, 0.34) 72%),
+    url("immagini/homepage.jpg") center 42% / cover no-repeat,
+    var(--bg);
   pointer-events: none;
 }
 

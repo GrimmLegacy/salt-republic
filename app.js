@@ -1636,17 +1636,22 @@ function resolveAction(actionId) {
   });
 }
 
-// Piede della sidebar: mostra chi ha effettivamente aperto la sessione e
-// nasconde il bottone di uscita a chi non ha un account. Il logout e' anche
-// nella pagina Profile, ma qui e' sempre a portata di clic e la sua presenza
-// basta a ricordare che la sessione esiste.
+// Piede della sidebar: il bottone di uscita serve a due esiti diversi. Chi ha
+// una sessione chiude l'account, chi sta giocando da ospite non ha nulla da
+// chiudere e viene semplicemente riportato alla schermata iniziale. La
+// dicitura segue il caso, perche' dire "Sign out" a chi non ha fatto il login
+// sarebbe raccontare un'azione che non sta compiendo.
 function renderAccountFooter() {
   const service = getAuth();
-  const signOut = document.getElementById('sidebarSignOut');
-  if (!signOut) return;
+  const leaveButton = document.getElementById('sidebarLeave');
   const signedIn = Boolean(service && service.enabled && service.user);
-  signOut.hidden = !signedIn;
   const status = document.getElementById('saveStatus');
+  if (leaveButton) {
+    leaveButton.textContent = signedIn ? 'Sign out' : 'Back to title';
+    leaveButton.title = signedIn
+      ? 'Close this account and return to the title screen'
+      : 'Return to the title screen';
+  }
   if (!status) return;
   if (!signedIn) {
     // Un ospite non ha nulla da sincronizzare: la copia sul dispositivo basta
@@ -3392,8 +3397,11 @@ function wireEvents() {
       return;
     }
 
-    const signoutButton = event.target.closest('[data-auth-signout]');
-    if (signoutButton) {
+    // Un solo gestore per ogni uscita: il bottone della sidebar e quello della
+    // pagina Profile portano allo stesso codice, quindi si comportano sempre
+    // allo stesso modo e non possono divergere.
+    const leaveButton = event.target.closest('[data-leave], [data-auth-signout]');
+    if (leaveButton) {
       handleProfileSignOut();
       return;
     }
@@ -3724,14 +3732,25 @@ async function startAccountSession() {
   if (!showWelcome) render();
 }
 
-// Dopo il logout l'home torna: chi si e' appena disconnesso deve poter
-// entrare con un altro account o scegliere l'ospite senza ricaricare la pagina.
-// `forgetGuestChoice` serve perche' un giocatore che si era loggato non ha
-// mai scritto la scelta "ospite": senza dimenticarla, `hasChosenGuest`
-// continuerebbe a valere e l'home salterebbe di nuovo.
+// Unico punto di uscita dal gioco. Con una sessione aperta chiude l'account e
+// torna alla home; da ospite non c'e' nulla da chiudere, quindi basta tornare
+// alla schermata iniziale, dove si puo' entrare con un account o ripartire.
+// `forgetGuestChoice` serve perche' un giocatore loggato non ha mai scritto la
+// scelta "ospite": senza dimenticarla, `hasChosenGuest` continuerebbe a valere
+// e l'home salterebbe di nuovo al prossimo riavvio.
 async function handleProfileSignOut() {
   const service = getAuth();
-  if (!service || !service.enabled) return;
+  if (!service || !service.enabled) {
+    // Senza servizi attivi non c'e' una sessione: resta solo il ritorno all'home.
+    forgetGuestChoice();
+    showWelcomeScreen(true);
+    return;
+  }
+  if (!service.user) {
+    forgetGuestChoice();
+    showWelcomeScreen(true);
+    return;
+  }
   await runAuthAction(async (current) => {
     const outcome = await current.signOut();
     if (!outcome.ok) {
@@ -3789,6 +3808,21 @@ function wireWelcomeEvents() {
 // copia piu' in basso silenziosamente annullerebbe questa e l'home non
 // comparirebbe mai. Quindi una sola definizione, quella qui sopra.
 
+// Avvia il pulviscolo di sfondo. Va in una funzione propia, con controlli
+// espliciti, perche' `motes.js` e' un file a se stante: se per un motivo non
+// fosse caricato, o se il browser non supportasse il canvas, il gioco deve
+// partire lo stesso. Le particelle sono un extra, mai un prerequisito.
+function startAmbientMotes() {
+  if (typeof motes === 'undefined' || typeof motes.start !== 'function') return;
+  if (typeof window.requestAnimationFrame !== 'function') return;
+  try {
+    motes.start();
+  } catch (error) {
+    // Un guasto qui non deve fermare il gioco: si nota solo in console.
+    console.warn('[motes] could not start', error);
+  }
+}
+
 function boot() {
   initializeTideDeck();
   const copyrightYear = document.getElementById('copyrightYear');
@@ -3797,6 +3831,7 @@ function boot() {
   // sessione, se c'e', arriva dopo e allinea la cronaca al volo.
   startAccountSession();
   wireWelcomeEvents();
+  startAmbientMotes();
   const welcomeYear = document.getElementById('welcomeYear');
   if (welcomeYear) welcomeYear.textContent = new Date().getFullYear();
   const logLengthBeforeDeduplication = state.player.log.length;

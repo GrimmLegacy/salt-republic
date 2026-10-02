@@ -113,13 +113,16 @@
 
           <p class="welcome-legal">
             &copy; <span id="welcomeYear">2026</span> Grimm Legacy. Non-commercial use only.
-            <!-- Compare solo se qualcuno e' gia' dentro: un visitatore non ha
-                 niente da chiudere. -->
-            <button type="button" class="welcome-signout" data-auth-signout hidden>Sign out</button>
           </p>
         </div>
       </div>
     </section>
+
+    <!-- Strato di particelle. Un canvas a tutto schermo che disegna punti di luce
+         che salono lentamente, come pulviscolo nell'acqua ferma o brace nell'aria
+         fredda della notte. Sta dietro a tutto (`pointer-events: none`) per non
+         rubare clic, e sotto il contenuto per non disturbare la lettura. -->
+    <canvas id="motesCanvas" class="motes-canvas" aria-hidden="true"></canvas>
 
     <div class="app-shell">
       <aside class="sidebar">
@@ -178,9 +181,13 @@
 
         <footer class="sidebar-footer">
           <span id="saveStatus" class="save-status">Autosave ready</span>
-          <!-- Nascosto finche' non c'e' un account: a un ospite non ha senso
-               proporlo, e il bottone resterebbe li' a non fare nulla. -->
-          <button id="sidebarSignOut" type="button" class="sidebar-signout" data-auth-signout hidden>Sign out</button>
+          <!-- Due uscite diverse dallo stesso posto. Chi ha un account chiude la
+             sessione e torna alla home; chi sta giocando da ospite non ha
+             nessuna sessione da chiudere, quindi lo stesso bottone lo riporta
+             semplicemente alla schermata iniziale, dove puo' entrare con un
+             account o ripartire da capo. `data-leave` copre i due casi e
+             `data-auth-signout` resta per la sola chiusura di sessione. -->
+          <button id="sidebarLeave" type="button" class="sidebar-signout" data-leave>Sign out</button>
           <span>The Drowned Serenissima</span>
           <p class="sidebar-legal">&copy; <span id="copyrightYear">2026</span> Grimm Legacy. Non-commercial use only. <a href="mailto:grimmlegacies@gmail.com">grimmlegacies@gmail.com</a></p>
         </footer>
@@ -210,6 +217,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
 
     <script src="auth.js"></script>
+    <script src="motes.js"></script>
     <script src="lore.js"></script>
     <script src="app.js"></script>
   </body>
