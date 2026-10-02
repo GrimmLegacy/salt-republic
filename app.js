@@ -1653,6 +1653,10 @@ function resolveAction(actionId) {
 // diversi: il primo e' una tappa, il secondo e' il passo che porta alla tappa.
 // Confonderli renderebbe il messaggio piatto, che e' esattamente il difetto che
 // si voleva evitare con questa pagina.
+// Il pulsante nella finestra di risoluzione distingue salire di livello da
+// cambiare titolo: il primo e' continuo, il secondo arriva ogni cinque livelli e
+// vale una riga tutta sua, perche' e' quello che il giocatore sta inseguendo
+// leggendo la pagina.
 function describeStandingChange(standing) {
   if (!standing) return [];
   const rows = [{
@@ -1667,8 +1671,15 @@ function describeStandingChange(standing) {
   if (standing.promoted) {
     rows.push({
       tone: 'gold',
-      label: `You are now ${standing.tier.title}`,
-      value: `Level ${standing.levelAfter}`
+      label: 'Standing',
+      value: `Level ${standing.levelBefore} → ${standing.levelAfter}`
+    });
+  }
+  if (standing.newTitle) {
+    rows.push({
+      tone: 'gold',
+      label: 'They call you',
+      value: standing.tier.title
     });
   }
   return rows;
@@ -2564,14 +2575,18 @@ function renderFactionCard(faction) {
   const rivalXp = getFactionXp(rival.id);
 
   const meterWidth = xp < 0 ? 100 : progress.percent;
-  const toneClass = xp < 0 ? 'is-sour' : xp >= 50 ? 'is-great' : '';
+  const toneClass = xp < 0 ? 'is-sour' : xp >= factionThreshold(30) ? 'is-great' : '';
+  // Oltre il 60 il livello continua a salire ma non c'e' piu' niente da
+  // sbloccare: il "+" dice che il numero conta ancora, senza fingere che ci sia
+  // un traguardo dietro.
+  const levelLabel = progress.level > FACTION_MAX_LEVEL ? `${FACTION_MAX_LEVEL}+` : progress.level;
 
   const nextBlock = progress.next
     ? `
       <div class="faction-next">
         <div class="faction-next-heading">
           <span class="faction-next-title">${progress.next.title}</span>
-          <span class="faction-next-level">Level ${progress.next.level} · ${progress.next.xp} standing</span>
+          <span class="faction-next-level">Level ${progress.next.level}</span>
         </div>
         <p class="faction-next-note">${progress.next.note}</p>
         <p class="faction-next-need">${progress.needed - progress.gained} standing to go</p>
@@ -2580,9 +2595,11 @@ function renderFactionCard(faction) {
     : `
       <div class="faction-next is-final">
         <div class="faction-next-heading">
-          <span class="faction-next-title">Highest standing reached</span>
+          <span class="faction-next-title">${progress.tier.title}</span>
+          <span class="faction-next-level">Highest rank</span>
         </div>
-        <p class="faction-next-note">There is nothing above this. ${faction.name} has nothing left to make you.</p>
+        <p class="faction-next-note">${progress.tier.note}</p>
+        <p class="faction-next-need">${faction.name} has nothing left to make you</p>
       </div>
     `;
 
@@ -2596,7 +2613,7 @@ function renderFactionCard(faction) {
           <p class="faction-motto">${faction.motto}</p>
         </div>
         <div class="faction-standing">
-          <span class="faction-level">Level ${progress.level}</span>
+          <span class="faction-level">Level ${levelLabel}</span>
           <span class="faction-title">${progress.tier.title}</span>
         </div>
       </header>
@@ -2608,8 +2625,11 @@ function renderFactionCard(faction) {
 
       <div class="faction-tiers">
         ${faction.tiers.map((tier) => {
+          // Un titolo e' raggiunto quando il livello lo ha superato, e corrente
+          // quando e' l'ultimo superato: i due stati hanno colori diversi perche'
+          // uno e' un traguardo e l'altro e' la condizione in cui si vive.
           const reached = progress.level >= tier.level;
-          const isCurrent = tier.level === progress.level;
+          const isCurrent = tier.level === progress.tier.level;
           return `
             <div class="faction-tier ${reached ? 'is-reached' : ''} ${isCurrent ? 'is-current' : ''}">
               <span class="faction-tier-mark" aria-hidden="true">${reached ? '✦' : '·'}</span>
@@ -2640,7 +2660,7 @@ function renderChronicles() {
   const cards = list.map(renderFactionCard).join('');
 
   const highest = list.reduce((best, faction) => {
-    const level = factionLevelFromXp(faction, getFactionXp(faction.id));
+    const level = factionLevelFromXp(getFactionXp(faction.id));
     return level > best.level ? { level, faction } : best;
   }, { level: 0, faction: null });
 
@@ -3100,7 +3120,13 @@ const FACTION_RIVAL_DAMPING = 0.5;
 // Tetto inferiore per la reputazione. Serve a non far scendere all'infinito:
 // sotto questo punto la fazione ti ha gia' cancellato dai registri, e la
 // differenza non cambia piu' niente per nessuno.
-const FACTION_XP_FLOOR = -40;
+//
+// Il valore segue la scala dei titoli: con la perdita dimezzata rispetto al
+// guadagno, si arriva qui dopo una trentina di azioni dalla parte opposta, che
+// e' dove la cosa comincia a farsi sentire e dove il gioco smette di essere
+// divertente perche' si sta solo scontentando qualcuno. Andare oltre non
+// aggiunge tensione, aggiunge solo numeri.
+const FACTION_XP_FLOOR = -35;
 
 function factionXpForAction(action) {
   const entry = FACTION_XP_TABLE.find((row) => row.difficulty === (action.difficulty || 1));
@@ -3146,8 +3172,8 @@ function awardFactionStanding(action, locationId) {
   const rivalBefore = getFactionXp(rival.id);
   setFactionXp(rival.id, rivalBefore - lost);
 
-  const levelBefore = factionLevelFromXp(faction, before);
-  const levelAfter = factionLevelFromXp(faction, before + gained);
+  const levelBefore = factionLevelFromXp(before);
+  const levelAfter = factionLevelFromXp(before + gained);
 
   return {
     faction,
@@ -3156,10 +3182,14 @@ function awardFactionStanding(action, locationId) {
     lost,
     // `promoted` vale solo quando si sale davvero di livello con questa mossa:
     // e' il momento che il giocatore deve vedere, e vale un messaggio diverso.
+    // Non quando si cambia titolo: quello arriva piu' raramente e ha gia' la
+    // sua riga nella pagina delle fazioni.
     promoted: levelAfter > levelBefore,
     levelBefore,
     levelAfter,
-    tier: faction.tiers.find((tier) => tier.level === levelAfter)
+    tier: factionTierForLevel(faction, levelAfter),
+    // Un titolo nuovo e' un avvenimento raro e vale la pena dirlo a parte.
+    newTitle: factionTierForLevel(faction, levelAfter).level !== factionTierForLevel(faction, levelBefore).level
   };
 }
 
@@ -3177,7 +3207,7 @@ function locationRealmOf(locationId) {
 function isFactionRequirementMet(requirement) {
   if (typeof factions[requirement.faction] === 'undefined') return false;
   const xp = getFactionXp(requirement.faction);
-  return factionLevelFromXp(factions[requirement.faction], xp) >= requirement.min;
+  return factionLevelFromXp(xp) >= requirement.min;
 }
 
 function describeRequirement(requirement) {
@@ -3197,7 +3227,7 @@ function describeRequirement(requirement) {
       };
     }
     const xp = getFactionXp(faction.id);
-    const current = factionLevelFromXp(faction, xp);
+    const current = factionLevelFromXp(xp);
     const missing = Math.max(0, requirement.min - current);
     const rank = factionRankFromXp(xp);
     return {

@@ -62,11 +62,57 @@ Object.values(factions).forEach((faction) => {
 });
 
 log('');
-log('=== 3) Level follows points ===');
+log('=== 3) Level follows points, on the generated curve ===');
 const guild = factions.clockwrights;
-[[0, 1], [5, 1], [6, 2], [15, 2], [16, 3], [29, 3], [30, 4], [50, 5], [76, 6], [500, 6]].forEach(([xp, expected]) => {
-  check(`guild at ${xp} xp -> level ${expected}`, factionLevelFromXp(guild, xp) === expected);
+log(`   threshold(1)=${factionThreshold(1)} (2)=${factionThreshold(2)} (5)=${factionThreshold(5)} (10)=${factionThreshold(10)}`);
+// Il livello deve seguire esattamente la curva: sotto la soglia si resta al
+// livello precedente, alla soglia si sale.
+[[0, 1], [15, 1], [16, 2], [99, 4], [100, 5], [399, 9], [400, 10], [1599, 19], [1600, 20], [14400, 60]].forEach(([xp, expected]) => {
+  check(`guild at ${xp} xp -> level ${expected}`, factionLevelFromXp(xp) === expected);
 });
+check('a threshold lands exactly on its level', factionLevelFromXp(factionThreshold(30)) === 30);
+check('one point short stays below', factionLevelFromXp(factionThreshold(30) - 1) === 29);
+
+log('');
+log('=== 3b) The curve gets steeper, so late levels cost more ===');
+const firstStep = factionThreshold(5) - factionThreshold(1);
+const tenthStep = factionThreshold(10) - factionThreshold(5);
+const twentiethStep = factionThreshold(20) - factionThreshold(10);
+const fiftiethStep = factionThreshold(50) - factionThreshold(40);
+log(`   1->5 costs ${firstStep}, 5->10 costs ${tenthStep}, 10->20 costs ${twentiethStep}, 40->50 costs ${fiftiethStep}`);
+check('each stretch costs more than the last', firstStep < tenthStep && tenthStep < twentiethStep && twentiethStep < fiftiethStep);
+
+log('');
+log('=== 3c) No cap: level 60 is not the ceiling ===');
+const huge = factionThreshold(60) * 40;
+log(`   at ${huge} xp -> level ${factionLevelFromXp(huge)}`);
+check('standing keeps rising past 60', factionLevelFromXp(huge) > FACTION_MAX_LEVEL);
+check('but the last tier is still level 60', guild.tiers[guild.tiers.length - 1].level === FACTION_MAX_LEVEL);
+check('and there is nothing beyond it to promise', factionNextTier(guild, FACTION_MAX_LEVEL) === null);
+check('the last tier is still found at level 90', factionTierForLevel(guild, 90).level === FACTION_MAX_LEVEL);
+
+log('');
+log('=== 3d) A title covers five levels ===');
+check('level 1 has the first title', factionTierForLevel(guild, 1).title === 'Unrecorded');
+check('level 3 still has the first title', factionTierForLevel(guild, 3).title === 'Unrecorded');
+check('level 5 has the second title', factionTierForLevel(guild, 5).title === 'Oiler');
+check('level 9 still has the second title', factionTierForLevel(guild, 9).title === 'Oiler');
+check('level 10 has the third', factionTierForLevel(guild, 10).title === 'Winder');
+check('13 titles per faction', guild.tiers.length === 13);
+check('the next title from level 3 is level 5', factionNextTier(guild, 3).level === 5);
+
+log('');
+log('=== 3e) The bar points at a title, not at the next level ===');
+const midway = factionThreshold(1) + Math.floor((factionThreshold(5) - factionThreshold(1)) / 2);
+const barProgress = factionProgress(guild, midway);
+log(`   at ${midway} xp -> level ${barProgress.level}, next "${barProgress.next.title}" at ${barProgress.percent}%`);
+check('the bar counts toward the next title', barProgress.next.level === 5);
+check('the bar is roughly half full midway', barProgress.percent > 40 && barProgress.percent < 60);
+const atTitle = factionProgress(guild, factionThreshold(5));
+check('the bar resets at a title', atTitle.percent === 0);
+check('and the next title moves on', atTitle.next.level === 10);
+const atMax = factionProgress(guild, factionThreshold(FACTION_MAX_LEVEL));
+check('the bar is full at level 60', atMax.percent === 100 && atMax.next === null);
 
 log('');
 log('=== 4) Difficulty pays more ===');
@@ -113,7 +159,7 @@ resolveAction('adjust-chronometer');
 log(`   reputation -> ${JSON.stringify(state.player.reputation)}`);
 check('the guild gained standing', getFactionXp('clockwrights') > 0);
 check('the guild rival lost it', getFactionXp('brine-combine') < 0);
-log(`   guild is now level ${factionLevelFromXp(guild, getFactionXp('clockwrights'))}`);
+log(`   guild is now level ${factionLevelFromXp(getFactionXp('clockwrights'))}`);
 log('');
 log('=== 8) Standing is capped at the floor ===');
 state.player.reputation = { council: -9999 };
@@ -121,11 +167,16 @@ check('reputation never falls below the floor', getFactionXp('council') === FACT
 
 log('');
 log('=== 9) A faction requirement can gate an encounter ===');
-state.player.reputation = { clockwrights: 0 };
+// Parte dal livello 1 per vedere il blocco, poi sale a livello 3 per vederlo
+// aprirsi: e' il caso che il giocatore incontra davvero.
+state.player.reputation = {};
 const gated = { id: 'test-gated', title: 'Test Gated', requires: [{ type: 'faction', faction: 'clockwrights', min: 3 }] };
-check('locked at level 1', describeActionUnlock(gated).met === false);
-log(`   unmet detail -> ${describeActionUnlock(gated).unmet[0].detail}`);
-state.player.reputation = { clockwrights: 16 };
+const locked = describeActionUnlock(gated);
+check('locked at level 1', locked.met === false);
+check('and it says what is missing', locked.unmet.length === 1);
+log(`   unmet detail -> ${locked.unmet[0].detail}`);
+// Il livello 3 sta a metà fra 2 e 4 sulla curva: si usa la soglia esatta.
+state.player.reputation = { clockwrights: factionThreshold(3) };
 const opened = describeActionUnlock(gated);
 check('opens at level 3', opened.met === true);
 log(`   met detail    -> ${opened.conditions[0].detail}`);
@@ -146,7 +197,7 @@ check('a made-up faction is dropped on load', sanitizeReputation({ council: 5, m
 
 log('');
 log('=== 11) The page renders four faction cards ===');
-state.player.reputation = { clockwrights: 20 };
+state.player.reputation = { clockwrights: factionThreshold(12) };
 currentView = 'chronicles';
 renderChronicles();
 const html = viewContent.innerHTML;
