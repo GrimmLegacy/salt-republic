@@ -2994,6 +2994,255 @@ summary:focus-visible {
 }
 
 /* ============================================================================
+   Pagina Chronicles: le fazioni
+   ============================================================================ */
+
+.chronicles-view h3 {
+  margin: 0 0 10px;
+  color: #f1e8d9;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-variant: small-caps;
+}
+
+.chronicles-summary {
+  margin: 0 0 8px;
+  color: #d8c9a8;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.chronicles-hint {
+  margin: 0 0 24px;
+  max-width: 68ch;
+}
+
+.faction-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 18px;
+}
+
+.faction-card {
+  padding: 20px;
+  border: 1px solid rgba(197, 151, 79, 0.2);
+  border-left: 3px solid var(--faction-colour, var(--gold));
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+/* Una fazione a cui si e' saliti parecchio e una che ti ha segnato: non devono
+   avere lo stesso aspetto, altrimenti il colore della barra non direbbe nulla. */
+.faction-card.is-sour {
+  border-left-color: #a5564f;
+}
+
+.faction-card.is-great {
+  box-shadow: 0 0 26px rgba(211, 154, 56, 0.12);
+}
+
+.faction-head {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.faction-sigil {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--faction-colour, var(--gold));
+  border-radius: 50%;
+  color: var(--faction-colour, var(--gold));
+  font-size: 1rem;
+}
+
+.faction-heading h3 {
+  margin: 0 0 2px;
+  font-size: 1.02rem;
+  font-variant: normal;
+}
+
+.faction-region {
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.faction-motto {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.faction-standing {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.faction-level {
+  display: block;
+  color: var(--faction-colour, var(--gold));
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.faction-title {
+  display: block;
+  color: #e2d5bb;
+  font-size: 0.62rem;
+}
+
+.faction-intro {
+  margin: 14px 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+
+.faction-meter {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.faction-meter i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--faction-colour, var(--gold));
+}
+
+.faction-rank {
+  margin: 9px 0 16px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.faction-rank b {
+  color: #e2d5bb;
+}
+
+.faction-rank.is-sour b {
+  color: #d99089;
+}
+
+.faction-tiers {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+
+.faction-tier {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 8px;
+  color: rgba(170, 157, 137, 0.5);
+  font-size: 0.65rem;
+  line-height: 1.45;
+}
+
+/* I livelli non raggiunti si vedono ma restano spenti: il giocatore deve poter
+   leggere che cosa sta aspettando, senza che sembri gia' averlo. */
+.faction-tier.is-reached {
+  color: var(--muted);
+}
+
+.faction-tier.is-current {
+  color: #e8dcc4;
+}
+
+.faction-tier-mark {
+  color: var(--faction-colour, var(--gold));
+}
+
+.faction-tier-body b {
+  display: block;
+  font-size: 0.67rem;
+}
+
+.faction-tier-body span {
+  display: block;
+}
+
+.faction-next {
+  padding: 12px 13px;
+  border: 1px dashed rgba(197, 151, 79, 0.28);
+  border-radius: 4px;
+  background: rgba(197, 151, 79, 0.05);
+}
+
+.faction-next.is-final {
+  border-style: solid;
+  border-color: rgba(211, 154, 56, 0.4);
+}
+
+.faction-next-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.faction-next-title {
+  color: #e8dcc4;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.faction-next-level {
+  color: var(--faction-colour, var(--gold));
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.faction-next-note {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+.faction-next-need {
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.faction-rival {
+  margin: 14px 0 0;
+  color: rgba(170, 157, 137, 0.7);
+  font-size: 0.64rem;
+}
+
+.faction-rival b {
+  color: #d99089;
+}
+
+@media (max-width: 720px) {
+  .faction-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ============================================================================
    Strato di particelle
    ============================================================================ */
 

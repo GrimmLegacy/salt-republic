@@ -581,6 +581,11 @@ const defaultState = {
     // can never inject an unknown item into the bonuses.
     equipment: { ...startingEquipment },
     inventory: [],
+    // Reputazione con le fazioni: una voce per ogni fazione, in punti, che
+    // possono anche essere negativi. Le chiavi ammesse sono controllate in
+    // `sanitizeReputation`, cosi' un file importato non puo' iniettare numeri in
+    // fazioni inesistenti.
+    reputation: {},
     // Lore bookkeeping. `flags` are the branching record: encounters set them
     // and lore gates read them, so the same choice can make a faction an ally or
     // an enemy. `lore` remembers what has been discovered and why.
@@ -935,6 +940,7 @@ function loadSave() {
         equipment: sanitizeEquipment(parsed.player?.equipment),
         inventory: sanitizeInventory(parsed.player?.inventory, sanitizeEquipment(parsed.player?.equipment)),
         flags: sanitizeFlags(parsed.player?.flags),
+        reputation: sanitizeReputation(parsed.player?.reputation),
         visitedLocations: sanitizeVisited(parsed.player?.visitedLocations),
         lore: sanitizeLore(parsed.player?.lore),
         deckInitialized: Boolean(parsed.player?.deckInitialized)
@@ -1604,12 +1610,17 @@ function resolveAction(actionId) {
   if (!(action.test in explicitStatXp)) addStatExperience(action.test, eventXp);
   const experienceText = Object.entries(xpGains).map(([stat, amount]) => `${statNames[stat]} +${amount} XP`).join('; ');
   let dropped = [];
+  // Il risultato della reputazione, mostrato nella finestra di risoluzione.
+  // Resta null se il fallimento o se la zona non ha una fazione: in quel caso
+  // la finestra semplicemente non ne parla.
+  let standing = null;
 
   if (success) {
     applyReward(action.success, { action, outcome: 'Success' });
     dropped = grantChanceRewards(action);
+    standing = awardFactionStanding(action, state.currentLocationId);
     const levelChanges = Object.entries(statNames).filter(([stat]) => state.player.stats[stat] > startingStats[stat]).map(([stat, label]) => `${label} +${state.player.stats[stat] - startingStats[stat]} level${state.player.stats[stat] - startingStats[stat] === 1 ? '' : 's'}`);
-    addLog(`${action.success.log || `${action.title} succeeds.`} ${experienceText}${levelChanges.length ? `; ${levelChanges.join(', ')}` : ''}.${describeChanceOutcome(dropped)}`, 'Success', `${summarizeUnlock(action)} ${action.appearanceReason}`);
+    addLog(`${action.success.log || `${action.title} succeeds.`} ${experienceText}${levelChanges.length ? `; ${levelChanges.join(', ')}` : ''}.${describeChanceOutcome(dropped)}${standing ? ` ${standing.faction.name} remembers you as ${standing.tier.title}.` : ''}`, 'Success', `${summarizeUnlock(action)} ${action.appearanceReason}`);
   } else {
     applyReward(action.failure, { action, outcome: 'Failure' });
     const levelChanges = Object.entries(statNames).filter(([stat]) => state.player.stats[stat] > startingStats[stat]).map(([stat, label]) => `${label} +${state.player.stats[stat] - startingStats[stat]} level${state.player.stats[stat] - startingStats[stat] === 1 ? '' : 's'}`);
@@ -1631,9 +1642,36 @@ function resolveAction(actionId) {
     tone: success ? 'success' : 'failure',
     die: { value: test.roll, threshold: test.chance, detail: `You needed ${test.chance} or lower to pass` },
     narrative: outcomeReward.log || (success ? `${action.title} succeeds.` : `${action.title} fails and leaves a mark upon you.`),
-    rows: diffSnapshots(snapshot, state.player),
+    rows: [...diffSnapshots(snapshot, state.player), ...describeStandingChange(standing)],
     note: success ? (dropped.length ? describeChanceOutcome(dropped).trim() : 'No chance reward fell this time.') : 'A failed test yields no chance reward.'
   });
+}
+
+// La riga di reputazione che compare nella finestra di risoluzione.
+//
+// Sale di livello e guadagno normale hanno parole diverse perche' sono eventi
+// diversi: il primo e' una tappa, il secondo e' il passo che porta alla tappa.
+// Confonderli renderebbe il messaggio piatto, che e' esattamente il difetto che
+// si voleva evitare con questa pagina.
+function describeStandingChange(standing) {
+  if (!standing) return [];
+  const rows = [{
+    tone: 'gold',
+    label: `${standing.faction.name} standing`,
+    value: `+${standing.gained}`
+  }, {
+    tone: 'bad',
+    label: `${standing.rival.name} standing`,
+    value: `-${standing.lost}`
+  }];
+  if (standing.promoted) {
+    rows.push({
+      tone: 'gold',
+      label: `You are now ${standing.tier.title}`,
+      value: `Level ${standing.levelAfter}`
+    });
+  }
+  return rows;
 }
 
 // Piede della sidebar: il bottone di uscita serve a due esiti diversi. Chi ha
@@ -2511,9 +2549,123 @@ function renderLore() {
   `;
 }
 
+// Una scheda per fazione: chi sono, a che punto sei, quanto manca al livello
+// dopo, e cosa ti aspetta piu' in alto.
+//
+// La scheda mostra sempre il livello successivo anche quando non e' ancora
+// raggiunto. Un obiettivo che il giocatore non puo' vedere non e' un obiettivo:
+// nascondere i livelli futuri farebbe sembrare il gioco piu' chiuso di quanto
+// sia, e il giocatore non avrebbe niente verso cui spingersi.
+function renderFactionCard(faction) {
+  const xp = getFactionXp(faction.id);
+  const progress = factionProgress(faction, xp);
+  const rank = factionRankFromXp(xp);
+  const rival = factions[faction.rival];
+  const rivalXp = getFactionXp(rival.id);
+
+  const meterWidth = xp < 0 ? 100 : progress.percent;
+  const toneClass = xp < 0 ? 'is-sour' : xp >= 50 ? 'is-great' : '';
+
+  const nextBlock = progress.next
+    ? `
+      <div class="faction-next">
+        <div class="faction-next-heading">
+          <span class="faction-next-title">${progress.next.title}</span>
+          <span class="faction-next-level">Level ${progress.next.level} · ${progress.next.xp} standing</span>
+        </div>
+        <p class="faction-next-note">${progress.next.note}</p>
+        <p class="faction-next-need">${progress.needed - progress.gained} standing to go</p>
+      </div>
+    `
+    : `
+      <div class="faction-next is-final">
+        <div class="faction-next-heading">
+          <span class="faction-next-title">Highest standing reached</span>
+        </div>
+        <p class="faction-next-note">There is nothing above this. ${faction.name} has nothing left to make you.</p>
+      </div>
+    `;
+
+  return `
+    <article class="faction-card ${toneClass}" style="--faction-colour: ${faction.colour}">
+      <header class="faction-head">
+        <span class="faction-sigil" aria-hidden="true">${faction.sigil}</span>
+        <div class="faction-heading">
+          <h3>${faction.name}</h3>
+          <p class="faction-region">${faction.region}</p>
+          <p class="faction-motto">${faction.motto}</p>
+        </div>
+        <div class="faction-standing">
+          <span class="faction-level">Level ${progress.level}</span>
+          <span class="faction-title">${progress.tier.title}</span>
+        </div>
+      </header>
+
+      <p class="faction-intro">${faction.introduction}</p>
+
+      <div class="faction-meter" aria-hidden="true"><i style="width:${meterWidth}%"></i></div>
+      <p class="faction-rank ${xp < 0 ? 'is-sour' : ''}"><b>${rank.label}</b> — ${rank.note}</p>
+
+      <div class="faction-tiers">
+        ${faction.tiers.map((tier) => {
+          const reached = progress.level >= tier.level;
+          const isCurrent = tier.level === progress.level;
+          return `
+            <div class="faction-tier ${reached ? 'is-reached' : ''} ${isCurrent ? 'is-current' : ''}">
+              <span class="faction-tier-mark" aria-hidden="true">${reached ? '✦' : '·'}</span>
+              <span class="faction-tier-body">
+                <b>${tier.level} · ${tier.title}</b>
+                <span>${reached ? tier.note : 'Not yet reached.'}</span>
+              </span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      ${nextBlock}
+
+      <p class="faction-rival">
+        <span aria-hidden="true">⚔</span>
+        ${rival.name} has you as <b>${factionRankFromXp(rivalXp).label}</b>
+      </p>
+    </article>
+  `;
+}
+
 function renderChronicles() {
-  setPageHeading('A record kept against the tide', 'Chronicles');
-  document.getElementById('viewContent').innerHTML = `<section class="chronicles-view">${renderLog()}</section>`;
+  setPageHeading('Who you have made yourself to', 'Chronicles');
+  const list = factionList();
+  // La pagina resta leggibile anche se un giorno una zona non avesse una
+  // fazione: si mostra quello che c'e', senza lasciare un vuoto.
+  const cards = list.map(renderFactionCard).join('');
+
+  const highest = list.reduce((best, faction) => {
+    const level = factionLevelFromXp(faction, getFactionXp(faction.id));
+    return level > best.level ? { level, faction } : best;
+  }, { level: 0, faction: null });
+
+  const summary = highest.faction
+    ? `<p class="chronicles-summary">
+        The city knows you best as <b>${highest.faction.name}</b>, who has you at level ${highest.level}.
+        Standing with one faction costs you the other: every point won is a point lost across the water.
+      </p>`
+    : '';
+
+  document.getElementById('viewContent').innerHTML = `
+    <section class="chronicles-view">
+      <p class="eyebrow">Standing</p>
+      <h3>The four powers of the lagoon</h3>
+      ${summary}
+      <p class="panel-hint chronicles-hint">
+        Standing rises when you pass work in a faction's own realm, and falls with the faction
+        that opposes it. A failed attempt changes nothing: you are unlucky, not suspected. New
+        pages open as you climb.
+      </p>
+      <div class="faction-grid">
+        ${cards || '<p class="deck-empty">No faction has claimed this city yet.</p>'}
+      </div>
+    </section>
+  `;
 }
 
 function getChronicleStats() {
@@ -2909,7 +3061,157 @@ function recordEventCompletion(action, outcome) {
   state.player.completedEvents = records.slice(0, 24);
 }
 
+// ============================================================================
+// Reputazione.
+//
+// Ogni zona del mondo ha una fazione, e il gioco chiede al giocatore in quale
+// si e' schierato: lavorando in una zona, la reputazione con la sua fazione sale
+// e quella con l'avversaria scende. Non e' una scelta separata dal gioco, e' il
+// gioco stesso a produrla.
+//
+// I punti non si comprano e non si regalano: si guadagnano risolvendo
+// incontri, e solo se vanno bene. Un fallimento non tocca la reputazione, per
+//che' il giocatore che non riesce a fare un lavoro non diventa sospettoso con
+// chi glielo aveva chiesto: diventa solo sfortunato.
+//
+// Il valore di un incontro dipende dalla sua difficolta'. Un lavoro facile vale
+// poco, uno difficile vale molto: cosi' il giocatore e' spinto a tentare le
+// cose che gli costano fatica, e la sua fazione cresce con la sua bravura
+// invece che con il tempo passato a girare da una parte all'altra.
+// ============================================================================
+
+// I punti per difficolta': la tabella e' volutamente non lineare, cosi' che
+// superare un incontro difficile valga molto piu' di farne tre facili.
+const FACTION_XP_TABLE = [
+  { difficulty: 1, xp: 1 },
+  { difficulty: 2, xp: 1 },
+  { difficulty: 3, xp: 2 },
+  { difficulty: 4, xp: 3 },
+  { difficulty: 5, xp: 5 },
+  { difficulty: 6, xp: 7 },
+  { difficulty: 7, xp: 10 }
+];
+
+// Quanto si perde la reputazione con l'avversaria rispetto a quella guadagnata.
+// La perdita e' minore del guadagno: salire deve restare vantaggioso, altrimenti
+// il giocatore finirebbe a non schierarsi con nessuno, che e' l'esito peggiore.
+const FACTION_RIVAL_DAMPING = 0.5;
+
+// Tetto inferiore per la reputazione. Serve a non far scendere all'infinito:
+// sotto questo punto la fazione ti ha gia' cancellato dai registri, e la
+// differenza non cambia piu' niente per nessuno.
+const FACTION_XP_FLOOR = -40;
+
+function factionXpForAction(action) {
+  const entry = FACTION_XP_TABLE.find((row) => row.difficulty === (action.difficulty || 1));
+  if (entry) return entry.xp;
+  // Difficolta' non in tabella: si prende il valore piu' vicino, cosi' un
+  // incontro con difficolta' 12 non vale zero punti e non vale una fortuna.
+  const highest = FACTION_XP_TABLE[FACTION_XP_TABLE.length - 1];
+  return (action.difficulty || 1) > highest.difficulty ? highest.xp : 1;
+}
+
+// I punti di reputazione di una fazione, letti dallo stato. Torna sempre un
+// numero: se il dato non c'e' (salvatore vecchio, file importato) vale zero,
+// che e' il caso normale di un giocatore che non ha ancora lavorato per nessuno.
+function getFactionXp(factionId) {
+  const rep = state.player.reputation;
+  if (!rep || typeof rep !== 'object') return 0;
+  const value = Number(rep[factionId]);
+  return Number.isFinite(value) ? Math.max(FACTION_XP_FLOOR, value) : 0;
+}
+
+function setFactionXp(factionId, value) {
+  if (!state.player.reputation || typeof state.player.reputation !== 'object') {
+    state.player.reputation = {};
+  }
+  state.player.reputation[factionId] = Math.max(FACTION_XP_FLOOR, Math.round(value));
+}
+
+// Concede reputazione alla fazione della zona in cui l'incontro e' stato
+// risolto, e toglie un po' all'avversaria. Restituisce quello che e' successo,
+// cosi' la finestra di risoluzione puo' mostrarlo al giocatore.
+//
+// Si chiama solo su successo: fallire non dice niente su di te a chi ti ha
+// dato il lavoro.
+function awardFactionStanding(action, locationId) {
+  const faction = factionForRealm(locationRealmOf(locationId));
+  if (!faction) return null;
+  const gained = factionXpForAction(action);
+  const before = getFactionXp(faction.id);
+  setFactionXp(faction.id, before + gained);
+
+  const rival = factions[faction.rival];
+  const lost = Math.max(1, Math.round(gained * FACTION_RIVAL_DAMPING));
+  const rivalBefore = getFactionXp(rival.id);
+  setFactionXp(rival.id, rivalBefore - lost);
+
+  const levelBefore = factionLevelFromXp(faction, before);
+  const levelAfter = factionLevelFromXp(faction, before + gained);
+
+  return {
+    faction,
+    rival,
+    gained,
+    lost,
+    // `promoted` vale solo quando si sale davvero di livello con questa mossa:
+    // e' il momento che il giocatore deve vedere, e vale un messaggio diverso.
+    promoted: levelAfter > levelBefore,
+    levelBefore,
+    levelAfter,
+    tier: faction.tiers.find((tier) => tier.level === levelAfter)
+  };
+}
+
+// La zona di un luogo. Passa dall'id del luogo al nome della regione, che e' la
+// chiave con cui le fazioni sono agganciate.
+function locationRealmOf(locationId) {
+  const location = locations[locationId];
+  if (!location) return null;
+  return location.realm;
+}
+
+// Una condizione di sblocco nuova: "raggiungi il livello N con la fazione X".
+// Va letta insieme alle altre perche' il resto del gioco non deve sapere come
+// funziona la reputazione, solo che questa condizione esiste e come si chiama.
+function isFactionRequirementMet(requirement) {
+  if (typeof factions[requirement.faction] === 'undefined') return false;
+  const xp = getFactionXp(requirement.faction);
+  return factionLevelFromXp(factions[requirement.faction], xp) >= requirement.min;
+}
+
 function describeRequirement(requirement) {
+  if (requirement.type === 'faction') {
+    const faction = factions[requirement.faction];
+    // Una fazione inesistente in un requisito e' un dato rotto, non uno
+    // sblocco impossibile: senza questo controllo l'incontro resterebbe
+    // bloccato per sempre senza che nessuno capisca perche'.
+    if (!faction) {
+      return {
+        type: 'faction',
+        met: false,
+        label: 'Unavailable',
+        phrase: 'an unknown faction',
+        infinitive: 'belong to a faction that no longer exists',
+        detail: 'This requirement names a faction that is not in the world.'
+      };
+    }
+    const xp = getFactionXp(faction.id);
+    const current = factionLevelFromXp(faction, xp);
+    const missing = Math.max(0, requirement.min - current);
+    const rank = factionRankFromXp(xp);
+    return {
+      type: 'faction',
+      met: missing === 0,
+      label: `Reach ${rank.label} with ${faction.name}`,
+      phrase: `reaching ${rank.label} with ${faction.name}`,
+      infinitive: `be known to ${faction.name}`,
+      detail: missing === 0
+        ? `${faction.name} knows you as ${rank.label}.`
+        : `${faction.name} has you as ${rank.label}, at level ${current}. ${missing} more level${missing === 1 ? '' : 's'} needed.`
+    };
+  }
+
   if (requirement.type === 'property') {
     const owned = state.player.properties.includes(requirement.value);
     const grantor = owned ? null : findGrantorForProperty(requirement.value);

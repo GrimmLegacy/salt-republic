@@ -35,6 +35,7 @@ global.document = {
 const out = [];
 const log = (...args) => out.push(args.join(' '));
 
+vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/factions.js', 'utf8'));
 vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/lore.js', 'utf8'));
 vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/app.js', 'utf8'));
 

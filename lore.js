@@ -551,6 +551,23 @@ function sanitizeFlags(raw) {
   return clean;
 }
 
+// La reputazione si pulisce come i flag: si tiene solo cio' che esiste davvero
+// e si scarta tutto il resto. Serve per due motivi: un salvataggio vecchio non
+// ha il campo e non deve rompersi, e un file importato a mano non deve poter
+// piazzare numeri in fazioni che non esistono (che non mostrerebbero nulla e
+// falserebbero il calcolo del livello).
+function sanitizeReputation(raw) {
+  const clean = {};
+  if (!raw || typeof raw !== 'object') return clean;
+  for (const faction of Object.values(factions)) {
+    const value = Number(raw[faction.id]);
+    if (Number.isFinite(value) && value !== 0) {
+      clean[faction.id] = Math.max(FACTION_XP_FLOOR, Math.round(value));
+    }
+  }
+  return clean;
+}
+
 function sanitizeVisited(raw) {
   const valid = new Set(Object.keys(locations));
   return Array.isArray(raw) ? raw.filter((id) => valid.has(id)) : [];

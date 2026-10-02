@@ -96,7 +96,12 @@ const motes = {
       // per ogni particella evitano qualunque effetto di gruppo.
       pulseSpeed: 0.25 + Math.random() * 0.6,
       pulsePhase: Math.random() * Math.PI * 2,
-      peak: gold ? 0.5 + Math.random() * 0.24 : 0.22 + Math.random() * 0.3,
+      // `peak` e' l'opacita' massima di una particella. Restano basse di
+      // proposito: le particelle stanno SOPRA il contenuto del gioco, quindi
+      // se fossero piu' accese si leggerebbero come immagini davanti alle
+      // lettere. Deboli e numerose si leggono come aria mossa, che e' l'effetto
+      // voluto.
+      peak: gold ? 0.3 + Math.random() * 0.14 : 0.13 + Math.random() * 0.17,
       gold
     };
   },

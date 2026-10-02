@@ -24,6 +24,7 @@ global.localStorage = { getItem: (k) => (k in store ? store[k] : null), setItem:
 global.document = { getElementById: () => makeEl(), querySelector: () => makeEl(), querySelectorAll: () => [] };
 
 const ROOT = 'C:/Users/focas/source/salt-republic';
+vm.runInThisContext(fs.readFileSync(`${ROOT}/factions.js`, 'utf8'));
 vm.runInThisContext(fs.readFileSync(`${ROOT}/lore.js`, 'utf8'));
 vm.runInThisContext(fs.readFileSync(`${ROOT}/app.js`, 'utf8'));
 
