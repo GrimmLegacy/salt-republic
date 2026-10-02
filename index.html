@@ -111,7 +111,12 @@
             </p>
           </div>
 
-          <p class="welcome-legal">&copy; <span id="welcomeYear">2026</span> Grimm Legacy. Non-commercial use only.</p>
+          <p class="welcome-legal">
+            &copy; <span id="welcomeYear">2026</span> Grimm Legacy. Non-commercial use only.
+            <!-- Compare solo se qualcuno e' gia' dentro: un visitatore non ha
+                 niente da chiudere. -->
+            <button type="button" class="welcome-signout" data-auth-signout hidden>Sign out</button>
+          </p>
         </div>
       </div>
     </section>
@@ -173,6 +178,9 @@
 
         <footer class="sidebar-footer">
           <span id="saveStatus" class="save-status">Autosave ready</span>
+          <!-- Nascosto finche' non c'e' un account: a un ospite non ha senso
+               proporlo, e il bottone resterebbe li' a non fare nulla. -->
+          <button id="sidebarSignOut" type="button" class="sidebar-signout" data-auth-signout hidden>Sign out</button>
           <span>The Drowned Serenissima</span>
           <p class="sidebar-legal">&copy; <span id="copyrightYear">2026</span> Grimm Legacy. Non-commercial use only. <a href="mailto:grimmlegacies@gmail.com">grimmlegacies@gmail.com</a></p>
         </footer>

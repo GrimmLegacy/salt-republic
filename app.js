@@ -1636,6 +1636,27 @@ function resolveAction(actionId) {
   });
 }
 
+// Piede della sidebar: mostra chi ha effettivamente aperto la sessione e
+// nasconde il bottone di uscita a chi non ha un account. Il logout e' anche
+// nella pagina Profile, ma qui e' sempre a portata di clic e la sua presenza
+// basta a ricordare che la sessione esiste.
+function renderAccountFooter() {
+  const service = getAuth();
+  const signOut = document.getElementById('sidebarSignOut');
+  if (!signOut) return;
+  const signedIn = Boolean(service && service.enabled && service.user);
+  signOut.hidden = !signedIn;
+  const status = document.getElementById('saveStatus');
+  if (!status) return;
+  if (!signedIn) {
+    // Un ospite non ha nulla da sincronizzare: la copia sul dispositivo basta
+    // e dirgli "Autosave complete" ogni volta sarebbe solo rumore.
+    status.textContent = service && service.enabled ? 'Playing as guest' : 'Autosave ready';
+    return;
+  }
+  status.textContent = service.lastSyncedAt ? 'Saved online' : 'Saving online…';
+}
+
 function renderSidebar() {
   const regeneration = refreshTimedResources();
   const location = locations[state.currentLocationId];
@@ -1648,6 +1669,7 @@ function renderSidebar() {
     deckBadge.title = `Draw reserve ${state.player.drawTokens} of ${DRAW_RESERVE_MAX}; +1 every ${DRAW_REGEN_MINUTES} min`;
   }
   renderResourceTimers();
+  renderAccountFooter();
   document.querySelectorAll('.menu-link').forEach((link) => {
     const active = link.dataset.view === currentView;
     link.classList.toggle('active', active);
@@ -3372,10 +3394,7 @@ function wireEvents() {
 
     const signoutButton = event.target.closest('[data-auth-signout]');
     if (signoutButton) {
-      runAuthAction(async (service) => {
-        const outcome = await service.signOut();
-        if (!outcome.ok) service.notice = outcome.reason;
-      });
+      handleProfileSignOut();
       return;
     }
 
@@ -3518,6 +3537,15 @@ function showWelcomeScreen(show) {
   const shell = document.querySelector('.app-shell');
   if (screen) screen.hidden = !show;
   if (shell) shell.setAttribute('aria-hidden', show ? 'true' : 'false');
+  // L'uscita si vede solo a chi ha gia' una sessione aperta: offerta a un
+  // visitatore che non ha mai fatto il login sarebbe un bottone che non fa
+  // niente. Sulla schermata pero' serve, perche' l'home compare anche a chi
+  // torna con l'account gia' aperto e vuole cambiarlo.
+  const welcomeSignOut = document.querySelector('.welcome-signout');
+  if (welcomeSignOut) {
+    const service = getAuth();
+    welcomeSignOut.hidden = !(service && service.enabled && service.user);
+  }
   if (show) {
     const email = document.getElementById('welcomeEmail');
     if (email) email.focus();
@@ -3696,6 +3724,28 @@ async function startAccountSession() {
   if (!showWelcome) render();
 }
 
+// Dopo il logout l'home torna: chi si e' appena disconnesso deve poter
+// entrare con un altro account o scegliere l'ospite senza ricaricare la pagina.
+// `forgetGuestChoice` serve perche' un giocatore che si era loggato non ha
+// mai scritto la scelta "ospite": senza dimenticarla, `hasChosenGuest`
+// continuerebbe a valere e l'home salterebbe di nuovo.
+async function handleProfileSignOut() {
+  const service = getAuth();
+  if (!service || !service.enabled) return;
+  await runAuthAction(async (current) => {
+    const outcome = await current.signOut();
+    if (!outcome.ok) {
+      current.notice = outcome.reason;
+      return;
+    }
+    forgetGuestChoice();
+    // Il save resta su questo dispositivo, quindi la cronaca appena giocata
+    // non sparisce: cambia solo chi e' il proprietario della copia online.
+    current.notice = 'Signed out. This chronicle stays on this device.';
+    showWelcomeScreen(true);
+  });
+}
+
 // Ascolta i click dei bottoni della schermata. Stanno fuori da `.app-shell`,
 // quindi il gestore delegato che copre il resto del gioco non li vede: qui
 // si intercettano a parte, e solo quando la schermata e' sullo schermo.
@@ -3733,23 +3783,11 @@ function wireWelcomeEvents() {
   });
 }
 
-async function startAccountSession() {
-  const service = getAuth();
-  if (!service) return;
-  try {
-    if (!service.init()) return;
-    service.listen();
-    const user = await service.restoreSession();
-    if (user) {
-      await syncAfterLogin();
-      render();
-    }
-  } catch (error) {
-    // Qualunque guasto qui e' cosmetico: l'ospite gioca comunque in locale.
-    service.notice = 'Online accounts are unavailable right now. Playing locally.';
-    console.warn('[auth] session start failed', error);
-  }
-}
+// NOTA: qui non deve esistere una seconda definizione di startAccountSession.
+// In JavaScript l'ultima che si trova vince e sovrascrive le precedenti senza
+// avvisare: se la funzione venisse duplicata, per esempio durante un edit, la
+// copia piu' in basso silenziosamente annullerebbe questa e l'home non
+// comparirebbe mai. Quindi una sola definizione, quella qui sopra.
 
 function boot() {
   initializeTideDeck();

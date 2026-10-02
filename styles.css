@@ -1002,6 +1002,38 @@ button {
   letter-spacing: 0.07em;
 }
 
+/* Uscita dalla sessione, nel pie' della sidebar. Piccolo e in basso profilo
+   rispetto alla navigazione: e' un'azione che si usa una volta, non un
+   destinazione da visitare, quindi non deve competere con le voci di gioco. */
+.sidebar-signout {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border: 1px solid rgba(197, 151, 79, 0.28);
+  border-radius: 3px;
+  background: transparent;
+  color: #a3947c;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.sidebar-signout:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: #dec99f;
+}
+
+.sidebar-signout:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.sidebar-signout[hidden] {
+  display: none;
+}
+
 .main-panel {
   min-width: 0;
   padding: 18px 28px 52px;
@@ -3247,6 +3279,32 @@ summary:focus-visible {
   margin: 22px 0 0;
   color: rgba(170, 157, 137, 0.55);
   font-size: 0.56rem;
+}
+
+/* Uscita dalla sessione anche nella schermata iniziale, per chi arriva gia'
+   loggato e vuole cambiarlo account senza passare dal gioco. */
+.welcome-signout {
+  margin-left: 8px;
+  padding: 2px 7px;
+  border: 1px solid rgba(197, 151, 79, 0.26);
+  border-radius: 3px;
+  background: transparent;
+  color: #a3947c;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.welcome-signout:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: #dec99f;
+}
+
+.welcome-signout[hidden] {
+  display: none;
 }
 
 /* La welcome copre tutta la pagina, quindi il gioco resta nascosto finche'
