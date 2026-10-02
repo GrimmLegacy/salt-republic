@@ -2961,6 +2961,345 @@ summary:focus-visible {
   background: rgba(159, 34, 45, 0.22);
 }
 
+/* ============================================================================
+   Schermata di benvenuto
+   ============================================================================ */
+
+.welcome-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+/* Lo sfondo e' solo un gradiente scuro, non un'immagine: la home deve
+   caricare subito anche su rete lenta, e il gioco non deve aspettare un file
+   pesante prima di far entrare qualcuno. */
+.welcome-art {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(180, 124, 47, 0.16), transparent 62%),
+    radial-gradient(ellipse at 50% 108%, rgba(94, 146, 149, 0.14), transparent 58%);
+  pointer-events: none;
+}
+
+/* Due colonne: racconto a sinistra, accesso a destra. La colonna sinistra
+   cresce con il testo e quella destra resta stretta, perche' i campi di login
+   leggibili sono tanto larghi quanto servono e non uno di piu'. */
+.welcome-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+  gap: 62px;
+  align-items: center;
+  width: min(1080px, 100%);
+  padding: 56px 44px;
+}
+
+.welcome-story {
+  min-width: 0;
+}
+
+.welcome-access {
+  min-width: 0;
+}
+
+.welcome-mark {
+  margin-bottom: 12px;
+  color: var(--gold);
+  font-size: 1.5rem;
+  text-shadow: 0 0 18px rgba(211, 154, 56, 0.6);
+}
+
+.welcome-title {
+  margin: 6px 0 14px;
+  color: #f1e8d9;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.5rem;
+  font-variant: small-caps;
+  font-weight: 600;
+  line-height: 0.95;
+}
+
+.welcome-lede {
+  margin: 0 0 26px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.welcome-panel {
+  padding: 22px;
+  border: 1px solid rgba(197, 151, 79, 0.24);
+  border-radius: 6px;
+  background: var(--panel);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+
+.welcome-field {
+  display: block;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.welcome-field span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--gold);
+  font-size: 0.57rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.welcome-field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(197, 151, 79, 0.3);
+  border-radius: 3px;
+  background: rgba(12, 10, 8, 0.7);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.8rem;
+}
+
+.welcome-field input:focus {
+  border-color: var(--gold);
+  outline: none;
+}
+
+.welcome-button {
+  min-height: 38px;
+  padding: 10px 14px;
+  border: 1px solid rgba(197, 151, 79, 0.34);
+  border-radius: 3px;
+  background: rgba(197, 151, 79, 0.1);
+  color: #dec99f;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.welcome-button:hover:not(:disabled) {
+  border-color: var(--gold);
+  background: rgba(197, 151, 79, 0.18);
+}
+
+.welcome-button:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+/* Il bottone Google resta in chiaro anche nel tema scuro: e' il segnale che
+   identifica quel metodo di accesso. */
+.welcome-button.welcome-google {
+  width: 100%;
+  border-color: rgba(218, 220, 224, 0.4);
+  background: #f7f7f7;
+  color: #3c4043;
+  font-weight: 600;
+}
+
+.welcome-button.welcome-google:hover:not(:disabled) {
+  border-color: #dadce0;
+  background: #ffffff;
+  color: #202124;
+}
+
+/* "Play without an account" e' la via d'uscita e non deve sembrare un pulsante
+   principale: altrimenti il messaggio che passa e' "devi registrarti", quando
+   invece il gioco e' aperto a tutti. */
+.welcome-button.welcome-ghost {
+  width: 100%;
+  border-color: rgba(197, 151, 79, 0.2);
+  background: transparent;
+  color: var(--muted);
+}
+
+.welcome-button.welcome-ghost:hover:not(:disabled) {
+  color: #dec99f;
+}
+
+.welcome-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  color: rgba(170, 157, 137, 0.65);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.welcome-or::before,
+.welcome-or::after {
+  flex: 1;
+  height: 1px;
+  background: rgba(197, 151, 79, 0.18);
+  content: '';
+}
+
+.welcome-notice {
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border: 1px solid rgba(201, 54, 57, 0.4);
+  border-radius: 3px;
+  background: rgba(159, 34, 45, 0.12);
+  color: #ed8586;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.welcome-notice.info {
+  border-color: rgba(134, 185, 138, 0.4);
+  background: rgba(80, 140, 90, 0.12);
+  color: #9ecfa4;
+}
+
+.welcome-hint {
+  margin: 16px 0 0;
+  color: rgba(170, 157, 137, 0.78);
+  font-size: 0.63rem;
+  line-height: 1.5;
+}
+
+/* === I quattro punti di gioco, colonna sinistra === */
+
+.welcome-points {
+  display: grid;
+  gap: 20px;
+  margin: 34px 0 0;
+  padding: 26px 0 0;
+  border-top: 1px solid rgba(197, 151, 79, 0.16);
+  list-style: none;
+}
+
+.welcome-points li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.welcome-point-mark {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid rgba(197, 151, 79, 0.3);
+  border-radius: 50%;
+  background: rgba(197, 151, 79, 0.07);
+  color: var(--gold);
+  font-size: 0.72rem;
+}
+
+.welcome-points h2 {
+  margin: 3px 0 5px;
+  color: #efe4d2;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.welcome-points p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.62;
+}
+
+/* === Colonna destra: il pannello di accesso === */
+
+.welcome-panel-title {
+  margin: 0 0 5px;
+  color: #efe4d2;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.32rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.welcome-panel-sub {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+/* I tre bottoni principali sono a piena larghezza e hanno un piccolo respiro
+   fra loro: sono le tre azioni distinte e vanno lette come tre. */
+.welcome-panel > .welcome-button {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.welcome-legal {
+  margin: 22px 0 0;
+  color: rgba(170, 157, 137, 0.55);
+  font-size: 0.56rem;
+}
+
+/* La welcome copre tutta la pagina, quindi il gioco resta nascosto finche'
+   non si e' entrati. Serve esplicitamente perche' `display: flex` sulle
+   schermate nasconde l'attributo `hidden` del browser. */
+.welcome-screen[hidden] {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  /* Sotto questa larghezza due colonne non starebbero: o il testo del racconto
+     diventa una riga sola per colonna, o il pannello di login si stringe fino
+     a essere scomodo da leggere. Meglio impilare e dare a ognuno la sua riga. */
+  .welcome-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  .welcome-access {
+    order: 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .welcome-title {
+    font-size: 2rem;
+  }
+
+  .welcome-grid {
+    padding: 28px 18px;
+  }
+
+  /* Su schermo stretto il racconto accorcia: l'elenco dei punti resta, ma
+     senza il bordo sopra, che a questa larghezza ruberebbe solo spazio. */
+  .welcome-points {
+    gap: 16px;
+    margin-top: 26px;
+    padding-top: 20px;
+  }
+
+  .welcome-points p {
+    font-size: 0.68rem;
+  }
+
+  .welcome-lede {
+    margin-bottom: 22px;
+    font-size: 0.74rem;
+  }
+}
+
 /* Il bottone Google resta in chiaro anche nel tema scuro: e' il segnale che
    identifica quel metodo di accesso, e renderlo indistinguibile dagli altri
    bottoni lo renderebbe meno riconoscibile. I colori sono quelli del brand. */

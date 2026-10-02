@@ -35,6 +35,10 @@ const auth = {
   notice: '',
   // true mentre una sincronizzazione e' in corso: evita scritture sovrapposte.
   syncing: false,
+  // true mentre un'azione account (login, registrazione, logout) e' in corso.
+  busy: false,
+  // Riga di `profiles` per l'utente corrente, se gia' stata scritta.
+  profile: null,
 
   // Risolto il client solo se le credenziali ci sono: senza di esse non tentiamo
   // nemmeno la rete, cosi' l'app parte istantanea e senza errori in console.
@@ -122,6 +126,40 @@ async signUpWithPassword(email, password) {
     if (error) return { ok: false, reason: humaniseAuthError(error) };
     this.user = null;
     return { ok: true };
+  },
+
+  // Tabelle `profiles`: chi e' il giocatore, separato dal save. Viene scritta
+  // al primo accesso e poi solo per aggiornare `last_seen_at`. Se la riga non
+  // esiste ancora la si crea: per un utente che si registra e poi chiude
+  // senza mai giocare, il profilo deve comunque esistere.
+  async touchProfile(displayName) {
+    if (!this.enabled || !this.user) return { ok: false, skipped: true };
+    const row = {
+      user_id: this.user.id,
+      email: this.user.email || null,
+      display_name: displayName || null,
+      last_seen_at: new Date().toISOString()
+    };
+    const { error } = await this.client
+      .from('profiles')
+      .upsert(row, { onConflict: 'user_id' });
+    if (error) return { ok: false, reason: humaniseAuthError(error) };
+    this.profile = row;
+    return { ok: true };
+  },
+
+  // Quanti giocatori registrati ci sono. E' una funzione `security definer`
+  // perche' le RLS vietano di leggere le righe altrui: il numero e' l'unica
+  // cosa che si vuole mostrare, non chi e' dentro.
+  async fetchPlayerCount() {
+    if (!this.enabled) return 0;
+    try {
+      const { data, error } = await this.client.rpc('public_player_count');
+      if (error) return 0;
+      return Number(data) || 0;
+    } catch (error) {
+      return 0;
+    }
   },
 
   // Salva la cronaca sul server. Il conflitto e' risolto da `user_id`: se due

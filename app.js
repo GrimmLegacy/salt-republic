@@ -3469,11 +3469,270 @@ document.addEventListener('keydown', (event) => {
   });
 }
 
-// Avvia lo strato degli account. Non blocca mai: senza credenziali, senza
-// libreria, o senza rete, si limita a non fare niente e il gioco prosegue
-// identico a come funzionava prima. Serve anche a coprire il rientro da Google:
-// l'utente torna dal popup OAuth, `restoreSession` ritrova la sessione, e la
+// ============================================================================
+// Schermata di benvenimento.
+//
+// E' la prima cosa che vede chi apre il gioco. Mostra il racconto e l'accesso,
+// e sparisce in tre casi: login riuscito, account gia' aperto in una visita
+// precedente, oppure scelta esplicita di giocare da ospite.
+//
+// La scelta dell'ospite viene ricordata in `guestChosen`: senza, l'home
+// ricomparirebbe a ogni visita e chi ha scelto di provare senza account
+// verrebbe inseguito da una schermata a cui ha gia' detto di no.
+// ============================================================================
+
+const GUEST_CHOICE_KEY = 'salt-republic-guest-chosen';
+let welcomeBusy = false;
+
+// true se il giocatore ha gia' deciso di giocare senza account.
+function hasChosenGuest() {
+  try {
+    return localStorage.getItem(GUEST_CHOICE_KEY) === '1';
+  } catch (error) {
+    return false;
+  }
+}
+
+function rememberGuestChoice() {
+  try {
+    localStorage.setItem(GUEST_CHOICE_KEY, '1');
+  } catch (error) {
+    // Senza memoria sul browser la home tornera' alla visita successiva:
+    // un fastidio, non un blocco.
+  }
+}
+
+// Se un giorno l'ospite si registra, la scelta va dimenticata: adesso ha un
+// account e non ha piu' senso saltare l'home.
+function forgetGuestChoice() {
+  try {
+    localStorage.removeItem(GUEST_CHOICE_KEY);
+  } catch (error) {
+    // Come sopra: nessun effetto sul gioco.
+  }
+}
+
+// Mostra o nasconde la schermata.
+function showWelcomeScreen(show) {
+  const screen = document.getElementById('welcomeScreen');
+  const shell = document.querySelector('.app-shell');
+  if (screen) screen.hidden = !show;
+  if (shell) shell.setAttribute('aria-hidden', show ? 'true' : 'false');
+  if (show) {
+    const email = document.getElementById('welcomeEmail');
+    if (email) email.focus();
+  }
+}
+
+// Il testo di errore o di conferma sopra i bottoni. `info` lo rende verde,
+// perche' non tutto quello che arriva qui e' un problema.
+function setWelcomeNotice(message, info = false) {
+  const notice = document.getElementById('welcomeNotice');
+  if (!notice) return;
+  notice.textContent = message || '';
+  notice.hidden = !message;
+  notice.classList.toggle('info', Boolean(info));
+}
+
+// Disattiva i bottoni durante una richiesta: senza questo, un doppio clic su
+// "Create a new account" creerebbe due richieste di registrazione.
+function setWelcomeBusy(busy) {
+  welcomeBusy = busy;
+  document.querySelectorAll('[data-welcome-signin], [data-welcome-signup], [data-welcome-google]').forEach((button) => {
+    button.disabled = busy;
+  });
+}
+
+// Legge i campi del modulo. Se manca qualcosa lo dice con `message`, cosi'
+// l'errore si spiega sulla pagina invece che in console.
+function readWelcomeCredentials() {
+  const email = document.getElementById('welcomeEmail');
+  const password = document.getElementById('welcomePassword');
+  const address = email && email.value.trim() ? email.value.trim() : '';
+  const secret = password && password.value ? password.value : '';
+  if (!address || !secret) {
+    return { ok: false, message: 'Enter both your email and your password.' };
+  }
+  if (secret.length < 6) {
+    return { ok: false, message: 'The password needs at least 6 characters.' };
+  }
+  return { ok: true, email: address, password: secret };
+}
+
+// Un utente puo' disattivare la conferma via email su Supabase, quindi non
+// diamo per scontato che serva: se c'e' una sessione si entra, altrimenti si
+// dice di aprire la mail. E' l'unico punto in cui i due percorsi si separano.
+async function completeWelcomeSignIn(service) {
+  forgetGuestChoice();
+  await syncAfterLogin();
+  showWelcomeScreen(false);
+  render();
+  service.notice = '';
+}
+
+async function handleWelcomeSignIn() {
+  const service = getAuth();
+  if (!service || !service.enabled) {
+    setWelcomeNotice('Online accounts are not available in this build.');
+    return;
+  }
+  const credentials = readWelcomeCredentials();
+  if (!credentials.ok) {
+    setWelcomeNotice(credentials.message);
+    return;
+  }
+  setWelcomeNotice('');
+  setWelcomeBusy(true);
+  try {
+    const outcome = await service.signInWithPassword(credentials.email, credentials.password);
+    if (!outcome.ok) {
+      setWelcomeNotice(outcome.reason);
+      return;
+    }
+    await completeWelcomeSignIn(service);
+  } finally {
+    setWelcomeBusy(false);
+  }
+}
+
+async function handleWelcomeSignUp() {
+  const service = getAuth();
+  if (!service || !service.enabled) {
+    setWelcomeNotice('Online accounts are not available in this build.');
+    return;
+  }
+  const credentials = readWelcomeCredentials();
+  if (!credentials.ok) {
+    setWelcomeNotice(credentials.message);
+    return;
+  }
+  setWelcomeNotice('');
+  setWelcomeBusy(true);
+  try {
+    const outcome = await service.signUpWithPassword(credentials.email, credentials.password);
+    if (!outcome.ok) {
+      setWelcomeNotice(outcome.reason);
+      return;
+    }
+    if (outcome.needsConfirmation) {
+      setWelcomeNotice('Account created. Open the confirmation email, then sign in.', true);
+      return;
+    }
+    await completeWelcomeSignIn(service);
+  } finally {
+    setWelcomeBusy(false);
+  }
+}
+
+async function handleWelcomeGoogle() {
+  const service = getAuth();
+  if (!service || !service.enabled) {
+    setWelcomeNotice('Online accounts are not available in this build.');
+    return;
+  }
+  setWelcomeNotice('');
+  setWelcomeBusy(true);
+  try {
+    const outcome = await service.signInWithGoogle();
+    // Su successo il browser sta per essere reindirizzato: la pagina corrente
+    // sparisce, quindi non ha senso disegnare o sbloccare i bottoni.
+    if (!outcome.ok) {
+      setWelcomeNotice(outcome.reason);
+      setWelcomeBusy(false);
+    }
+  } catch (error) {
+    setWelcomeNotice('Could not reach Google. Try again, or use email and password.');
+    setWelcomeBusy(false);
+  }
+}
+
+// L'ospite entra senza toccare la rete. Nessun errore possibile: se questa
+// opzione non funzionasse, il gioco non sarebbe aperto a nessuno.
+function handleWelcomeGuest() {
+  rememberGuestChoice();
+  setWelcomeNotice('');
+  showWelcomeScreen(false);
+  initializeTideDeck();
+  render();
+}
+
+// Decide se la schermata deve comparire. Chiamata una volta sola, all'avvio:
+// se l'account e' gia' aperto oppure se l'ospite ha gia' scelto, la home non
+// si mostra e si entra direttamente nel gioco.
+function shouldShowWelcome() {
+  const service = getAuth();
+  if (service && service.enabled && service.user) return false;
+  if (hasChosenGuest()) return false;
+  return true;
+}
+
+// Avvia lo strato degli account e la schermata di benvenimento. Non blocca
+// mai il boot: senza credenziali, senza libreria o senza rete si limita a non
+// fare niente e il gioco prosegue identico a come funzionava prima.
+//
+// Copre anche il rientro da Google: l'utente torna dal popup OAuth,
+// `restoreSession` ritrova la sessione, e allora la home sparisce da sola e la
 // cronaca online viene allineata con quella locale.
+async function startAccountSession() {
+  const service = getAuth();
+  let showWelcome = true;
+  try {
+    if (service && service.init()) {
+      service.listen();
+      const user = await service.restoreSession();
+      if (user) {
+        showWelcome = false;
+        await syncAfterLogin();
+        await service.touchProfile(state.player.name);
+      }
+    }
+  } catch (error) {
+    // Qualunque guasto qui e' cosmetico: l'ospite gioca comunque in locale.
+    if (service) service.notice = 'Online accounts are unavailable right now. Playing locally.';
+    console.warn('[auth] session start failed', error);
+    showWelcome = true;
+  }
+  showWelcomeScreen(showWelcome);
+  if (!showWelcome) render();
+}
+
+// Ascolta i click dei bottoni della schermata. Stanno fuori da `.app-shell`,
+// quindi il gestore delegato che copre il resto del gioco non li vede: qui
+// si intercettano a parte, e solo quando la schermata e' sullo schermo.
+function wireWelcomeEvents() {
+  // Nei test `document` e' uno stub minimo senza `addEventListener`: senza
+  // questo controllo la chiamata romperebbe, perche' la si registra dal boot
+  // e i test non hanno bisogno che la schermata sia cliccabile.
+  if (!document || typeof document.addEventListener !== 'function') return;
+  document.addEventListener('click', (event) => {
+    const screen = document.getElementById('welcomeScreen');
+    if (!screen || screen.hidden) return;
+    // Il click deve essere dentro la schermata: senza questo, un click sul
+    // gioco sottostante (che resta in DOM) attiverebbe l'accesso da ospite.
+    if (!event.target.closest || !event.target.closest('#welcomeScreen')) return;
+
+    if (event.target.closest('[data-welcome-signin]')) {
+      event.preventDefault();
+      handleWelcomeSignIn();
+      return;
+    }
+    if (event.target.closest('[data-welcome-signup]')) {
+      event.preventDefault();
+      handleWelcomeSignUp();
+      return;
+    }
+    if (event.target.closest('[data-welcome-google]')) {
+      event.preventDefault();
+      handleWelcomeGoogle();
+      return;
+    }
+    if (event.target.closest('[data-welcome-guest]')) {
+      event.preventDefault();
+      handleWelcomeGuest();
+    }
+  });
+}
+
 async function startAccountSession() {
   const service = getAuth();
   if (!service) return;
@@ -3499,6 +3758,9 @@ function boot() {
   // Gli account non devono mai ritardare l'avvio: il boot continua subito e la
   // sessione, se c'e', arriva dopo e allinea la cronaca al volo.
   startAccountSession();
+  wireWelcomeEvents();
+  const welcomeYear = document.getElementById('welcomeYear');
+  if (welcomeYear) welcomeYear.textContent = new Date().getFullYear();
   const logLengthBeforeDeduplication = state.player.log.length;
   state.player.log = state.player.log.filter((entry, index, entries) => index === 0 || entry.prefix !== 'Arrival' || entries[index - 1].prefix !== 'Arrival');
   if (state.player.log.length !== logLengthBeforeDeduplication) saveGame();

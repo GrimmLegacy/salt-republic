@@ -10,6 +10,112 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <!-- Schermata di benvenimento. Due colonne: a sinistra il racconto del
+         gioco, a destra l'accesso. Viene mostrata a chi non e' ancora entrato e
+         nascosta del tutto da app.js quando l'accesso e' riuscito, oppure quando
+         il giocatore ha scelto di provare senza account. Vive fuori da
+         .app-shell perche' occupa tutta la pagina: il gioco comincia dopo. -->
+    <section id="welcomeScreen" class="welcome-screen" hidden>
+      <div class="welcome-art" aria-hidden="true"></div>
+
+      <div class="welcome-grid">
+        <!-- ============ Colonna sinistra: il gioco ============ -->
+        <div class="welcome-story">
+          <div class="welcome-mark" aria-hidden="true">✦</div>
+          <p class="eyebrow">A Gothic Narrative RPG</p>
+          <h1 class="welcome-title">The Drowned<br />Serenissima</h1>
+          <p class="welcome-lede">
+            The water reached the fourth step in 1494 and has risen a finger-width
+            every year since. Venice did not drown all at once: it is still there,
+            half under, still working, still keeping records of a year nobody
+            admits to.
+          </p>
+
+          <ul class="welcome-points">
+            <li>
+              <span class="welcome-point-mark" aria-hidden="true">⌖</span>
+              <div>
+                <h2>Four realms under the lagoon</h2>
+                <p>
+                  A clockwork belfry above the clouds, the Doge's flooded archive,
+                  a hydroponics farm eight hundred fathoms down, and a railway to
+                  the stars. Each has its own work, its own people and its own price.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="welcome-point-mark" aria-hidden="true">◈</span>
+              <div>
+                <h2>A deck instead of a dialogue wheel</h2>
+                <p>
+                  Every action draws from the tide deck. A passing card changes the
+                  board; a failing one is a malus that follows you until you clear it.
+                  Your cards are never taken away.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="welcome-point-mark" aria-hidden="true">▧</span>
+              <div>
+                <h2>Every choice is written down</h2>
+                <p>
+                  The chronicle records what you did and why. Pass an encounter and
+                  its page closes; fail and it stays in its realm, waiting for a
+                  better attempt. The lore opens one chapter at a time, and never
+                  in advance.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="welcome-point-mark" aria-hidden="true">◷</span>
+              <div>
+                <h2>It runs while you are away</h2>
+                <p>
+                  Vigor and the card reserve refill on the clock, not while you
+                  watch. Close the tab, come back tomorrow, and the count is done:
+                  nothing was lost and nothing was wasted.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- ============ Colonna destra: l'accesso ============ -->
+        <div class="welcome-access">
+          <div class="welcome-panel">
+            <h2 class="welcome-panel-title">Enter the city</h2>
+            <p class="welcome-panel-sub">
+              Keep your chronicle online and carry it between devices.
+            </p>
+
+            <label class="welcome-field">
+              <span>Email</span>
+              <input id="welcomeEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+            </label>
+            <label class="welcome-field">
+              <span>Password</span>
+              <input id="welcomePassword" type="password" autocomplete="current-password" placeholder="At least 6 characters" />
+            </label>
+
+            <p id="welcomeNotice" class="welcome-notice" hidden></p>
+
+            <button type="button" class="welcome-button" data-welcome-signin>Sign in</button>
+            <button type="button" class="welcome-button welcome-google" data-welcome-google>Continue with Google</button>
+            <button type="button" class="welcome-button" data-welcome-signup>Create a new account</button>
+
+            <p class="welcome-or"><span>or</span></p>
+            <button type="button" class="welcome-button welcome-ghost" data-welcome-guest>Play without an account</button>
+            <p class="welcome-hint">
+              No account, no problem: the game is fully playable. You just keep the
+              chronicle on this device.
+            </p>
+          </div>
+
+          <p class="welcome-legal">&copy; <span id="welcomeYear">2026</span> Grimm Legacy. Non-commercial use only.</p>
+        </div>
+      </div>
+    </section>
+
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand-block">

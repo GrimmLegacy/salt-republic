@@ -56,10 +56,79 @@ create policy "update own save"
 -- Non si cancella: la `on delete cascade` sul foreign key pulisce tutto
 -- automaticamente quando un utente elimina il proprio account su Supabase.
 
--- ---------------------------------------------------------------------------
--- Verifica (facoltativa): dopo aver creato un account e fatto un salvataggio,
--- questa query deve restituire esattamente una riga con il tuo nome.
+-- ============================================================================
+-- The Drowned Serenissima - profili giocatore
 --
---   select user_id, updated_at, state->'player'->>'name' as player_name
---   from public.saves;
+-- Esegui questo file nel SQL Editor di Supabase DOPO supabase-schema.sql
+-- (Dashboard > SQL Editor > New query > Incolla > Run).
+--
+-- Differenza rispetto a `saves`: la tabella `saves` contiene il SAVE, cioe'
+-- tutto lo stato di gioco. Questa contiene l'IDENTITA', cioe' chi e' il
+-- giocatore. Sono due cose separate per una ragione precisa: si puo' essere
+-- un giocatore iscritto senza aver ancora mai salvato nulla, e questo e' il
+-- posto dove si tiene traccia di loro senza fingere che esista una partita.
+--
+-- `auth.users` e' la tabella di Supabase che registra chi si e' loggato.
+-- Non la tocchiamo e non la copiamo: `profiles` la guarda soltanto, e puo'
+-- anche non avere righe se un utente non ha ancora aperto il gioco.
+-- ============================================================================
+
+create table if not exists public.profiles (
+  user_id       uuid primary key references auth.users (id) on delete cascade,
+  display_name  text,
+  email         text,
+  last_seen_at  timestamptz not null default now(),
+  created_at    timestamptz not null default now()
+);
+
+-- Il contatore dei personaggi registrati: e' l'unica aggregazione sull'intero
+-- database che l'app puo' fare senza violare le RLS, perche' restituisce solo
+-- un numero e non righe altrui.
+create or replace function public.public_player_count()
+returns bigint
+language sql
+security definer
+set search_path = public
+as $$
+  select count(*) from public.profiles;
+$$;
+
+-- La funzione va eseguita dal browser, quindi va concessa anche agli anonimi.
+-- Restituisce solo un conteggio, quindi non espone nulla di personale.
+grant execute on function public.public_player_count() to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Row Level Security, stesso principio di `saves`: ognuno vede e tocca solo
+-- la propria riga, identificata dal user_id firmato nel token di Supabase.
+-- ---------------------------------------------------------------------------
+
+alter table public.profiles enable row level security;
+
+-- Il giocatore legge solo se stesso. Nessuna policy per gli altri: non esiste
+-- un modo di chiedere "tutti i profili", quindi la lista dei giocatori resta
+-- illeggibile anche per un account autenticato.
+drop policy if exists "read own profile" on public.profiles;
+create policy "read own profile"
+  on public.profiles for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "insert own profile" on public.profiles;
+create policy "insert own profile"
+  on public.profiles for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "update own profile" on public.profiles;
+create policy "update own profile"
+  on public.profiles for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- Verifica (facoltativa): questa query deve restituire una riga sola, e con il
+-- tuo nome. Se ne restituisce piu', le RLS non sono attive e va fermato tutto.
+--
+--   select user_id, display_name, email, last_seen_at from public.profiles;
+--
+-- Nota: dopo aver eseguito questo file, il gioco crea la riga al primo login,
+-- quindi finche' non ti sei loggato la tabella e' giustamente vuota.
 -- ---------------------------------------------------------------------------
