@@ -13,3 +13,8 @@ tools/out/
 # Scratch experiments.
 tmp/
 *.out.txt
+
+# Tooling scratch: the harnesses and the agent write short .txt reports while
+# checking things, and those are never worth versioning.
+*.txt
+!supabase-schema.sql

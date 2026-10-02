@@ -2961,6 +2961,34 @@ summary:focus-visible {
   background: rgba(159, 34, 45, 0.22);
 }
 
+/* Il bottone Google resta in chiaro anche nel tema scuro: e' il segnale che
+   identifica quel metodo di accesso, e renderlo indistinguibile dagli altri
+   bottoni lo renderebbe meno riconoscibile. I colori sono quelli del brand. */
+.profile-button.auth-google {
+  width: 100%;
+  border-color: rgba(218, 220, 224, 0.4);
+  background: #f7f7f7;
+  color: #3c4043;
+  font-weight: 600;
+}
+
+.profile-button.auth-google:hover:not(:disabled) {
+  border-color: #dadce0;
+  background: #ffffff;
+  color: #202124;
+}
+
+.profile-button.auth-google:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+/* Gli input del pannello account condividono il campo del nome ma vanno a
+   capo: email e password hanno bisogno di spazio, il nome no. */
+.profile-panel .profile-controls {
+  flex-wrap: wrap;
+}
+
 .profile-notice {
   margin: 0;
   color: #86b98a;

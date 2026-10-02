@@ -28,8 +28,81 @@ A prototype for a text-heavy narrative game inspired by the tone and structure o
 - encounters declare when they happen (`when: 'day' | 'night' | 'any'`) and the card says whether the hour is right
 - the calendar drawer browses months and seasons and opens a day sheet listing what that day holds
 - automatic local save after key decisions
+- optional online accounts (email/password and Google) with a Supabase-backed save, so a chronicle follows the player across devices; the game stays fully playable as a guest, and the account layer degrades to plain local play if it is not configured
 - choice log kept in the UI
 - readable, low-strain visual styling for story-heavy play
+
+## Account online
+
+Accounts are opt-in and the game never requires one: a guest plays exactly as
+before, with the save in `localStorage`. Signing in adds an online copy of the
+same save, so a chronicle follows the player between devices. Nothing else
+changes: the local save stays the source of truth for a move, and the cloud is
+a backup written a few seconds later. If Supabase is unreachable, or the
+credentials below are left empty, `auth.enabled` stays false and every account
+control quietly disappears. No error, no dead button.
+
+### One-time setup
+
+1. Create a project at [supabase.com](https://supabase.com) (the free tier is
+   more than enough).
+2. Open **SQL Editor**, paste the whole of `supabase-schema.sql`, and run it.
+   This creates the `saves` table plus its Row Level Security policies.
+3. Go to **Project Settings > API Keys** and copy the **Project URL** and the
+   **Publishable key** (the one starting with `sb_publishable_`).
+4. Open `auth.js` and fill in the two placeholders at the top:
+
+   ```js
+   const SUPABASE_URL = 'https://xxxxxxxx.supabase.co';
+   const SUPABASE_KEY = 'sb_publishable_...';
+   ```
+
+   Use the **publishable** key, never the secret ones. There are three kinds of
+   key on that page and only one belongs in a browser:
+
+   | Key | Prefix | Where it may go |
+   | --- | --- | --- |
+   | Publishable | `sb_publishable_` | in the browser, this is the one you want |
+   | Anon (legacy) | `eyJ...` | in the browser, works the same way |
+   | Secret / service_role | `sb_secret_`, `eyJ...` | **server only, never in a page** |
+
+   The browser keys are public by design and this is not a mistake: what
+   protects the data are the RLS policies in `supabase-schema.sql`, which limit
+   every row to the account that owns it. A secret key in `auth.js` would hand
+   the whole database to anyone who opens the page source.
+5. Redeploy. The account panel is now on the **Profile** page.
+
+### Login with Google
+
+Email and password works as soon as step 4 is done. Google needs one extra step
+on Google's side, because the consent screen has to know who is asking:
+
+1. In the Google Cloud console, create a project and configure the OAuth
+   consent screen (add a logo and app name while you are there, it is what the
+   player sees in the popup).
+2. Create an OAuth client of type **Web application** and add your redirect
+   URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
+3. In Supabase, go to **Authentication > Providers > Google**, paste the
+   client id and client secret, and enable it.
+4. Add the site's URL to **Authentication > URL Configuration > Redirect URLs**
+   so the game can come back from Google.
+
+### Notes on the design
+
+- **Why the login is optional.** A text RPG that asks for an account before it
+  shows you anything loses most of its audience at the door. Guest play is the
+  default and the account is an upgrade, never a gate.
+- **Conflicts.** `state.savedAt` is stamped inside `saveGame`, so every save
+  path carries a timestamp. On login the local and remote saves are compared by
+  time and the newer one wins, which stops two devices from overwriting each
+  other in a loop.
+- **Why saves are debounced.** `saveGame` runs on every game action; uploading
+  each one would be a network request per move. `queueCloudSave` collapses
+  bursts into a single write every 5 seconds with the latest state.
+- **Why `state` is not fully re-validated when pulled from the cloud.** It went
+  through `loadSave` before being stored, and `loadSave` sanitises every field
+  on the way in and out, so a restored save is re-sanitised on the next boot.
+
 
 ## The lore and how it unlocks
 

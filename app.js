@@ -212,7 +212,8 @@ const locations = {
       {
         id: 'adjust-chronometer',
         title: 'Adjust the Astronomical Chronometer',
-        summary: 'Climb the perilous catwalk suspended over the void and synchronize the brass pendulum against the planetary alignments.',
+        summary:
+          'The Spire keeps the hour for a city the sea has already taken, and its escapement has begun to drift a full quarter-minute every day. Too far behind, and the tide tables the whole lagoon steers by go wrong; too far ahead, and the bells ring over streets that are not yet covered. You climb the catwalk hanging open over the void, oil the escapement by hand, and hold the great brass pendulum steady while you read it against the planetary alignments. The guild watches from the galleries below and marks down every hand that shakes.',
         appearanceReason: 'The Spire’s chronometer has begun drifting against the known tides, and its keepers need someone to inspect it.',
         image: "immagini/zone varie delle città/Smugglers' Anchorage at the Clouds' Edge.jpg",
         when: 'any',
@@ -245,7 +246,8 @@ const locations = {
       {
         id: 'take-ledger-job',
         title: 'Take the Ledger Job at the Customs House',
-        summary: 'Stand at the customs house counter and accept the ledger nobody else will touch: a column of water-stained accounts from a year no clerk admits to.',
+        summary:
+          'The customs house hires whoever asks, which is precisely why nobody has asked. The post has stood open since the tide swallowed the lower stair, and what waits on the counter is the ledger nobody else will touch: a column of water-stained accounts kept by a clerk who has been dead, or drowned, or quietly promoted out of the record for the better part of a generation. You take the counter, the lamp, and the long hours that come with them, and you copy names into a second book while the water works patiently at the pages. Whoever signed this column last is the reason it cannot be read, and that is the part worth the wage.',
         appearanceReason: 'The customs house hires whoever asks. This post has stood open since the tide swallowed the lower stair, and no one else has come for it.',
         image: 'immagini/carte/Take the Ledger Job at the Customs House.jpg',
         when: 'day',
@@ -267,7 +269,8 @@ const locations = {
       {
         id: 'carry-sealed-cargo',
         title: 'Carry the Sealed Cargo Past the Checkpoint',
-        summary: 'Walk a sealed salt crate through the drowned checkpoint without letting the inspectors open it, or be the one whose name they write down.',
+        summary:
+          'The Scholarium does not pay wages in coin. The ledger job came with a crate set down behind it: salt, sealed in wax, carrying no manifest and no declared weight. The checkpoint at the marble arch opens a sealed crate when the mood takes it, and the inspectors who do the opening are paid in names. You carry it through the half-light with a straight back and a boring face. If they break the seal, they take your name and the Scholarium takes their silence. If you do not, you are theirs for as long as the crate stays shut.',
         appearanceReason: 'The ledger job handed you a crate with no manifest and a seal out of the Scholarium. Carrying it is simply the price of being trusted with anything.',
         image: 'immagini/carte/Carry the Sealed Cargo Past the Checkpoint.jpg',
         when: 'any',
@@ -292,7 +295,8 @@ const locations = {
       {
         id: 'bargain-salt-pans',
         title: 'Bargain for the Abandoned Salt Pans',
-        summary: 'Convince the last keeper of the abandoned salt pans that a stranger with no papers deserves the lease that everyone else refuses.',
+        summary:
+          'The pans are flat water in stone squares and a keeper who will not leave them. Nobody leases them: the brine rises, the councils refuse, and the last man still out there has been tending water that yields nothing for a century. He has just admitted, to nobody, that no one else can work it. An admission like that is an opening, and openings in this city close fast. You talk your way past his refusal, his silence and his dignity, and you do it without papers, because papers are exactly what you do not have.',
         appearanceReason: 'The keeper admits aloud that the pans cannot be worked by anyone else. That admission is the opening you meant to use.',
         image: 'immagini/carte/Bargain for the Abandoned Salt Pans.jpg',
         when: 'day',
@@ -317,7 +321,8 @@ const locations = {
       {
         id: 'sign-brine-farm-papers',
         title: 'Sign the Brine-Farm Papers Before the Council',
-        summary: 'Stand before the drowned Council and put your name to a lease on water nobody has farmed in a century, knowing they will read every line twice.',
+        summary:
+          'The keeper sent the papers upward and the Council of Ten agreed to hear you, which happens perhaps once in a decade. You stand in a flooded chamber before ten sealed voices and put your name to a lease on water nobody has farmed in a century, and they will read every line twice, looking for the clause that binds you to something you never intended to owe. Sign, and the Brine-Farm is yours in the record, which in this city is the only sense that matters. Fail, and the papers come back unopened and the pans go back to waiting.',
         appearanceReason: 'The keeper sent the papers upward. The Council meets tonight, and the salt pans have waited long enough for a name on them.',
         image: 'immagini/carte/Sign the Brine-Farm Papers Before the Council.jpg',
         when: 'night',
@@ -342,7 +347,8 @@ const locations = {
       {
         id: 'decipher-treaty',
         title: 'Decipher the Submerged Treaty of 1528',
-        summary: 'Examine a moldering vellum scroll detailing Venice\'s forgotten pact with the Tide Monarchs.',
+        summary:
+          'A scroll has surfaced in the Doge\'s archive with its seal already cracked and its ink still waking under the vellum, which after four hundred years should not be possible. It sets out a pact Venice struck with the Tide Monarchs and then spent two centuries agreeing never to mention, and the seal on it matches the drowned crown you have already handled. You read it the way the clerks do: slowly, by warmth and pressure, holding the page clear of the water. Whatever the ink has to say, it says it once and then crumbles to damp ash in your fingers.',
         appearanceReason: 'A waterlogged treaty has surfaced in the Doge’s archive, and its seal matches the drowned crown in your recent findings.',
         image: 'immagini/carte/Decipher the Submerged Treaty of 1528.jpg',
         when: 'day',
@@ -364,7 +370,8 @@ const locations = {
       {
         id: 'converse-scribe',
         title: 'Converse Discretely with the Chief Scribe',
-        summary: 'Slip a discreet gratuity to the archivist in exchange for classified records on the Council of Ten.',
+        summary:
+          'The Chief Scribe decides which records exist and what each of them is worth, and the Council\'s sealed ledgers are worth more than both. They are also not for sale to anyone who asks outright. What they will accept is a gratuity slipped across the counter, phrased as though you were asking about the weather, from a person who is leaving anyway. Buy the conversation and the private meetings of the Council of Ten become readable. Overpay, or read the room wrong, and the room reads you instead.',
         appearanceReason: 'The Chief Scribe controls the Council’s sealed ledgers, and a discreet payment may persuade them to share one.',
         image: 'immagini/carte/Converse Discretely with the Chief Scribe.jpg',
         when: 'day',
@@ -398,7 +405,8 @@ const locations = {
       {
         id: 'harvest-orchids',
         title: 'Harvest Your Phosphor-Orchids',
-        summary: 'Don your rubber apron and wade through the illuminated glass vats. The luminous orchids are ready for clipping.',
+        summary:
+          'Your Brine-Farm\'s phosphor-orchids ripen on a schedule the turbines keep, and this is the window. You go down in a rubber apron and wade the illuminated glass vats with a cutting rig at your hip, clipping only what has gone fully luminous, because a bulb that is half lit will not hold its amber once it is cut. The warm glow spills around your hands and the farm answers your touch as though it has been waiting years for your return. The valves are older than the dome and they do not stop for the man who owns them.',
         appearanceReason: 'Your Brine-Farm has reached harvest time; this action appears while you own the first farm property.',
         image: 'immagini/zone varie delle città/The Brass Diving Bells of Saint Jude.jpg',
         when: 'any',
@@ -418,7 +426,8 @@ const locations = {
       {
         id: 'install-desalinators',
         title: 'Install Sub-Zero Desalinators',
-        summary: 'Breach the lower basalt wall and connect the abyssal cold vents. Your farm will double in capacity and yield cryogenic pearls.',
+        summary:
+          'A vein of abyssal cold vents runs under the lower basalt wall of your farm, cold enough to strip salt out of brine at a rate the surface nurseries never will manage. Breach the wall, thread the vents into the farm\'s heart, and the nursery doubles its capacity and begins yielding cryogenic pearls to anyone rich enough to want them. The frost goes through rubber like paper, the vents fight the fitting, and the abyss answers a successful connection with an iron hiss that divers four hundred fathoms up can hear.',
         appearanceReason: 'Your Brine-Farm can be expanded with the cold vents, and your Audacity is high enough to attempt the dangerous installation.',
         image: 'immagini/carte/Install Sub-Zero Desalinators.jpg',
         when: 'any',
@@ -442,7 +451,8 @@ const locations = {
       {
         id: 'scour-sunk-cathedral',
         title: 'Scour the Sunk Cathedral Nave',
-        summary: 'Slip into a vulcanized diving suit and tread the silt of a submerged fourteenth-century nave.',
+        summary:
+          'A fourteenth-century nave lies under the silt off the nursery, and the falling tide has opened the transept long enough for somebody in a suit to get in and out. You go down in vulcanized rubber and tread the silt with the patience of a man reading a book, because a nave that has been under water this long keeps whatever was buried in it beneath a foot of grey. There are reliquaries down here, and salt, and possibly the reason the cathedral was built where the water could take it. The silt closes over the helmet torch the moment you stop moving.',
         appearanceReason: 'The cathedral nave remains unsearched, and the falling tide has opened a short route inside.',
         image: 'immagini/carte/Scour the Sunk Cathedral Nave.jpg',
         when: 'any',
@@ -475,7 +485,8 @@ const locations = {
       {
         id: 'chart-stygian-rail',
         title: 'Read the Stygian Rail’s Lost Timetable',
-        summary: 'Compare the station clock with a chart of the constellations and find the departure that appears only during the equinoctial deluge.',
+        summary:
+          'The Stygian Rail still keeps a timetable, and the timetable is not in the station: it is in the stars the navigators plot against every night. You lay the station clock over the dome\'s constellation charts and look for the departure belonging to no line the company acknowledges, the one that appears only during the equinoctial deluge when the sky is drowned at the horizon. Find it and the Rail answers from below with a single distant whistle, as though a timetable nobody has followed since 1502 has just been completed. Be caught looking, and the constellations will rearrange themselves while you watch.',
         appearanceReason: 'The observatory’s star charts align with a departure listed only during the equinoctial deluge.',
         image: 'immagini/zone varie delle città/The Celestial Terminus & Stygian Rail.jpg',
         when: 'night',
@@ -496,7 +507,8 @@ const locations = {
       {
         id: 'convince-astral-conductors',
         title: 'Win Passage from the Astral Conductors',
-        summary: 'Persuade the masked railway officers that your name belongs on a passenger list written before your birth.',
+        summary:
+          'The conductors check names before they check tickets, and tonight they are working through a passenger list written before your birth. Your name is on it, in a hand that is not yours, and they can tell you that much because the book is open in front of them. Getting past them means convincing a masked officer in formal black wax that you belong on a manifest older than you are, without ever explaining how you knew which name to look for. Ask one question too many about who wrote the list, and every masked passenger turns to watch you leave the platform.',
         appearanceReason: 'The conductors are checking names for the next Stygian Rail departure, creating a chance to negotiate passage.',
         image: 'immagini/carte/Win Passage from the Astral Conductors.jpg',
         when: 'night',
@@ -898,6 +910,10 @@ function loadSave() {
       ...defaults,
       ...parsed,
       progressionVersion: 4,
+      // Non sanificata come numero: se per errore contenesse qualcos'altro,
+      // il confronto con `updated_at` deve semplicemente dare 0 (cronaca locale
+      // vecchia) invece di produrre NaN e far vincere sempre il server.
+      savedAt: Number.isFinite(parsed.savedAt) ? Number(parsed.savedAt) : 0,
       player: {
         ...defaults.player,
         ...parsed.player,
@@ -930,11 +946,57 @@ function loadSave() {
 }
 
 function saveGame() {
+  // `savedAt` serve al conflitto cloud: al login si confronta la cronaca di
+  // questo dispositivo con quella sul server e vince la piu' recente. Mettendo
+  // il timestamp qui, dentro saveGame, resta valido per ogni percorso di
+  // salvataggio senza doverlo ripetere a ogni chiamante.
+  state.savedAt = Date.now();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   const saveStatus = document.getElementById('saveStatus');
   if (saveStatus) {
     saveStatus.textContent = 'Autosave complete';
   }
+  queueCloudSave();
+}
+
+// === Salvataggio online =====================================================
+//
+// localStorage resta sempre la copia di lavoro: e' sincrona e non puo' fallire,
+// il che lo rende l'unico modo affidabile per non perdere una mossa se il
+// browser si chiude di colpo. Il cloud e' una copia di sicurezza che si affianca.
+//
+// `queueCloudSave` non blocca mai il chiamante e non invia a ogni singola
+// mossa: `saveGame` gira decine di volte al minuto durante una partita, e un
+// upload per mossa costerebbe una richiesta di rete ogni volta. Si accumula
+// invece in un flag e parte una volta sola ogni CLOUD_SAVE_DEBOUNCE_MS, con
+// l'ultimo stato, cosi' la scrittura rispecchia sempre il punto di arrivo.
+const CLOUD_SAVE_DEBOUNCE_MS = 5000;
+let cloudSaveTimer = null;
+
+function queueCloudSave() {
+  const service = typeof auth !== 'undefined' ? auth : null;
+  if (!service || !service.enabled || !service.user) return;
+  if (cloudSaveTimer) return;
+  // `setTimeout` viene risolto su window per poter essere stubbato dai test,
+  // che costruiscono un oggetto window minimale senza timer.
+  const schedule = (typeof window !== 'undefined' && window.setTimeout)
+    ? window.setTimeout.bind(window)
+    : setTimeout;
+  cloudSaveTimer = schedule(() => {
+    cloudSaveTimer = null;
+    const current = typeof auth !== 'undefined' ? auth : null;
+    if (!current || !current.enabled || !current.user) return;
+    current.pushSave(state).then((outcome) => {
+      if (outcome && outcome.ok) {
+        const saveStatus = document.getElementById('saveStatus');
+        if (saveStatus) saveStatus.textContent = 'Saved online';
+      }
+      // Un errore qui non viene mostrato di proposito: la copia locale e' gia'
+      // al sicuro, e spammare un avviso a ogni salvataggio sarebbe peggio
+      // del silenzio. L'errore vero e proprio resta in console.
+      if (outcome && !outcome.ok && !outcome.skipped) console.warn('[auth] cloud save failed', outcome.reason);
+    });
+  }, CLOUD_SAVE_DEBOUNCE_MS);
 }
 
 function addLog(message, prefix = 'Chronicle', reason = '') {
@@ -2569,6 +2631,124 @@ function resetGame() {
   render();
 }
 
+// ============================================================================
+// Pannello Account (renderizzato dentro la pagina Profile).
+//
+// Tre stati possibili, e il pannello si adatta a tutti e tre:
+//   - servizi non configurati -> spiega come attivarli, il gioco resta locale;
+//   - ospite                 -> form di login/registrazione;
+//   - connesso               -> email, ultimo sync, logout.
+// ============================================================================
+
+// true solo se auth.js e' stato caricato. Nei test il file non viene
+// caricato, quindi questa funzione deve restare innocua.
+function getAuth() {
+  return typeof auth !== 'undefined' ? auth : null;
+}
+
+function renderAccountPanel() {
+  const service = getAuth();
+  if (!service) return '';
+
+  if (!service.enabled) {
+    return `
+      <section class="info-panel profile-panel">
+        <h3>Online accounts</h3>
+        <p class="panel-hint">Not configured in this build. Your chronicle is saved on this browser only. To enable accounts, add your Supabase URL and anon key to auth.js and run supabase-schema.sql.</p>
+      </section>
+    `;
+  }
+
+  if (service.user) {
+    const synced = service.lastSyncedAt
+      ? `Last synced ${new Date(service.lastSyncedAt).toLocaleTimeString()}.`
+      : 'Not synced yet on this device.';
+    return `
+      <section class="info-panel profile-panel">
+        <h3>Account</h3>
+        <p class="panel-hint">Signed in as ${service.user.email || 'an account without a public email'}. Your chronicle follows you across devices, and this browser keeps a local copy as backup. ${synced}</p>
+        <div class="profile-controls">
+          <button type="button" class="profile-button" data-auth-signout>Sign out</button>
+        </div>
+      </section>
+    `;
+  }
+
+  const busy = service.busy ? ' disabled' : '';
+  return `
+    <section class="info-panel profile-panel">
+      <h3>Online accounts</h3>
+      <p class="panel-hint">Sign in to keep your chronicle online and play it from any device. Or keep playing here as a guest: the game stays fully playable, saved on this browser.</p>
+      <div class="profile-controls">
+        <button type="button" class="profile-button auth-google" data-auth-google${busy}>Continue with Google</button>
+      </div>
+      <div class="profile-controls">
+        <input id="authEmailInput" class="profile-input" type="email" placeholder="Email" autocomplete="email" aria-label="Email" />
+        <input id="authPasswordInput" class="profile-input" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password" />
+      </div>
+      <div class="profile-controls">
+        <button type="button" class="profile-button" data-auth-signin${busy}>Sign in</button>
+        <button type="button" class="profile-button" data-auth-signup${busy}>Create account</button>
+      </div>
+      ${service.notice ? `<p class="profile-notice">${service.notice}</p>` : ''}
+    </section>
+  `;
+}
+
+// Mostra un messaggio dentro il pannello account e ridisegna. Usato dai
+// handler di login/logout per confermare o spiegare un errore.
+function setAuthNotice(message) {
+  const service = getAuth();
+  if (!service) return;
+  service.notice = message;
+  render();
+}
+
+// Esegue un'azione di account girando il bottone in stato "busy" per evitare
+// doppi click (che creerebbero due richieste di registrazione).
+async function runAuthAction(action) {
+  const service = getAuth();
+  if (!service || !service.enabled) return;
+  service.busy = true;
+  render();
+  try {
+    await action(service);
+  } finally {
+    service.busy = false;
+    render();
+  }
+}
+
+// Dopo un login riuscito, porta sul server la cronaca che era in locale. Se
+// l'account aveva gia' una cronaca piu' recente, vince quella e la locale
+// viene scartata, altrimenti i due dispositivi si sovrascriverebbero a
+// vicenda perdendo i progressi. Viene sempre scritta una copia in locale,
+// cosi' il gioco resta giocabile anche se poi la rete cade.
+async function syncAfterLogin() {
+  const service = getAuth();
+  if (!service || !service.enabled || !service.user) return;
+
+  const remote = await service.pullSave();
+  if (remote.ok && remote.state) {
+    const localStamp = state.savedAt || 0;
+    if (remote.updatedAt > localStamp) {
+      state = remote.state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      initializeTideDeck();
+      addLog('Your chronicle was restored from the cloud.', 'Cloud', 'The save on your account was newer than the one on this device, so it won. This copy is now kept on both.');
+      render();
+      await service.pushSave(state);
+      service.notice = 'Welcome back. Your online chronicle was newer, so it was restored.';
+      return;
+    }
+  }
+
+  const pushed = await service.pushSave(state);
+  service.notice = pushed.ok
+    ? 'Signed in. This chronicle is now saved online.'
+    : `Signed in, but the online save did not go through: ${pushed.reason || 'unknown error'}`;
+}
+
 function renderProfile() {
   const location = locations[state.currentLocationId];
   const stats = getChronicleStats();
@@ -2625,6 +2805,8 @@ function renderProfile() {
             }).join('')}</div>`
           : '<p class="deck-empty">Nothing left half done.</p>'}
       </section>
+
+      ${renderAccountPanel()}
 
       <section class="info-panel profile-panel">
         <h3>Backup your chronicle</h3>
@@ -3142,6 +3324,61 @@ function wireEvents() {
       return;
     }
 
+    // --- Account (opzionale). Ogni handler esce subito se auth.js non e' stato
+// caricato, cosi' il gioco resta identico quando gli account non esistono.
+
+    const googleButton = event.target.closest('[data-auth-google]');
+    if (googleButton) {
+      runAuthAction(async (service) => {
+        const outcome = await service.signInWithGoogle();
+        // Su successo il browser viene reindirizzato a Google: non ha senso
+        // disegnare ancora, la pagina sta per essere sostituita.
+        if (!outcome.ok) service.notice = outcome.reason;
+      });
+      return;
+    }
+
+    const signinButton = event.target.closest('[data-auth-signin]');
+    if (signinButton) {
+      runAuthAction(async (service) => {
+        const email = document.getElementById('authEmailInput')?.value.trim() || '';
+        const password = document.getElementById('authPasswordInput')?.value || '';
+        const outcome = await service.signInWithPassword(email, password);
+        if (!outcome.ok) {
+          service.notice = outcome.reason;
+          return;
+        }
+        await syncAfterLogin();
+      });
+      return;
+    }
+
+    const signupButton = event.target.closest('[data-auth-signup]');
+    if (signupButton) {
+      runAuthAction(async (service) => {
+        const email = document.getElementById('authEmailInput')?.value.trim() || '';
+        const password = document.getElementById('authPasswordInput')?.value || '';
+        const outcome = await service.signUpWithPassword(email, password);
+        // Se Supabase chiede la conferma via mail non c'e' ancora una sessione,
+        // quindi non ha senso sincronizzare: si aspetta la conferma.
+        if (!outcome.ok) {
+          service.notice = outcome.reason;
+          return;
+        }
+        if (!outcome.needsConfirmation) await syncAfterLogin();
+      });
+      return;
+    }
+
+    const signoutButton = event.target.closest('[data-auth-signout]');
+    if (signoutButton) {
+      runAuthAction(async (service) => {
+        const outcome = await service.signOut();
+        if (!outcome.ok) service.notice = outcome.reason;
+      });
+      return;
+    }
+
     const renameButton = event.target.closest('[data-rename-player]');
     if (renameButton) {
       const nameInput = document.getElementById('profileNameInput');
@@ -3232,10 +3469,36 @@ document.addEventListener('keydown', (event) => {
   });
 }
 
+// Avvia lo strato degli account. Non blocca mai: senza credenziali, senza
+// libreria, o senza rete, si limita a non fare niente e il gioco prosegue
+// identico a come funzionava prima. Serve anche a coprire il rientro da Google:
+// l'utente torna dal popup OAuth, `restoreSession` ritrova la sessione, e la
+// cronaca online viene allineata con quella locale.
+async function startAccountSession() {
+  const service = getAuth();
+  if (!service) return;
+  try {
+    if (!service.init()) return;
+    service.listen();
+    const user = await service.restoreSession();
+    if (user) {
+      await syncAfterLogin();
+      render();
+    }
+  } catch (error) {
+    // Qualunque guasto qui e' cosmetico: l'ospite gioca comunque in locale.
+    service.notice = 'Online accounts are unavailable right now. Playing locally.';
+    console.warn('[auth] session start failed', error);
+  }
+}
+
 function boot() {
   initializeTideDeck();
   const copyrightYear = document.getElementById('copyrightYear');
   if (copyrightYear) copyrightYear.textContent = new Date().getFullYear();
+  // Gli account non devono mai ritardare l'avvio: il boot continua subito e la
+  // sessione, se c'e', arriva dopo e allinea la cronaca al volo.
+  startAccountSession();
   const logLengthBeforeDeduplication = state.player.log.length;
   state.player.log = state.player.log.filter((entry, index, entries) => index === 0 || entry.prefix !== 'Arrival' || entries[index - 1].prefix !== 'Arrival');
   if (state.player.log.length !== logLengthBeforeDeduplication) saveGame();
@@ -3270,4 +3533,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('beforeunload', () => {
   saveGame();
+  // Ultima sincronizzazione senza aspettare il debounce: quello scatterebbe
+  // solo 5 secondi dopo, quando la pagina e' ormai sparita. Non e' garantito
+  // arrivi prima dell'unload, ed e' accettato cosi': la copia locale e' gia'
+  // scritta e garantita, il cloud e' una copia di sicurezza che si riallinea
+  // al prossimo salvataggio o al prossimo login.
+  const service = typeof auth !== 'undefined' ? auth : null;
+  if (service && service.enabled && service.user) service.pushSave(state);
 });

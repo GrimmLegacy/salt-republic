@@ -86,6 +86,16 @@
     <div id="resolutionOverlay" class="resolution-overlay" hidden></div>
     <div id="calendarPanel" class="calendar-panel" hidden></div>
 
+    <!-- Libreria Supabase via CDN: nessun build, nessun npm install. Va caricata
+         prima di auth.js, che la usa per creare il client.
+         Versione bloccata (non "@2"): le publishable key hanno bisogno della
+         2.49 o successiva, e fissare il numero evita che un aggiornamento
+         futuro della libreria cambi comportamento senza che ce ne accorgiamo.
+         Se il file non si carica (CDN irraggiungibile) auth.enabled resta
+         false e il gioco funziona lo stesso, solo in locale. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
+
+    <script src="auth.js"></script>
     <script src="lore.js"></script>
     <script src="app.js"></script>
   </body>
