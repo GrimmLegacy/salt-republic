@@ -3036,6 +3036,29 @@ summary:focus-visible {
    dietro i titoli: una riga di questa scheda senza velo e' illeggibile.
    Il percorso viene da `--faction-image`, che il rendering scrive inline,
    perche' il nome del file non segue il nome della fazione. */
+.storage-warning {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(197, 101, 94, 0.55);
+  border-left: 3px solid #c5655e;
+  border-radius: 4px;
+  background: rgba(40, 12, 10, 0.55);
+}
+
+.storage-warning b {
+  display: block;
+  margin-bottom: 6px;
+  color: #e8918a;
+  font-size: 0.95rem;
+}
+
+.storage-warning p {
+  margin: 0;
+  color: #d3b8a8;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
 .faction-card {
   padding: 20px;
   border: 1px solid rgba(197, 151, 79, 0.2);

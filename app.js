@@ -756,7 +756,21 @@ const defaultState = {
 };
 
 let progressionMigrationPending = false;
-let state = loadSave();
+
+// Lo stato parte vuoto e viene riempito in `boot()`, non qui.
+//
+// `loadSave()` non e' una funzione autosufficiente: per ripulire il salvataggio
+// chiama `sanitizeReputation`, che legge FACTION_XP_FLOOR, e altre costanti che
+// sono dichiarate migliaia di righe piu' in giu'. Se la chiamata stesse qui,
+// durante la valutazione del modulo quelle `const` non esisterebbero ancora: il
+// `catch` di loadSave() prenderebbe il ReferenceError e restituirebbe uno stato
+// nuovo e vuoto. Il salvataggio era scritto e integro, ma nessuno lo leggeva mai,
+// quindi ogni refresh ripartiva da zero. Lo stesso valeva per le altre tabelle
+// usate dai sanitiser.
+//
+// Caricare in `boot()` sposta la lettura dopo che l'intero modulo e' stato
+// valutato, quando tutte le costanti esistono.
+let state = createDefaultState();
 let currentView = 'tales';
 let profileNotice = '';
 let resetArmed = false;
@@ -1228,16 +1242,64 @@ function loadSave() {
   }
 }
 
+// Stato della memoria del browser, per poter dire al giocatore la verita'
+// invece di fingere che vada tutto bene.
+//
+// `localStorage` puo' fallire in silenzio in tre modi che capitano spesso: il
+// browser lo blocca (modalita' privata, impostazioni del sito), il limite di 5 MB
+// e' stato raggiunto, oppure la pagina e' aperta da `file://` dove l'origine e'
+// opaca. In tutti e tre i casi `setItem` solleva un'eccezione, e senza questo
+// controllo il gioco riporterebbe al giocatore una partita che non e' mai stata
+// scritta: si ricarica la pagina, sparisce tutto, e non c'e' nessun indizio del
+// perche'.
+let storageProblem = '';
+
+// Verifica che la memoria sia davvero utilizzabile, scrivendo e rileggendo una
+// chiave di prova. Scrivere non basta: alcuni browser accettano la scrittura e
+// poi la perdono al riavvio della pagina.
+function diagnoseStorage() {
+  const probeKey = `${STORAGE_KEY}-probe`;
+  try {
+    localStorage.setItem(probeKey, '1');
+    const readBack = localStorage.getItem(probeKey);
+    localStorage.removeItem(probeKey);
+    if (readBack !== '1') return 'This browser accepted a test save and then lost it.';
+    return '';
+  } catch (error) {
+    const name = error?.name || '';
+    if (name === 'QuotaExceededError') return 'This browser has run out of storage space.';
+    if (name === 'SecurityError') return 'This browser is blocking local storage for this page.';
+    return 'This browser refused to store anything on this page.';
+  }
+}
+
 function saveGame() {
   // `savedAt` serve al conflitto cloud: al login si confronta la cronaca di
   // questo dispositivo con quella sul server e vince la piu' recente. Mettendo
   // il timestamp qui, dentro saveGame, resta valido per ogni percorso di
   // salvataggio senza doverlo ripetere a ogni chiamante.
   state.savedAt = Date.now();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+  // La scrittura non deve mai far cadere la chiamata: `saveGame` sta in fondo a
+  // ogni azione di gioco, e un'eccezione qui lascerebbe a meta' una mossa che il
+  // giocatore ha gia' fatto. Il problema viene invece segnalato, perche' una
+  // partita che non viene scritta e' una partita che il giocatore perde al primo
+  // refresh, e deve dirglielo.
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    storageProblem = '';
+  } catch (error) {
+    storageProblem = diagnoseStorage();
+  }
+
   const saveStatus = document.getElementById('saveStatus');
   if (saveStatus) {
-    saveStatus.textContent = 'Autosave complete';
+    if (storageProblem) {
+      saveStatus.textContent = 'Not saving';
+      saveStatus.title = storageProblem;
+    } else {
+      saveStatus.textContent = 'Autosave complete';
+    }
   }
   queueCloudSave();
 }
@@ -3214,6 +3276,22 @@ function renderFactionCard(faction) {
   `;
 }
 
+function renderStorageWarning() {
+  if (!storageProblem) return '';
+  // Il sintomo che il giocatore vede e' una partita che sparisce a ogni refresh, e
+  // il primo pensiero non e' mai "il browser non sta salendo". Serve dirlo a chi
+  // gioca, non lasciarlo indovinare.
+  return `
+    <aside class="storage-warning" role="alert">
+      <b>This browser is not keeping your chronicle.</b>
+      <p>${storageProblem} Everything you do from here will be lost when you reload.
+      Close any private/incognito window, allow site data for this address in the
+      browser settings, and try again. An account keeps your chronicle on the
+      server instead of in this browser.</p>
+    </aside>
+  `;
+}
+
 function renderChronicles() {
   setPageHeading('Who you have made yourself to', 'Chronicles');
   const list = factionList();
@@ -3235,6 +3313,7 @@ function renderChronicles() {
 
   document.getElementById('viewContent').innerHTML = `
     <section class="chronicles-view">
+      ${renderStorageWarning()}
       <p class="eyebrow">Standing</p>
       <h3>The four powers of the lagoon</h3>
       ${summary}
@@ -4499,6 +4578,12 @@ let welcomeBusy = false;
 
 // true se il giocatore ha gia' deciso di giocare senza account.
 function hasChosenGuest() {
+  // Se la memoria non funziona, dire "no" fa tornare la schermata iniziale a ogni
+  // refresh e sembra che la partita sia andata: e' il modo piu' fuorviante
+  // possibile per diagnosticare un problema di memoria. Se il flag non c'e', non
+  // si puo' distinguere "non ho ancora scelto" da "la scelta non e' stata scritta",
+  // e il dubbio va detto al giocatore invece di lasciarglielo.
+  if (storageProblem) return false;
   try {
     return localStorage.getItem(GUEST_CHOICE_KEY) === '1';
   } catch (error) {
@@ -4512,6 +4597,7 @@ function rememberGuestChoice() {
   } catch (error) {
     // Senza memoria sul browser la home tornera' alla visita successiva:
     // un fastidio, non un blocco.
+    storageProblem = diagnoseStorage();
   }
 }
 
@@ -4810,6 +4896,18 @@ function startAmbientMotes() {
 }
 
 function boot() {
+  // Prima di tutto: la memoria del browser funziona? Se no, nessuna delle cose
+  // sotto ha senso, perche' niente di quello che verra' fatto verra' ricordato.
+  // Il gioco parte lo stesso, ma lo dice, altrimenti il sintomo e' una partita
+  // che sparisce a ogni refresh senza che nessuno capisca perche'.
+  if (!storageProblem) storageProblem = diagnoseStorage();
+
+  // Adesso che l'intero modulo e' valutato, tutte le costanti che i sanitiser
+  // usano esistono davvero e il salvataggio puo' essere letto. Vedi la nota
+  // accanto a `let state`: caricare qui era il punto in cui il salvataggio
+  // veniva silenziosamente scartato.
+  state = loadSave();
+
   initializeTideDeck();
   const copyrightYear = document.getElementById('copyrightYear');
   if (copyrightYear) copyrightYear.textContent = new Date().getFullYear();
