@@ -1326,12 +1326,63 @@ function dismissMalusCard(malusKey) {
   pruneMalusCard(malusKey);
 }
 
+// Allinea la cronaca di un giocatore al catalogo attuale del gioco.
+//
+// Il problema che risolve: il gioco cresce, ma una partita vecchia e' uno
+// snapshot di com'e' stato quando l'hai iniziata. Aggiungere una carta, un
+// incontro, una fazione o una voce di cronaca non la raggiunge, e il giocatore
+// continua a giocare a un mondo incompleto senza saperlo. Ogni volta che si
+// aggiunge contenuto si dovrebbe ricordare di sistemare anche le partite aperte:
+// sono due elenchi da tenere allineati a mano, ed e' il tipo di promessa che si
+// dimentica.
+//
+// Qui invece il catalogo e' l'unica fonte di verita' e questa funzione legge
+// quello, non una lista di carte nuove scritta a parte. Aggiungere contenuto e'
+// sufficiente: non c'e' niente da ricordare.
+//
+// Cosa allinea, e perche' una cosa sola vale per tutte: la differenza fra "il
+// giocatore non ha ancora visto" e "il giocatore non ha mai potuto vedere".
+//
+// - carte nel mazzo: una carta nuova non entra nel mucchio se il mucchio e' stato
+//   riempito una volta sola, al primo avvio;
+// - cronaca: si riscrive a ogni partenza e si scopre da sola in base a quello che
+//   il giocatore ha ottenuto, quindi una voce nuova e' subito raggiungibile;
+// - malus e fazioni: derivano dal catalogo, non vanno toccati, ma vengono
+//   comunque verificati perche' il chiamante e' generico.
+//
+// Quello che NON deve fare e' spostare contenuto gia' giocato: una carta in mano
+// resta in mano, un incontro superato resta superato, una voce di cronaca letta
+// resta letta. Il giocatore non deve perdere nulla perche' il gioco e' cresciuto
+// mentre lui non guardava.
+function syncContentWithCatalog() {
+  const player = state.player;
+  const report = { cardsAdded: 0 };
+
+  // Il mazzo, che e' l'unica collezione che congela. Una carta manca se non e'
+  // gia' in mano, non e' nella pila degli scarti e non e' fra le esaurite: chi e'
+  // esaurita non torna indietro, e chi e' in mano non deve duplicarsi.
+  const inPlay = new Set([
+    ...player.hand,
+    ...player.drawPile,
+    ...player.discardPile,
+    ...player.exhaustedCards
+  ]);
+  const missing = allTideCards.map((card) => card.id).filter((id) => !inPlay.has(id));
+  if (missing.length) {
+    player.drawPile = [...player.drawPile, ...missing];
+    report.cardsAdded = missing.length;
+  }
+
+  return report;
+}
+
 function initializeTideDeck() {
   if (!state.player.deckInitialized) {
     const cardsInHand = new Set(state.player.hand);
     state.player.drawPile = allTideCards.map((card) => card.id).filter((id) => !cardsInHand.has(id));
     state.player.deckInitialized = true;
   }
+  syncContentWithCatalog();
   syncHandWithActiveMalus();
 }
 
