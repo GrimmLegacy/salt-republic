@@ -3,6 +3,12 @@ const STORAGE_KEY = 'salt-republic-save-v1';
 // slot vuoti della pagina del mazzo. Un'unica immagine, cosi' non si vede mai un
 // dorso diverso da un altro dorso.
 const CARD_BACK_IMAGE = 'immagini/carte/dorso.jpg';
+// La Zecca: il sigillo dei ducati. Vive in un'immagine perche' il leone di San
+// Marco e' una figura, e una figura fatta di gradienti CSS viene un tondo
+// anonimo. Serve anche come marcatina piccola dove i ducats compaiono in
+// elenco: da soli, "Ducats of Salt" e' una parola lunga e non si sa che
+// cos'e'.
+const DUCAT_SEAL_IMAGE = 'immagini/sigillo-ducati.svg';
 const VIGOR_MAX = 20;
 const DRAW_RESERVE_MAX = 10;
 const VIGOR_REGEN_INTERVAL = 5 * 60 * 1000;
@@ -38,6 +44,45 @@ const resourceNames = {
   phosphorAmber: 'Phosphor Amber',
   aetherCanister: 'Aether Canister'
 };
+
+// La marcatina della Zecca, per i ducats. Stringa vuota per tutto il resto:
+// solo il denaro ha una moneta, e mettere un simbolo davanti a ogni risorsa
+// renderebbe l'elenco piu' rumoroso senza aggiungere niente.
+//
+// Restituisce markup, quindi va usata solo dove si sta scrivendo HTML.
+function sealMark(key) {
+  if (key !== 'ducatsOfSalt') return '';
+
+  return `<img class="seal-mark" src="${DUCAT_SEAL_IMAGE}" alt="" aria-hidden="true" />`;
+}
+
+// Il nome di una risorsa con la marcatina davanti, da usare dentro una riga
+// gia' scritta in markup (la riga dei premi, il conto finale).
+//
+// Dentro una frase lunga la marcatina non ci va: li' il nome e' gia'
+// leggibile e l'immagine spezzerebbe il testo. Per quello resta
+// `resourceNames`, che e' testo puro e puo' finire anche dentro un salvataggio.
+function resourceLabel(key, { seal = false } = {}) {
+  const name = resourceNames[key] || key;
+  return seal ? `${sealMark(key)}${name}` : name;
+}
+
+// Una voce dell'elenco che non si spezza a meta'.
+//
+// Il sigillo e' un'immagine inline, e un'immagine inline e' un punto in cui la
+// riga puo' andare a capo: senza questo, la moneta resterebbe in fondo a una
+// riga e il nome aprirebbe la successiva, e "5 ducats" diventerebbe due pezzi
+// che non si somigliano piu'. Il capo va a cadere sul separatore ("·", "+"),
+// che e' l'unico posto in cui ha senso.
+//
+// Si avvolge solo la voce che contiene la moneta: le altre non hanno un'immagine
+// dentro e possono continuare a andare a capo liberamente. Le voci lunghe (un
+//'immobile, una nota) non passano di qui e quindi non vengono mai chiuse.
+function sealEntry(key, html) {
+  if (key !== 'ducatsOfSalt') return html;
+
+  return `<span class="seal-entry">${html}</span>`;
+}
 
 const malusNames = {
   scandal: 'Scandal',
@@ -1447,6 +1492,15 @@ function renderResourceTimers() {
     const timer = advanceTimedResource('vigor', 'vigorLastRegenAt', getVigorMax(), VIGOR_REGEN_INTERVAL);
     vigorTimer.textContent = state.player.vigor >= getVigorMax() ? 'FULL' : `+1 in ${formatCountdown(timer.remaining)}`;
   }
+  // La fiala del vigore segue il valore vero. Sta in CSS perche' il CSS sa
+  // disegnare il liquido e il menisco molto meglio di un calcolo in JavaScript,
+  // e il numero resta l'unica cosa che il gioco scrive: qui si passa solo la
+  // percentuale, cosi' la barra non puo' dire "20 / 20" mentre e' mezza vuota.
+  const vigorGauge = document.getElementById('vigorGauge');
+  if (vigorGauge?.style?.setProperty) {
+    const vigorMax = getVigorMax();
+    vigorGauge.style.setProperty('--vigor-fill', String(vigorMax > 0 ? state.player.vigor / vigorMax : 0));
+  }
   const drawTimer = document.getElementById('drawTimer');
   if (drawTimer) {
     const timer = advanceTimedResource('drawTokens', 'drawTokensLastRegenAt', DRAW_RESERVE_MAX, DRAW_REGEN_INTERVAL);
@@ -2043,7 +2097,7 @@ function diffSnapshots(before, after) {
 
   Object.entries(resourceNames).forEach(([key, label]) => {
     const delta = (after.resources[key] || 0) - (before.resources[key] || 0);
-    if (delta) rows.push({ tone: delta > 0 ? 'good' : 'bad', label, value: `${delta > 0 ? '+' : ''}${delta}` });
+    if (delta) rows.push({ tone: delta > 0 ? 'good' : 'bad', label, value: `${delta > 0 ? '+' : ''}${delta}`, seal: key === 'ducatsOfSalt' });
   });
 
   Object.entries(malusNames).forEach(([key, label]) => {
@@ -2160,7 +2214,7 @@ function renderCardBack() {
 function buildResolutionMarkup(payload) {
   const rows = (payload.rows || []).map((row) => `
     <div class="resolution-row tone-${row.tone}">
-      <span class="resolution-row-label">${row.label}</span>
+      <span class="resolution-row-label">${row.seal ? `<img class="seal-mark" src="${DUCAT_SEAL_IMAGE}" alt="" aria-hidden="true" />` : ''}${row.label}</span>
       <span class="resolution-row-value">${row.value}</span>
     </div>
   `).join('');
@@ -2960,7 +3014,7 @@ function renderPersona() {
           }).join('')}
         </div></section>
         <section class="info-panel"><h3>Inventory</h3><div class="info-list">
-          ${resourceEntries.map(([key, label]) => `<div class="info-row"><span>${label}</span><strong>${state.player.resources[key] || 0}</strong></div>`).join('')}
+          ${resourceEntries.map(([key, label]) => `<div class="info-row"><span>${sealMark(key)}${label}</span><strong>${state.player.resources[key] || 0}</strong></div>`).join('')}
         </div></section>
         <section class="info-panel property-panel"><h3>Properties</h3>
           ${state.player.properties.length ? `<div class="info-list">${state.player.properties.map((property) => `<div class="info-row"><span>${property}</span><strong>Owned</strong></div>`).join('')}</div>` : '<p class="deck-empty">No properties claimed.</p>'}
@@ -3072,7 +3126,7 @@ function renderEquipment() {
   const extraLines = [];
   if (bonuses.vigor) extraLines.push(`<div class="info-row"><span>Max Vigor</span><strong>${VIGOR_MAX} <em class="equip-bonus">+${bonuses.vigor}</em></strong></div>`);
   Object.entries(bonuses.resources).forEach(([key, amount]) => {
-    extraLines.push(`<div class="info-row"><span>${resourceNames[key] || key}</span><strong><em class="equip-bonus">+${amount}</em></strong></div>`);
+    extraLines.push(`<div class="info-row"><span>${sealMark(key)}${resourceNames[key] || key}</span><strong><em class="equip-bonus">+${amount}</em></strong></div>`);
   });
   Object.entries(bonuses.malusRelief).forEach(([key, amount]) => {
     extraLines.push(`<div class="info-row"><span>${malusNames[key] || key}</span><strong><em class="equip-bonus">eased ${amount}</em></strong></div>`);
@@ -4093,10 +4147,17 @@ function getActionLockReason(action) {
   return unlock.unmet.map((condition) => `${condition.label} — ${condition.detail}`).join(' ');
 }
 
+// Il costo di un incontro, scritto per le schede.
+//
+// Qui la marcatina ci va: e' la riga in cui il giocatore guarda quanto sta per
+// spendere, e "5 Ducats of Salt" senza moneta accanto si legge come una parola
+// in un mucchio di numeri. Il separatore fra piu' costi resta " + ".
 function describeCost(cost) {
   if (!cost) return '';
 
-  return Object.entries(cost).map(([key, value]) => `${value} ${resourceNames[key] || key}`).join(' + ');
+  return Object.entries(cost)
+    .map(([key, value]) => sealEntry(key, `${value} ${resourceLabel(key, { seal: true })}`))
+    .join(' + ');
 }
 
 function formatPercent(value) {
@@ -4108,7 +4169,7 @@ function formatEffectAmount(key, amount) {
   if (key in statNames) return `${statNames[key]} +${amount} XP`;
   if (key in malusNames) return `${malusNames[key]} ${sign}${amount} level${Math.abs(amount) === 1 ? '' : 's'}`;
 
-  return `${resourceNames[key] || key} ${sign}${amount}`;
+  return sealEntry(key, `${resourceLabel(key, { seal: true })} ${sign}${amount}`);
 }
 
 function formatOutcomeEffects(effect = {}) {
@@ -4164,8 +4225,19 @@ function renderActionRewards(action) {
   const chances = formatChanceRewards(action);
   const failure = formatOutcomeEffects(action.failure);
 
-  lines.push(`<p class="reward-line cost"><b>Cost</b>1 Vigor${cost ? ` · ${cost}` : ''}</p>`);
-  if (success) lines.push(`<p class="reward-line success"><b>On success</b>${success}</p>`);
+  // Ogni riga mette tutto il suo valore dentro UN `<span>`.
+  //
+  // `.reward-line` e' una griglia a due colonne (etichetta, valore) e in una
+  // griglia ogni figlio diretto diventa una cella. Il testo sciolto va in
+  // celle anonime, quindi funziona, ma un `<span>` in mezzo (per esempio la
+  // marcatina dei ducats) si sarebbe preso una cella tutta sua: finendo su
+  // una riga nuova e allineato al margine sinistro, sotto l'etichetta, invece
+  // che incolonnato con il resto del valore. Chiudere il valore in un solo
+  // elemento tiene la griglia a due celle e lascia il testo scorrere dentro.
+  const line = (kind, label, value) => `<p class="reward-line ${kind}"><b>${label}</b><span class="reward-value">${value}</span></p>`;
+
+  lines.push(line('cost', 'Cost', `1 Vigor${cost ? ` · ${cost}` : ''}`));
+  if (success) lines.push(line('success', 'On success', success));
 
   // Gli oggetti hanno una riga tutta loro invece di stare accodati in "On
   // success". Il giocatore sta guardando una scheda per capire se vale la pena
@@ -4176,7 +4248,7 @@ function renderActionRewards(action) {
   // incontro ripetibile che accorcia la propria lista a ogni uso, dopo due passi
   // smette di dire che cosa e' e cosa da.
   const itemLine = describeActionItems(action);
-  if (itemLine) lines.push(`<p class="reward-line items"><b>Items</b>${itemLine}</p>`);
+  if (itemLine) lines.push(line('items', 'Items', itemLine));
 
   // Quanto standing porta questo incontro, detto prima di giocarlo. Il numero e'
   // quello che `awardFactionStanding` assegna davvero, dalla stessa tabella, quindi
@@ -4186,10 +4258,10 @@ function renderActionRewards(action) {
   // decidere se lo standing arriva, e lo chiama solo sul successo: fallire non
   // dice niente su di te a chi ti ha dato il lavoro.
   const standingLine = describeActionStanding(action);
-  if (standingLine) lines.push(`<p class="reward-line standing">${standingLine}</p>`);
+  if (standingLine) lines.push(line('standing', 'Standing', standingLine));
 
-  if (chances) lines.push(`<p class="reward-line chance"><b>Chance drops</b>${chances}</p>`);
-  if (failure) lines.push(`<p class="reward-line failure"><b>On failure</b>${failure}</p>`);
+  if (chances) lines.push(line('chance', 'Chance drops', chances));
+  if (failure) lines.push(line('failure', 'On failure', failure));
 
   return `<div class="action-rewards">${lines.join('')}</div>`;
 }
@@ -4245,7 +4317,7 @@ function describeActionStanding(action) {
   const gained = factionXpForAction(action);
   const lost = Math.max(1, Math.round(gained * FACTION_RIVAL_DAMPING));
   const rival = factions[faction.rival];
-  return `<b>Standing</b>${faction.name} +${gained}, ${rival.name} −${lost}, on success only`;
+  return `${faction.name} +${gained}, ${rival.name} −${lost}, on success only`;
 }
 
 function renderActionUnlock(action) {

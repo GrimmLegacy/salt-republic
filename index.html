@@ -143,15 +143,36 @@
           <p id="currentRealmName">Lagoon Heart</p>
         </section>
 
+        <!-- Vigor e ducats non sono due schede identiche con un numero dentro:
+             sono i due strumenti che il personaggio porta con se', quindi hanno
+             una forma loro e si leggono di colpo.
+
+             Le etichette sono senza simbolo: il vigore ha la fiala e i ducats
+             hanno la moneta della Zecca, e un terzo segno accanto (✣, ◉) era solo
+             rumore sopra una grafica che gia' dice che cos'e'. -->
+
         <section class="sidebar-status" aria-label="Character status">
-          <div class="status-card">
-            <span class="status-label">✣ &nbsp;Vigor</span>
-            <strong id="vigorDisplay">20 / 20</strong>
-            <span id="vigorTimer" class="status-progress">FULL</span>
+          <div class="status-card status-card--vigor">
+            <div class="status-card-head">
+              <span class="status-label">Vigor</span>
+              <span id="vigorTimer" class="status-progress">FULL</span>
+            </div>
+            <div class="vigor-gauge" id="vigorGauge">
+              <span class="vigor-gauge-fill"></span>
+              <span class="vigor-gauge-mark" aria-hidden="true"></span>
+            </div>
+            <strong id="vigorDisplay" class="status-value">20 / 20</strong>
           </div>
-          <div class="status-card">
-            <span class="status-label">◉ &nbsp;Ducats</span>
-            <strong id="sidebarDucats">134</strong>
+          <!-- I ducats hanno una moneta vera accanto al numero: il sigillo e'
+               un'immagine e non un gradiente perche' il leone di San Marco e'
+               una figura, e una figura fatta di gradienti viene un tondo
+               anonimo. -->
+          <div class="status-card status-card--ducats">
+            <img class="ducat-seal" src="immagini/sigillo-ducati.svg" alt="" aria-hidden="true" width="38" height="38" />
+            <div class="ducat-count">
+              <span class="status-label">Ducats</span>
+              <strong id="sidebarDucats" class="status-value">134</strong>
+            </div>
           </div>
         </section>
 

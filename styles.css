@@ -664,6 +664,7 @@ button {
 }
 
 .status-card {
+  position: relative;
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -676,11 +677,164 @@ button {
   font-size: 0.57rem;
 }
 
-.status-card strong {
+/* Il numero non e' piu' il centro della scheda: diventa la lettura finale di
+   uno strumento, quindi sta in basso e in carattere piccolo. */
+.status-value {
   color: #f0dfaa;
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.25rem;
+  font-size: 1.12rem;
   line-height: 1;
+}
+
+/* --- Il vigore: una fiala graduata che si svuota.
+
+   La fiala e' una coppa (radial-gradient) con il liquido dentro: il bordo
+   superiore del liquido e' una banda piu' chiara, cosi' si vede dove arriva
+   il livello. Senza quella banda il verde sembrerebbe una macchia, non una
+   superficie. */
+.status-card--vigor {
+  gap: 8px;
+}
+
+.status-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.vigor-gauge {
+  position: relative;
+  height: 34px;
+  overflow: hidden;
+  border: 1px solid rgba(197, 151, 79, 0.3);
+  border-radius: 3px;
+  /* il vetro della fiala: scuro ai bordi, chiaro al centro */
+  background:
+    radial-gradient(ellipse 70% 120% at 50% 118%, rgba(0, 0, 0, 0.55), transparent 62%),
+    linear-gradient(180deg, rgba(8, 12, 12, 0.85), rgba(16, 24, 24, 0.6));
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Il liquido sta in fondo e sale fino a `--vigor-fill`, che va da 0 a 1 e
+   arriva dal valore vero del gioco. */
+.vigor-gauge-fill {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: calc(var(--vigor-fill, 1) * 100%);
+  background: linear-gradient(180deg, #9fe0d8 0%, #4fa39c 38%, #1f5f63 100%);
+  transition: height 260ms ease-out;
+}
+
+/* La banda del menisco: due px chiari sul livello, e' quello che fa capire
+   quanto e' piena. */
+.vigor-gauge-fill::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: #d6fbf5;
+  box-shadow: 0 1px 5px rgba(159, 224, 216, 0.75);
+}
+
+/* Le tacche della graduazione stanno sopra il liquido e non cambiano al
+   riempimento: sono la scala, quindi devono restare leggibili anche a fiala
+   piena. */
+.vigor-gauge-mark {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(216, 178, 106, 0.34) 0 1px,
+    transparent 1px 9px
+  );
+  pointer-events: none;
+}
+
+/* Il riflesso obliquo sul vetro: e' quello che dice "e' vetro" senza
+   immagini. */
+.vigor-gauge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    112deg,
+    rgba(255, 255, 255, 0.11) 0%,
+    rgba(255, 255, 255, 0.02) 26%,
+    transparent 46%
+  );
+  pointer-events: none;
+}
+
+/* --- I ducats: la moneta della Zecca a sinistra del numero.
+
+   La moneta e' un'immagine (immagini/sigillo-ducati.svg): il leone di San Marco
+   e' una figura, e una figura fatta di gradienti CSS viene un tondo anonimo.
+   L'etichetta e' senza simbolo perche' il simbolo ora e' la moneta, e due
+   "cerchietti" uno dentro l'altro su una riga sola si leggono come rumore. */
+.status-card--ducats {
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+}
+
+.ducat-seal {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
+}
+
+.ducat-count {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* La marcatina della Zecca dentro le righe dove i ducats compaiono in elenco:
+   inventario, bonus degli oggetti, riga dei premi, conto finale. E' piccola per
+   non rubare la riga al nome, ma abbastanza da farsi leggere: e' li' per far
+   capire che quel numero e' denaro.
+
+   `vertical-align` la appoggia alla riga del testo invece di lasciarla appesa
+   in alto, altrimenti in una riga stretta la moneta alza l'intera riga. */
+.seal-mark {
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.38em;
+  vertical-align: -0.14em;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
+}
+
+/* Nelle righe strette (i premi della scheda) la marcatina scende di un pelo e
+   perde l'ombra: a 13px un'ombra forte copre il nome accanto. */
+.reward-line .seal-mark,
+.resolution-row .seal-mark {
+  width: 0.85em;
+  height: 0.85em;
+  margin-right: 0.3em;
+  filter: none;
+}
+
+/* La voce con la moneta non si spezza: e' il problema nato mettendo un'immagine
+   inline in mezzo a una riga di testo. Senza `nowrap`, andando a capo la moneta
+   resta in fondo alla riga precedente e il nome comincia nella successiva.
+
+   Il margine ridotto serve perche' il testo accanto al nome portasse uno spazio
+   leggero: chiuso tutto in un pezzo solo, quello spazio si vedeva come un vuoto
+   fra la moneta e la parola. La riga puo' comunque andare a capo fra una voce e
+   l'altra, perche' e' il separatore ("·", "+") a cadere sul capo, e li' ha senso. */
+.seal-entry {
+  white-space: nowrap;
+}
+
+.seal-entry .seal-mark {
+  margin-right: 0.16em;
 }
 
 .status-progress {
@@ -4663,6 +4817,14 @@ summary:focus-visible {
   line-height: 1.42 !important;
 }
 
+/* Il valore della riga, tutto chiuso in un elemento solo.
+   La colonna e' gia' `minmax(0, 1fr)`, quindi puo' restringersi: senza questo
+   `min-width: 0` una voce lunga (una nota, un nome di fazione) farebbe uscire la
+   riga dal riquadro invece di andare a capo. */
+.reward-value {
+  min-width: 0;
+}
+
 .reward-line b {
   color: #8b7c68;
   font-size: 0.53rem;
@@ -5051,6 +5213,10 @@ summary:focus-visible {
 
 .resolution-row-label {
   color: #a8977e;
+  /* La voce con la moneta non si spezza, come nelle righe dei premi: il nome e'
+     la sua quantita' devono restare sulla stessa riga, altrimenti la riga si
+     allunga e la colonna dei numeri non e' piu' in fila. */
+  white-space: nowrap;
 }
 
 .resolution-row-value {
