@@ -103,6 +103,9 @@ const factions = {
     id: 'clockwrights',
     realm: 'aether-heights',
     region: 'Aether Heights',
+    // Le quattro che presidiano un reame: sono le uniche che il gioco chiama
+    // quando il giocatore ci lavora, e le uniche in rivalita' fra loro.
+    principal: true,
     name: "The Clockwrights' Guild",
     sigil: '⛭',
     motto: 'Time is kept, not waited for.',
@@ -134,6 +137,7 @@ const factions = {
     id: 'council',
     realm: 'lagoon-heart',
     region: 'Lagoon Heart',
+    principal: true,
     name: 'The Council of Ten',
     sigil: '✦',
     motto: 'Nobody signs anything.',
@@ -161,6 +165,7 @@ const factions = {
     id: 'brine-combine',
     realm: 'abyssal-depth',
     region: 'Abyssal Depth',
+    principal: true,
     name: 'The Brine-Farm Combine',
     sigil: '☾',
     motto: 'The farm answers to whoever keeps it.',
@@ -189,6 +194,7 @@ const factions = {
     id: 'astral-salon',
     realm: 'astral-terminus',
     region: 'Astral Terminus',
+    principal: true,
     name: 'The Astronavigators',
     sigil: '◈',
     motto: 'The stars are charts. The dead between them are not.',
@@ -210,6 +216,103 @@ const factions = {
       { level: 50, title: 'Person of Some Importance', note: 'Your name comes before the city does. The Salon files your passages under a heading nobody has been allowed to open since 1502.' },
       { level: 55, title: 'The Timetable Kept', note: 'The Stygian Rail runs on the schedule you set, not the one it kept. You have found where the equinoctial departure actually goes, and it is not a place anyone has a word for.' },
       { level: 60, title: 'The First Passenger', note: 'The Salon has known your name since before you were born and has been waiting politely to introduce itself. The departure that appears only in the deluge is yours, and the doors open when you decide they do.' }
+    ]
+  },
+
+  // =========================================================================
+  // Le organizzazioni che stanno dentro le zone.
+  //
+  // Nessuna di queste presidia un reame e nessuna e' in rivalita' con le altre:
+  // le quattro potenze si contendono il monopolio, queste no. Sono gilde, bande
+  // e persone che la citta' non ha scritto da nessuna parte, e si trovano
+  // guardando sotto, non viaggiando.
+  //
+  // Non hanno un'immagine: mostrano la figura di default finche' qualcuno non
+  // disegna loro un volto, che e' il modo giusto per dire "esiste ma nessuno ci
+  // ha ancora ritratto".
+  // =========================================================================
+
+  'black-ledger': {
+    id: 'black-ledger',
+    realm: 'lagoon-heart',
+    region: 'Lagoon Heart',
+    name: 'The Black Ledger',
+    sigil: '✂',
+    motto: 'Everything has a price. We are the ones who write it down.',
+    rival: null,
+    colour: '#7a5f8c',
+    introduction:
+      'They keep the second book: the one that records what was agreed away instead of what was signed. A drowned archive is full of documents nobody can produce, and the Black Ledger is what is left when the Council of Ten is finished with them.',
+    tiers: [
+      { level: 1, title: 'Named in a Margin', note: 'Someone has written your name in the edge of a page you were not supposed to read. You have not been told what it means and you have not asked.' },
+      { level: 5, title: 'Reader of the Second Book', note: 'You are shown a page that contradicts the official one. Both are signed. You are asked to remember which one you saw first.' },
+      { level: 10, title: 'Hand Inside the Coat', note: 'You carry something you were told not to carry, and you have learned that the question is never about what it is but about who saw it.' },
+      { level: 15, title: 'The Quiet Commission', note: 'A name, a room, an evening. The Ledger accepts the work and tells you the fee before you agree to it, which is its way of being honest.' },
+      { level: 20, title: 'Scribe of the Black Book', note: 'You keep the copy. You learn that the copy is the real one and the archive upstairs is the reassuring version.' },
+      { level: 25, title: 'Holder of the Wet Key', note: 'There is a door under the water that opens only for people who have been given a reason. You have the reason. You have not asked for the door.' },
+      { level: 30, title: 'The Account Kept Open', note: 'Your commission runs for years. It has a title you gave it, a price agreed in 1502, and a line that is still being added to.' },
+      { level: 35, title: 'Collector of Refusals', note: 'You are sent to be told no. You come back with the no, and the no turns out to be the most useful thing in the city that month.' },
+      { level: 40, title: 'Voice Beneath the Water', note: 'The Ledger speaks through you now. You have stopped introducing yourself and started being introduced.' },
+      { level: 45, title: 'The Name They Erase', note: 'Your name appears in no register, which the Ledger considers the highest form of standing. You have not asked what is written where yours used to be.' },
+      { level: 50, title: 'The Ledger Itself', note: 'You hold the book. It is heavier than it looks and older than the archive it corrects, and it has stopped needing your handwriting.' },
+      { level: 55, title: 'Ink That Does Not Dry', note: 'What you write stays legible under water, in the dark, for as long as the city lasts. The Ledger has stopped pretending it is a record and started accepting that it is a law.' },
+      { level: 60, title: 'The Last Entry', note: 'Every debt the drowned city ever incurred passes through your hand before it is settled, including the ones nobody admits to. The archive upstairs has begun to cite you.' }
+    ]
+  },
+
+  'salt-rats': {
+    id: 'salt-rats',
+    realm: 'lagoon-heart',
+    region: 'Lagoon Heart',
+    name: 'The Salt Rats',
+    sigil: '⚓',
+    motto: 'Nobody feeds us. We eat what the canal leaves.',
+    rival: null,
+    colour: '#8fa36b',
+    introduction:
+      'Children, mostly, who live in the flooded ground floors the water gave back and work the only trade the canal still allows: noticing. They know who goes where, they carry what should not be carried, and they have never once elected anybody, because electing would imply there was something worth electing over.',
+    tiers: [
+      { level: 1, title: 'Seen on the Step', note: 'Somebody noticed you noticing them. Nobody said anything, which is the first thing they teach you.' },
+      { level: 5, title: 'One of the Small Ones', note: 'You are given a step of your own and taught which stones are loose. The teaching is free and the debt is not.' },
+      { level: 10, title: 'Runner of Messages', note: 'You carry things between people who will not meet. You have learned to arrive wet and never to read what you carry, which is two out of three.' },
+      { level: 15, title: 'Ear at the Water-Hole', note: 'You sit where the pipes run and you learn what the city says when it thinks nobody is in the room. Most of it is about the rats.' },
+      { level: 20, title: 'Counted Among the Trustworthy', note: 'The list of who can be trusted is short, it is not written down, and your name is on it. You did nothing to earn this and you will never be told how.' },
+      { level: 25, title: 'Holder of the Stairwell', note: 'There is a way down that does not appear on any plan. You have been shown it, which means somebody decided you are old enough to be shown it.' },
+      { level: 30, title: 'Speaker for the Wet Children', note: 'The grown ones talk to you now, because you are the only ones they can find. You are eleven and you are negotiating with a magistrate.' },
+      { level: 35, title: 'The One Who Counts Them', note: 'You know how many there are, exactly, and how many left last winter. Nobody else knows either number. That is the entire job and you are extremely good at it.' },
+      { level: 40, title: 'Voice Under the Rope-Line', note: 'The laundresses pass a word along the lines they hang. The word reaches the far side before a courier could cross, and it is usually yours.' },
+      { level: 45, title: 'The Whole Net', note: 'You are not a member of anything. You are the reason the thing exists: every adult in this arrangement has met at least one child who could get a message through, and that child came to you first.' },
+      { level: 50, title: 'Their Own Council', note: 'They have never voted on anything. They have simply started consulting you, and consultation turned into a habit, and the habit turned into a rule without anyone ever meeting.' },
+      { level: 55, title: 'Eyes on Every Quay', note: 'Every water gate, every mooring, every drowned doorway between here and the Canale. When the rats stop seeing something, the city finds out the way it always does: too late.' },
+      { level: 60, title: 'The Rat That Led', note: 'The adults finally gave you a title, and it is not a rank but a warning: do not lie to the children. You have started keeping the second book of your own.' }
+    ]
+  },
+
+  'iron-sister': {
+    id: 'iron-sister',
+    realm: 'abyssal-depth',
+    region: 'Abyssal Depth',
+    name: 'The Iron Sister',
+    sigil: '⛓',
+    motto: 'I remember the water before it was warm.',
+    rival: null,
+    colour: '#7f8c96',
+    introduction:
+      'She kept the nursery before there was a farm to keep, and she is still there: an iron mask riveted over the whole face, a coat and a skirt of beaten iron plate, long brown curls that the salt has never managed to take. Her voice arrives through the metal rather than from behind it, which means nobody has heard her laugh in four hundred years. She answers exactly what was asked and never once the question that was underneath, and the nursery runs better for it.',
+    tiers: [
+      { level: 1, title: 'The Shape at the Valve', note: 'You go down and something is already there, working the valve you came to work. It does not turn round. It knew you were coming before you did.' },
+      { level: 5, title: 'Spoken To', note: 'The mask turns far enough to show you that there is a face under it. Whatever she says next comes out through the iron, and you understand every word and none of the tone.' },
+      { level: 10, title: 'Named by the Sister', note: 'She calls you the thing you have been doing down here rather than the thing you are called above. You notice, weeks later, that you have started answering to it.' },
+      { level: 15, title: 'Allowed the Warm Gallery', note: 'There is one room she does not let anyone into. You are shown the door, told it is warm, and left outside it, and you understand that being left outside is the gift.' },
+      { level: 20, title: 'Keeper of the Cold Door', note: 'You hold the door she does not open. You have never seen through it. She has never asked what you think is on the other side, which is how you know she thinks about it constantly.' },
+      { level: 25, title: 'The One Who Reads the Grating', note: 'She reads the vibration of the pipes with a finger on the iron. You ask what she is reading and she tells you a temperature, which is true and is not the answer.' },
+      { level: 30, title: 'Second of the Nursery', note: 'The Combine has you both on the same page now, which is a sentence she read out of a contract and did not explain. She runs the farm. You run what she lets you run.' },
+      { level: 35, title: 'The Unmasked Hour', note: 'Once a season the mask comes off, for an hour, in a room with no windows. You are not invited. You are told, in advance, that it happens, and the telling is how you learn it matters.' },
+      { level: 40, title: 'Holder of the 1502 Account', note: 'There is a record from the year the water came that names every hand that went down and never came up. Her name is on it. She has never corrected it and she has never let anyone else read it.' },
+      { level: 45, title: 'The Voice in the Iron', note: 'She speaks through the mask of the great bell in the Spire when the tide tables have to be corrected. Nobody knows it is her. You do, and she asks you not to say so, and you do not.' },
+      { level: 50, title: 'The Keeper of the Drowned Order', note: 'The nursery has run on the same rota since 1502 without a single missed night. She has the rota. She has had the rota the entire time, and the Combine built an empire on top of it without ever asking.' },
+      { level: 55, title: 'The Name Behind the Mask', note: 'She gives you the name on the 1502 payroll, having never denied it and never offered it before. It is a short name. It is not Nera. You understand that this is the last thing she has and she has just spent it.' },
+      { level: 60, title: 'The First Person Down Here', note: 'Eight hundred fathoms, a drowned nursery, and one woman who was already here before the city admitted the water had come. She takes the mask off in front of you, which has happened once in four hundred years, and she says your name instead of hers.' }
     ]
   }
 };
@@ -294,22 +397,39 @@ function factionRankFromXp(xp) {
   }
   return found;
 }
-// Verifica che i dati delle fazioni siano coerenti: avversari simmetrici, titoli
-// crescenti e distanti quanto previsto, una sola fazione per zona. Se un giorno
-// si aggiunge una fazione sbagliata, fallisce subito invece di lasciare che
-// l'avversario resti silenziosamente inesistente e i punti salgano gratis.
+// Verifica che i dati delle fazioni siano coerenti.
+//
+// Il mondo NON ha una fazione per zona e non deve averla: ogni zona ha
+// l'organizzazione che la presidia — il nome che il mondo le dà quando ci si
+// lavora — e intorno a quella quanti corpi minori si vuole. Gli assassini del
+// Canale, i ragazzini che rubano per campare, una gilda segreta, un diavolo
+// travestito: sono organizzazioni vere, non due voci sullo stesso registro.
+//
+// Quindi qui non si controlla che due fazioni non condividano la zona, che
+// sarebbe un mondo con quattro fazioni e nient'altro. Si controlla che ogni zona
+// abbia UNA sola fazione che la presidia, e che quella sia davvero una sola:
+// e' il nome con cui il gioco chiama "chi ti paga quando lavori qui".
+//
+// La rivalita' si dichiara e si puo' non avere. Le quattro principali si
+// contendono il monopolio e quindi si fanno danno a vicenda; chi non dichiara un
+// rivale semplicemente non fa scendere nessuno. `rival: null` e' una posizione
+// presa, non un dato dimenticato.
 //
 // Controlla anche che ogni fazione arrivi al livello 60: e' il punto in cui la
 // progressione si ferma a essere descritta, e una fazione che si ferma prima
 // lascerebbe il giocatore con un vicolo cieco senza che nessuno lo dica.
 function checkFactionData() {
-  const realms = new Set();
+  const principalRealms = new Set();
   for (const faction of Object.values(factions)) {
-    const rival = factions[faction.rival];
-    if (!rival) return { ok: false, reason: `${faction.id} names a rival that does not exist: ${faction.rival}` };
-    if (rival.rival !== faction.id) return { ok: false, reason: `${faction.id} and ${faction.rival} do not point at each other` };
-    if (realms.has(faction.realm)) return { ok: false, reason: `two factions share the realm ${faction.realm}` };
-    realms.add(faction.realm);
+    if (faction.rival) {
+      const rival = factions[faction.rival];
+      if (!rival) return { ok: false, reason: `${faction.id} names a rival that does not exist: ${faction.rival}` };
+      if (rival.rival !== faction.id) return { ok: false, reason: `${faction.id} and ${faction.rival} do not point at each other` };
+    }
+    if (faction.principal) {
+      if (principalRealms.has(faction.realm)) return { ok: false, reason: `two factions claim to hold the realm ${faction.realm}` };
+      principalRealms.add(faction.realm);
+    }
     if (!faction.tiers.length) return { ok: false, reason: `${faction.id} has no tiers` };
     if (faction.tiers[0].level !== 1) return { ok: false, reason: `${faction.id} must start at level 1` };
     for (let index = 1; index < faction.tiers.length; index += 1) {
@@ -331,7 +451,13 @@ function checkFactionData() {
   return { ok: true };
 }
 
-// La fazione che presidia una zona.
+// La fazione che PRESIDIA una zona: quella che il gioco chiama quando lavori li'.
+//
+// Non e' l'unica organizzazione della zona, e non pretende di esserlo. Gli
+// assassini del Canale e i ragazzini che rubano stanno nelle stesse acque del
+// Council of Ten e non sono il Council of Ten: si trovano guardando sotto, non
+// chiedendo il nome alla piazza. Ecco perche' il nome arriva dal campo
+// `principal` e non dal semplice fatto di avere la stessa zona.
 //
 // Attenzione alla forma della chiave: `locations[].realm` e `regions[].name`
 // sono nomi leggibili ("Aether Heights"), mentre `regions[].id` e
@@ -339,17 +465,24 @@ function checkFactionData() {
 // nome alla forma con i trattini, non viceversa: e' la sola direzione che tiene
 // senza dover provare entrambe.
 //
-// Restituisce null se la zona non ha una fazione: e' un caso da tollerare, non
-// un errore, perche' un'area futura puo' anche restare senza organizzazione.
+// Restituisce null se la zona non ha una fazione che la presidia: e' un caso da
+// tollerare, non un errore, perche' un'area futura puo' anche restare senza
+// organizzazione ufficiale.
 function factionForRealm(realm) {
   if (!realm) return null;
   const id = String(realm).trim().toLowerCase().replace(/\s+/g, '-');
-  return Object.values(factions).find((faction) => faction.realm === id) || null;
+  return Object.values(factions).find((faction) => faction.principal && faction.realm === id) || null;
 }
 
-// Tutte le fazioni nell'ordine delle zone del mondo, che e' l'ordine in cui il
-// giocatore le incontra viaggiando. Usa `regions` per non duplicare a mano
-// l'elenco delle zone: se domani ne aggiungi una, basta la riga in `regions`.
+// Tutte le fazioni, non una per zona.
+//
+// Vengono per prime le quattro che presidiano un reame, nell'ordine in cui il
+// giocatore viaggia e quindi le incontra. Poi, nell'ordine in cui sono scritte,
+// le organizzazioni che si trovano dentro le zone: quelle non si raggiungono con
+// un viaggio, si trovano guardando sotto, e quindi non hanno un ordine di
+// arrivo che il giocatore possa seguire.
 function factionList() {
-  return regions.map((region) => factionForRealm(region.id)).filter(Boolean);
+  const principals = regions.map((region) => factionForRealm(region.id)).filter(Boolean);
+  const underlings = Object.values(factions).filter((faction) => !faction.principal);
+  return [...principals, ...underlings];
 }

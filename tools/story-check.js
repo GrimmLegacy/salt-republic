@@ -448,6 +448,166 @@ check('no card falls through to a missing url',
   allTideCards.every((entry) => renderTideCard(entry).includes('src="') && !renderTideCard(entry).includes('src=""')),
   'a card rendered an empty src');
 
+// ---------------------------------------------------------------------------
+log('');
+log('=== P) A night run walks step one to step ten and then starts over ===');
+// The promise made to the player: you begin at one, you finish at ten, and if
+// you close the game halfway the next night offers exactly the step you had
+// reached. That is the whole behaviour, so it is walked rather than described.
+// The first step is gated too, on itself: it opens when nothing further down the
+// run has been done more recently. Otherwise it would sit open forever beside the
+// step you are actually on, and the promise of "one step at a time" would turn
+// into two choices at a time.
+const belfry = locations.spire.actions.filter((action) => action.id.startsWith('belfry-night-'));
+check('the belfry run has ten steps', belfry.length === 10, `${belfry.length} steps`);
+check('every step happens at night', belfry.every((action) => action.when === 'night'), 'a step happens by day');
+check('every step is repeatable', belfry.every((action) => action.repeatable === true), 'a step can only be done once');
+check('the first step waits on the run being finished',
+  (belfry[0].requires || []).some((requirement) => requirement.type === 'runEntry' && requirement.action === belfry[0].id),
+  'the first step is always open');
+
+// Each step names the one before it, so a step cannot quietly point at itself or
+// skip one without a check noticing.
+const links = belfry.slice(1).map((step, index) => step.chain?.follows === belfry[index].id);
+check('every step continues the one before it', links.every(Boolean), 'a step skips ahead');
+const opened = belfry.slice(1).flatMap((step) => (step.requires || [])
+  .filter((requirement) => requirement.type === 'chainRun' && requirement.action !== step.chain?.follows));
+check('every step waits on the run, not on something else', opened.length === 0, `${opened.length} wrong gates`);
+
+state = createDefaultState();
+const openSteps = () => visibleAt('spire', midnightClock).filter((id) => id.startsWith('belfry-night-'));
+check('a fresh chronicle opens on step one',
+  openSteps().join(',') === belfry[0].id, openSteps().join(',') || 'nothing open');
+
+// Walk the run. Each step is recorded the way the game records it, so this is the
+// same data the unlock logic reads at the player's next visit.
+let walked = 0;
+for (let index = 0; index < belfry.length; index += 1) {
+  const open = openSteps();
+  if (open.length !== 1 || open[0] !== belfry[index].id) {
+    check(`run reaches step ${index + 1}`, false, `expected ${belfry[index].id}, saw ${open.join(',') || 'nothing'}`);
+    break;
+  }
+  recordEventCompletion(findActionById(belfry[index].id), 'Success');
+  walked += 1;
+}
+check('the whole run can be walked one step at a time', walked === belfry.length, `stopped at ${walked}`);
+check('finishing the run opens it again from the top', openSteps().join(',') === belfry[0].id, openSteps().join(',') || 'nothing open');
+
+// Closing the game halfway is the same thing as walking four steps and stopping,
+// which is exactly what the four records above are.
+state = createDefaultState();
+for (let index = 0; index < 4; index += 1) {
+  recordEventCompletion(findActionById(belfry[index].id), 'Success');
+}
+check('a half-finished run resumes at the step it stopped on',
+  openSteps().join(',') === belfry[4].id, openSteps().join(',') || 'nothing open');
+
+const finale = belfry[belfry.length - 1];
+check('the last step pays experience', Object.keys(finale.success.stats || {}).length >= 2, 'no experience');
+check('the last step pays materials', (finale.success.items || []).length >= 1, 'no materials');
+check('the material it pays is a real catalogue material',
+  (finale.success.items || []).every((id) => findEquipmentItem(id)?.material === true), 'it pays something that is not a material');
+
+// ---------------------------------------------------------------------------
+log('');
+log('=== Q) The night stories pay the body that ran them, and nobody else ===');
+// A story that happens inside someone's realm normally also earns that realm's
+// standing, because the work really was done on their ground. These three are
+// different: they are run by a body that happens to be inside the zone and is not
+// its power, so they pay exactly one account. Helping the Ledger must not put the
+// Council a step closer, and helping the Iron Sister must not be a gift to the
+// Combine that watches her.
+const nightStories = [
+  ['ledger-carry-the-refusal', 'grand-canal', 'black-ledger'],
+  ['rats-run-the-word-along-the-rope', 'grand-canal', 'salt-rats'],
+  ['sister-take-the-cold-door-shift', 'leviathan-trench', 'iron-sister']
+];
+const realRandom = Math.random;
+Math.random = () => 0;
+nightStories.forEach(([actionId, locationId, paid]) => {
+  const action = findActionById(actionId);
+  check(`${actionId} happens only at night`, action.when === 'night', 'it happens by day');
+  check(`${actionId} can be done again`, action.repeatable === true, 'it is a one-off');
+  check(`${actionId} names the body it pays`, action.success.standing?.faction === paid, 'no standing declared');
+  check(`${actionId} asks to pay that body only`, action.success.standing?.exclusive === true, 'the realm is paid too');
+
+  state = createDefaultState();
+  state.player.vigor = VIGOR_MAX;
+  state.player.reputation = {};
+  state.currentLocationId = locationId;
+  resolveAction(actionId);
+  closeResolution();
+
+  check(`${paid} was paid`, getFactionXp(paid) > 0, `xp ${getFactionXp(paid)}`);
+  const realmFaction = factionForRealm(locationRealmOf(locationId));
+  check(`the power that holds ${locationId} was left out of it`,
+    getFactionXp(realmFaction.id) === 0, `${realmFaction.id} got ${getFactionXp(realmFaction.id)}`);
+});
+Math.random = realRandom;
+
+// ---------------------------------------------------------------------------
+log('');
+log('=== R) The night content never writes in a power\'s book ===');
+// The rule the new night content follows: the four powers already have ordinary
+// work every single day, so none of these encounters may move their standing.
+// They pay a guild or a person, or nobody at all.
+//
+// The preview on the card and the reward on resolution used to be two separate
+// calculations, so they could disagree, and they did: the card promised the
+// Council of Ten while the game paid the Ledger. They are compared here against
+// each other rather than against a hand-written expectation, so the next change
+// that splits them again fails the check instead of shipping.
+const principalIds = factionList().filter((entry) => entry.principal).map((entry) => entry.id);
+const nightContent = [
+  ...belfry.map((action, index) => [action.id, 'spire', index, null]),
+  ['ledger-carry-the-refusal', 'grand-canal', null, 'black-ledger'],
+  ['rats-run-the-word-along-the-rope', 'grand-canal', null, 'salt-rats'],
+  ['sister-take-the-cold-door-shift', 'leviathan-trench', null, 'iron-sister']
+];
+Math.random = () => 0;
+
+nightContent.forEach(([actionId, locationId, runIndex, payer]) => {
+  const action = findActionById(actionId);
+  check(`${actionId} declares who it pays, or that it pays nobody`,
+    action.noStanding === true || action.success?.standing?.exclusive === true,
+    'it falls through to the realm by default');
+
+  state = createDefaultState();
+  state.currentLocationId = locationId;
+  state.player.vigor = VIGOR_MAX;
+  state.player.reputation = {};
+  // A run step is only reachable once the ones before it are done, so the run is
+  // opened to the right place rather than forcing the action past its own gate.
+  if (runIndex !== null) {
+    for (let step = 0; step < runIndex; step += 1) {
+      recordEventCompletion(findActionById(belfry[step].id), 'Success');
+    }
+  }
+
+  const preview = describeActionStanding(action);
+  const planned = planStandingGrants(action, locationId);
+  check(`${actionId} preview names every body that gets paid`,
+    planned.every((entry) => preview.includes(entry.faction.name)),
+    `card said "${preview}", plan pays ${planned.map((entry) => entry.faction.name).join(', ') || 'nobody'}`);
+  check(`${actionId} preview promises no power`,
+    !principalIds.some((id) => preview.includes(factions[id].name)),
+    `card said "${preview}"`);
+
+  resolveAction(actionId);
+  closeResolution();
+  const paidNow = Object.keys(state.player.reputation).filter((id) => getFactionXp(id) > 0);
+  check(`${actionId} pays no power in the game either`,
+    !paidNow.some((id) => principalIds.includes(id)),
+    `${paidNow.join(', ')}`);
+  if (payer) {
+    check(`${actionId} pays ${payer}`, getFactionXp(payer) > 0, `${getFactionXp(payer)}`);
+  } else {
+    check(`${actionId} pays nobody standing at all`, paidNow.length === 0, `${paidNow.join(', ')}`);
+  }
+});
+Math.random = realRandom;
+
 log('');
 log(`story-check: ${failures} FAILURES`);
 

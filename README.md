@@ -29,6 +29,9 @@ A prototype for a text-heavy narrative game inspired by the tone and structure o
 - gear only counts while worn, and the bonuses are recalculated from scratch, so nothing can drift out of sync
 - encounters declare when they happen (`when: 'day' | 'night' | 'any'`) and the card says whether the hour is right
 - the calendar drawer browses months and seasons and opens a day sheet listing what that day holds
+- a night-only run of ten steps in the Belfry that goes one to ten and then starts again, resuming at the step it stopped on if the game is closed halfway
+- repeatable night-only stories that pay a guild or a person rather than the power that governs the zone
+- a Materials section for stackable goods that are collected rather than worn
 - automatic local save after key decisions
 - optional online accounts (email/password and Google) with a Supabase-backed save, so a chronicle follows the player across devices; the game stays fully playable as a guest, and the account layer degrades to plain local play if it is not configured
 - choice log kept in the UI
@@ -157,6 +160,66 @@ already exists, and the step's state is read back from that encounter's record i
 | `failed` | the encounter was attempted and failed; the step stays reopenable |
 | `open` | the requirements are met and you can act on it now |
 | `locked` | something is still missing. The path is still shown, never hidden |
+
+### Runs: a chain that comes back around
+
+A normal chain closes. Once the last step is done it stops offering work, which is
+right for the Brine-Farm and wrong for a night shift that has to be done every
+night. A **run** is a chain that returns to the top instead:
+
+| Requirement | Meaning |
+| --- | --- |
+| `chainRun` | the step you name is the newest thing you did here, so it is this step's turn |
+| `runEntry` | the run has not started yet, or it has reached the end, so this step opens |
+
+Both read only the order of `completedEvents`, so a run saved halfway resumes at
+the exact step it stopped on, with nothing to migrate and no counter to drift.
+`tools/story-check.js` walks a whole run from step one to step ten and back,
+rather than trusting that it would.
+
+### Standing that belongs to nobody else
+
+Working inside a zone makes you known to whoever governs it, which is the rule for
+ordinary work. An encounter can instead name somebody else under
+`success.standing`:
+
+```js
+success: { standing: { faction: 'iron-sister', points: 8, exclusive: true } }
+```
+
+Without `exclusive`, both accounts are paid: the zone's holder for the ground you
+worked on, and the named body for the work itself. With it, only the named body is
+paid. The flag exists because helping a guild that happens to stand inside
+somebody else's territory is otherwise a quiet gift to that power, which is the
+opposite of what "this body is in no rivalry with anyone" should mean.
+
+A whole encounter can also stay out of every book with `noStanding: true`:
+
+```js
+noStanding: true,   // this work is entered in nobody's ledger
+```
+
+The night shifts use it. The four powers already have ordinary work every day, so
+the belfry run pays experience, materials and ducats but no standing at all —
+otherwise a night shift would quietly become the easiest way to farm a power.
+
+### One calculation, two places
+
+The line under **What this encounter can yield** and the reward granted when the
+encounter passes come from the same function, `planStandingGrants`. They used to
+be two separate calculations, and they disagreed: the card promised *The Council
+of Ten +3, The Astronavigators −2* on an encounter that paid the Ledger, because
+the preview had no idea the encounter had named somebody else. Anything that
+splits them again has to fail `tools/story-check.js` first.
+
+### Powers and other bodies
+
+Four factions hold the four realms and are in rivalry with each other. Others do
+not: a guild of assassins who trade in refusals, a network of canal children, and
+one masked woman who has been holding a door shut since 1502. They declare
+`rival: null` and no `principal`, and they live on the Chronicles under their own
+heading rather than inside "the four powers", because the page should not tell the
+player the city has seven powers when it has four.
 
 One source of truth: an encounter cannot read as "resolved" in the chronicle and
 "still open" in the thread, because there is only one place the answer lives.

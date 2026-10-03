@@ -237,6 +237,90 @@ const loreEntries = [
       }
     ]
   },
+  // ---- I corpi che non presidiano nessun reame -----------------------------
+  //
+  // Non hanno una zona tutta loro e non sono in gara con nessuno: si trovano
+  // dentro quelle delle altre, guardando sotto. Le due gilde sono societa' che
+  // non chiedono permesso a nessuno; la terza e' una persona sola, con un conto
+  // aperto dal 1502 che non ha mai chiuso.
+  {
+    id: 'faction-black-ledger',
+    kind: 'faction',
+    realm: 'lagoon-heart',
+    title: 'The Black Ledger',
+    icon: '✂',
+    teaser: 'They keep the book of what was agreed instead of what was signed.',
+    unlocks: [{ type: 'event', id: 'ledger-carry-the-refusal' }],
+    lockedHint: 'You have not carried anything for them yet.',
+    chapters: [
+      {
+      id: 'second-book',
+      title: 'The second book',
+      requires: [{ type: 'always' }],
+      text: 'A drowned archive is not short of paper. It is short of paper anybody can produce. The Council of Ten strikes what does not suit them and keeps the struck pages in a different building, and the Black Ledger is what survives when the striking is done and nobody wants to be seen holding the result. They are not a syndicate so much as a filing habit with a knife in it.'
+      },
+      {
+      id: 'refusals',
+      title: 'What a refusal is worth',
+      requires: [{ type: 'always' }],
+      text: 'They will pay you to be refused. A signature can be bought from the person who gives it; a refusal cannot be sold without somebody being willing to be caught holding the other end of it. So they send people out to be told no, and they bring the no back word for word, and the accuracy is the entire product. Do not improve on the wording. An embellished no is worth less than a plain one, and they have lost money finding that out.'
+      }
+    ]
+  },
+  {
+    id: 'faction-salt-rats',
+    kind: 'faction',
+    realm: 'lagoon-heart',
+    title: 'The Salt Rats',
+    icon: '⚓',
+    teaser: 'Nobody elected them. Everybody consults them.',
+    unlocks: [{ type: 'event', id: 'rats-run-the-word-along-the-rope' }],
+    lockedHint: 'You have not run anything for them yet.',
+    chapters: [
+      {
+      id: 'lines',
+      title: 'What a washing line is for',
+      requires: [{ type: 'always' }],
+      text: 'After dark the laundresses hang their lines across the canal and leave them up until the water drops. Every one of those lines is a road. Messages go along them at the speed of somebody carrying a basket, they cost nothing, and no courier in the lagoon can beat them because the couriers have to go where the water is. The children know this and the adults have worked it out, in that order, which is the only sensible way round.'
+      },
+      {
+      id: 'no-council',
+      title: 'What they refuse to have',
+      requires: [{ type: 'always' }],
+      text: 'No membership, no charter, no minutes, no elected anything. Consultation was how it started, and by the time anyone thought to write down what they were doing it was too late to write down anything else. The adults have begun giving them titles, which is what adults do when they have already lost an argument and want a word for it.'
+      }
+    ]
+  },
+  {
+    id: 'person-iron-sister',
+    kind: 'person',
+    realm: 'abyssal-depth',
+    title: 'The Iron Sister',
+    icon: '⛓',
+    teaser: 'She was keeping the nursery before there was a farm to keep.',
+    unlocks: [{ type: 'event', id: 'sister-take-the-cold-door-shift' }],
+    lockedHint: 'You have not held a shift for her.',
+    chapters: [
+      {
+      id: 'mask',
+      title: 'What the iron is for',
+      requires: [{ type: 'always' }],
+      text: 'The mask is riveted, not hinged, and it covers the whole face. Under it, long brown curls that the salt has never managed to take. Her voice arrives through the metal rather than from behind it, so nobody has heard her laugh in four hundred years and nobody can tell you what it sounded like. She answers exactly what was asked. She has never once answered the question underneath, and the nursery runs better for it than any explanation would have.'
+      },
+      {
+      id: 'cold-door',
+      title: 'The door she does not open',
+      requires: [{ type: 'always' }],
+      text: 'There is a warm pipe behind the cold door and she has stood next to it for four centuries and has never opened it. When the frost on the sill is right you write the number down and go away, and when it is not right you write the number down and go away anyway, because that was never the part she was measuring. She has told you a temperature. She has never told you what the door is for, and the two facts have never once seemed inconsistent to her.'
+      },
+      {
+      id: 'rota',
+      title: 'The rota from 1502',
+      requires: [{ type: 'event', id: 'sister-take-the-cold-door-shift' }],
+      text: 'The same rota has kept the nursery running since the year the water came, without a missed night and without anyone above her ever asking where it came from. The Combine built an entire operation on top of that rota and has no idea it is four centuries old. She does not correct this. Being mistaken for the Combine would be a worse accident than the cold.'
+      }
+    ]
+  },
   {
     id: 'place-salt-pans',
     kind: 'place',

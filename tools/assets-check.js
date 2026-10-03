@@ -30,11 +30,14 @@ vm.runInThisContext(fs.readFileSync(`${ROOT}/threads.js`, 'utf8'));
 vm.runInThisContext(fs.readFileSync(`${ROOT}/app.js`, 'utf8'));
 
 const refs = new Set();
+// An encounter or a card without a picture of its own shows the default figure, so
+// that is the reference that has to exist on disk. Collecting `undefined` instead
+// would make the check look for a file called "undefined".
 Object.values(locations).forEach((l) => {
   refs.add(l.image);
-  l.actions.forEach((a) => refs.add(a.image));
+  l.actions.forEach((a) => refs.add(a.image || DEFAULT_ART));
 });
-allTideCards.forEach((c) => refs.add(c.image));
+allTideCards.forEach((c) => refs.add(c.image || DEFAULT_ART));
 // The artwork a story thread declares for itself on the Chronicles page. Optional:
 // a thread without one keeps the plain panel background and is still a thread.
 storyThreads.forEach((t) => { if (t.art) refs.add(t.art); });

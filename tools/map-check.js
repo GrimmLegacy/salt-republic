@@ -277,7 +277,12 @@ const lampwright = findEquipmentItem('starter-lampwright');
 check('Old Lampwright is a ghost, not a person', lampwright.companionKind === 'Ghost', lampwright.companionKind);
 check('the tide cat is still a beast', findEquipmentItem('starter-drowned-cat').companionKind === 'Beast');
 check('companion kinds are beasts or spirits only', equipmentItems.filter((i) => i.companion).every((i) => ['Beast', 'Ghost'].includes(i.companionKind)));
-check('every catalogue item targets a real slot', equipmentItems.every((i) => equipmentSlots.some((s) => s.key === i.slot)));
+// A material is in the catalogue and is not worn anywhere, so it is not a
+// wearable piece and cannot be asked to name a slot. Checking it anyway would say
+// the catalogue is broken over the one entry that is behaving correctly.
+const wearables = equipmentItems.filter((item) => !item.material);
+check('every wearable targets a real slot', wearables.every((i) => equipmentSlots.some((s) => s.key === i.slot)));
+check('every material names no slot at all', equipmentItems.filter((i) => i.material).every((i) => !i.slot));
 check('item ids are unique', new Set(equipmentItems.map((i) => i.id)).size === equipmentItems.length);
 check('starter kit is fully populated', equipmentSlots.every((s) => state.player.equipment[s.key] !== undefined));
 // Il gioco non regala nulla: appena aperto, la borsa e' vuota e ci sono solo i

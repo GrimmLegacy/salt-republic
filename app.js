@@ -304,6 +304,27 @@ const equipmentItems = [
     icon: '🥾',
     stats: { audacity: 1 },
     notes: 'Eight hundred fathoms down the water is warmer than the city, which is the only honest thing anyone will tell you about the place.'
+  },
+
+  // ---- I materiali --------------------------------------------------------
+  //
+  // Non si indossano e non si spendono: sono la cosa che un lavoro lungo ti
+  // lascia fra le mani. Un solo pezzo per volta non avrebbe senso, quindi sono
+  // l'unica voce dello zaino che si conta, e l'unica che si accumula.
+  //
+  // Ogni pezzo di ottone che la Campana perde, ogni notte, perche' l'orologio
+  // torna sempre un po' piu' largo di quanto dovrebbe. Il guild lo raccoglie e
+  // lo rifonde per rifare gli ingranaggi, e non ha mai detto a nessuno che e'
+  // la sola materia prima che arriva nella citta' intera.
+
+  {
+    id: 'guild-escapement-bronze',
+    name: 'Escapement Bronze Shavings',
+    material: true,
+    rarity: 'uncommon',
+    icon: '⚙',
+    notes:
+      'The pale filings that come off the great bell every night the guild works it. Too fine to cast with, fine enough to take a bearing on. The foreman keeps them in a jar with no label, which is either carelessness or the whole point.'
   }
 ];
 
@@ -373,6 +394,256 @@ const locations = {
           log: 'A tooth skids on the third piece and puts a bright line across your palm. The bell is four seconds out and somebody upstairs is already writing it down.'
         },
         requires: [],
+        repeatable: true
+      },
+
+      // ------------------------------------------------------------------
+      // LA NOTTE DELLA CAMPANA — dieci passi, uno dopo l'altro.
+      //
+      // Non e' una catena che si chiude: e' un turno di notte che ricomincia.
+      // Il primo passo e' sempre aperto, ogni altro si apre solo quando il
+      // precedente e' l'ultima cosa che hai fatto qui sotto, e l'ultimo passo
+      // riporta il turno indietro. Chiudi il gioco al quinto e al rientro ti
+      // aspetta esattamente il sesto: e' tutto quello che serve a farlo
+      // riprendere da dove era arrivato.
+      //
+      // La condizione e' `chainRun` invece della solita `chain` perche' una
+      // catena normale, finito l'ultimo passo, non offre piu' niente. Qui il
+      // lavoro si fa ogni notte e va rifatto dall'inizio ogni volta.
+      //
+      // Tutti e dieci gli incontri sono di notte: il guild non fa il mestiere
+      // di giorno, e la finestra notturna e' anche la promessa che questa serie
+      // di lavori non ruba tempo alle cose che si possono fare di giorno.
+      // ------------------------------------------------------------------
+      {
+        id: 'belfry-night-sign-the-can-out',
+        title: 'Sign the Oil Can Out at Midnight',
+        summary:
+          'The gallery bench is under the clock, and the clock is only ever worked at night, because in daylight you can hear how wrong it is. You take the can off the rail, write your name on the card clipped to the lid, and stand there a moment while the bell decides whether to matter. It takes you about a minute a night. The foreman has stopped pretending the card is a formality, and started putting the time on it.',
+        appearanceReason: 'The guild works the great bell after dark, and the can comes off the rail to whoever signs for it first.',
+        when: 'night',
+        test: 'vigilance',
+        difficulty: 2,
+        success: {
+          stats: { vigilance: 1 },
+          resources: { ducatsOfSalt: 1 },
+          log: 'The card goes on the lid with your name and the hour, and the can comes off the rail into your hand as though it had been waiting for you specifically.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You sign the card with the wrong hour and a senior looks at it, and looks at you, and does not say which of the two offended him.'
+        },
+        noStanding: true,
+        requires: [{ type: 'runEntry', action: 'belfry-night-sign-the-can-out' }],
+        repeatable: true
+      },
+      {
+        id: 'belfry-night-open-the-case',
+        title: 'Open the Case of the Great Escapement',
+        summary:
+          'The case comes off on two thumbscrews and weighs more than a man wants to hold above his head. Inside, the great escape wheel is the size of a cart wheel and the colour of an old coin, and it has been running for four hundred years on the same oil and nobody else. You open it over a cloth, because the guild discovered years ago that filings fall, and that they fall best onto cloth.',
+        appearanceReason: 'The escapement case is opened by hand after dark, and the filings it throws are worth catching.',
+        when: 'night',
+        test: 'resolve',
+        difficulty: 3,
+        success: {
+          stats: { resolve: 1 },
+          items: ['guild-escapement-bronze'],
+          log: 'The case comes off over the cloth and the wheel sits there turning, which it should not do when the case is open, and which is the whole reason the bell drifts.'
+        },
+        failure: {
+          resources: { wounds: 1 },
+          log: 'A thumbscrew jumps its thread and the case comes down on the rail beside your hand. The bell, four hundred floors up, does not notice. Your knuckles will.'
+        },
+        chain: { follows: 'belfry-night-sign-the-can-out', label: 'After signing out the can' },
+        noStanding: true,
+        requires: [{ type: 'chainRun', action: 'belfry-night-sign-the-can-out' }],
+        repeatable: true
+      },
+      {
+        id: 'belfry-night-lift-the-escape-wheel',
+        title: 'Lift the Escape Wheel and Read the Wear',
+        summary:
+          'The wheel comes off its pin and it is lighter than a thing that size has any right to be. You hold it up to the lamp and read the wear the way you would read a mouth: the teeth are bright where they should be dark, and one tooth is bright all the way round, and that tooth is why the lagoon tide tables have been wrong by a quarter of a minute since spring. The bright tooth is the whole problem. Everything else is a machine.',
+        appearanceReason: 'The great escape wheel is lifted out at night to be read for wear, and the reading is the whole job.',
+        when: 'night',
+        test: 'audacity',
+        difficulty: 4,
+        success: {
+          stats: { audacity: 1, vigilance: 1 },
+          items: ['guild-escapement-bronze'],
+          log: 'You find the bright tooth on the fourth turn of the wheel and you do not need the lamp again: it is either that tooth or the guild is a story, and the guild is not a story.'
+        },
+        failure: {
+          resources: { wounds: 1, suspicion: 1 },
+          log: 'The pin catches on the way out and the wheel drops an inch before you have it. It is caught, and the catch is noticed from the floor.'
+        },
+        chain: { follows: 'belfry-night-open-the-case', label: 'With the case open' },
+        noStanding: true,
+        requires: [{ type: 'chainRun', action: 'belfry-night-open-the-case' }],
+        repeatable: true
+      },
+      {
+        id: 'belfry-night-check-the-drift',
+        title: 'Check the Drift Against the Tide Tables',
+        summary:
+          'This is the part the apprentices think is the part. You read the bell against the water, because the water does not care what the guild believes, and the difference between the two is a number the whole lagoon steers by. You write the number down. The number is always larger than the last one. That is not a fault, it is a direction, and the direction is downhill.',
+        appearanceReason: 'The drift is read against the real tide every night the bell is worked, and the reading is what the city trusts.',
+        when: 'night',
+        test: 'vigilance',
+        difficulty: 3,
+        success: {
+          stats: { vigilance: 2 },
+          resources: { ducatsOfSalt: 2 },
+          log: 'You write the number down and it is larger than yesterday, and you write that down too, because a direction you have measured is a direction you can walk.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You read the water instead of the clock by mistake, twice, and the second time a junior catches it. The junior is right and the junior knows it.'
+        },
+        chain: { follows: 'belfry-night-lift-the-escape-wheel', label: 'With the wheel out' },
+        noStanding: true,
+        requires: [{ type: 'chainRun', action: 'belfry-night-lift-the-escape-wheel' }],
+        repeatable: true
+      },
+      {
+        id: 'belfry-night-file-the-pallet-fork',
+        title: 'File the Pallet Fork by Hand',
+        summary:
+          'One tooth, one file, one night. The guild does this by hand because a machine that decides when the bell releases is exactly the thing you do not want deciding on its own, so the correction is the part they have kept for four hundred years. You take the file flat and draw it toward you, and the bronze comes off in a pale curl that goes on the cloth with the rest. It is the only part of the night that is actually work.',
+        appearanceReason: 'The pallet fork is filed by hand, one night at a time, because it is the correction and not the mechanism.',
+        when: 'night',
+        test: 'resolve',
+        difficulty: 4,
+        success: {
+          stats: { resolve: 2 },
+          items: ['guild-escapement-bronze', 'guild-escapement-bronze'],
+          log: 'The tooth comes down a hair and the curl of bronze goes on the cloth, and the bell four hundred floors up has not moved yet and will not until it is rung.'
+        },
+        failure: {
+          resources: { wounds: 1 },
+          log: 'The file slips off the pallet and opens the side of your hand along the knuckle. You wrap it in a rag from the bench, which is what the bench rag is for.'
+        },
+        chain: { follows: 'belfry-night-check-the-drift', label: 'With the drift measured' },
+        noStanding: true,
+        requires: [{ type: 'chainRun', action: 'belfry-night-check-the-drift' }],
+        repeatable: true
+      },
+      {
+        id: 'belfry-night-wash-the-trough',
+        title: 'Wash the Old Oil Out of the Trough',
+        summary:
+          'Four hundred years of oil, and oil does not wash out, it only moves. You take the trough down over the cloth and run it with hot water and a wire until what comes out is not grease any more but a pale grey paste with four centuries in it. The guild pours that paste into the cistern and sells it as ballast. They are not joking, and they are not the only ones who buy it.',
+        appearanceReason: 'The trough is taken down and washed at night, because in the morning it has to be back up before the city wakes and checks the hour.',
+        when: 'night',
+        test: 'resolve',
+        difficulty: 3,
+        success: {
+          stats: { resolve: 1 },
+          resources: { ducatsOfSalt: 1 },
+          log: 'The paste comes out pale and the trough comes out clean, and the cistern below takes the paste without comment, which is the closest this place gets to approval.'
+        },
+        failure: {
+          resources: { wounds: 1, suspicion: 1 },
+          log: 'The wire breaks in the paste and you have to fish it out by hand. The foreman does not shout. He writes something on your card, which is worse.'
+        },
+        chain: { follows: 'belfry-night-file-the-pallet-fork', label: 'With the tooth filed' },
+        noStanding: true,
+        requires: [{ type: 'chainRun', action: 'belfry-night-file-the-pallet-fork' }],
+        repeatable: true
+      },
+      {
+        id: 'belfry-night-lay-the-new-oil',
+        title: 'Lay the New Oil by Count',
+        summary:
+          'Not by eye. The guild counts out the drops on the brass because an eye is a human instrument and human instruments sleep, and the bell does not. You lay down eleven, which is fewer than it feels like, and stop, and sit back on the rail to see whether it holds. It holds. Nothing has held this well in a long time, and nobody down the gallery says so, because nobody down the gallery says so about anything.',
+        appearanceReason: 'The oil is counted out on the brass every night the bell is worked, because the count is the only part of this that never gets tired.',
+        when: 'night',
+        test: 'cunning',
+        difficulty: 4,
+        success: {
+          stats: { cunning: 2 },
+          resources: { ducatsOfSalt: 2 },
+          log: 'Eleven drops, counted, and the wheel sits still on the oil like something that has decided. You do not touch it again tonight and neither does anybody else.'
+        },
+        failure: {
+          resources: { scandal: 1 },
+          log: 'You lay down twelve. It is one drop more than the count allows and the bell takes it, which means nobody will know for a month, which is exactly why somebody writes it on your card.'
+        },
+        chain: { follows: 'belfry-night-wash-the-trough', label: 'With the trough clean' },
+        noStanding: true,
+        requires: [{ type: 'chainRun', action: 'belfry-night-wash-the-trough' }],
+        repeatable: true
+      },
+      {
+        id: 'belfry-night-seat-the-wheel',
+        title: 'Seat the Wheel and Let It Run Free',
+        summary:
+          'The wheel goes back on its pin and the last thing you do before you stop touching it is push it, once, with two fingers, to see whether it takes its own weight. It takes it. That is the whole test and it is the whole job: four hundred years of hands have gone wrong at exactly this moment, and every one of them put the wheel back and then did something clever to make sure. You do not do anything clever. You go down the ladder.',
+        appearanceReason: 'The wheel is seated and pushed once with two fingers, and after that the bell is not touched until it is rung.',
+        when: 'night',
+        test: 'audacity',
+        difficulty: 5,
+        success: {
+          stats: { audacity: 2 },
+          resources: { ducatsOfSalt: 3 },
+          log: 'It takes its own weight. You go down the ladder without looking back at it, which is the only correct way to leave an escapement alone.'
+        },
+        failure: {
+          resources: { wounds: 1 },
+          log: 'The pin goes in crooked and you feel it go. You take it out, and start again, and the second time it sits, and the first time is written on your card.'
+        },
+        chain: { follows: 'belfry-night-lay-the-new-oil', label: 'With the oil laid' },
+        noStanding: true,
+        requires: [{ type: 'chainRun', action: 'belfry-night-lay-the-new-oil' }],
+        repeatable: true
+      },
+      {
+        id: 'belfry-night-strike-the-hour',
+        title: 'Strike the Hour and Listen for the Beat',
+        summary:
+          'Nine strokes, and between them a beat that either exists or does not. You stand under the bell with your hand flat on the wood and you listen for the place where the sound should stop and start, because that place is the hour. If the beat is there, the tide tables are right tonight and nobody drowns on a misprint. If it is not, you file the bright tooth again tomorrow night. The guild has never rung the ninth stroke early, and once they did in 1509 and nobody has ever let them forget which year.',
+        appearanceReason: 'The bell is rung at night and the beat between the strokes is listened for, because that beat is the hour the city runs on.',
+        when: 'night',
+        test: 'vigilance',
+        difficulty: 5,
+        success: {
+          stats: { vigilance: 3, resolve: 1 },
+          resources: { ducatsOfSalt: 4 },
+          items: ['guild-escapement-bronze', 'guild-escapement-bronze'],
+          log: 'Nine strokes, and the beat is where it should be. Somewhere over the water four hundred people who will never know your name set their clocks by it and get on with the night.'
+        },
+        failure: {
+          resources: { scandal: 1, suspicion: 1 },
+          log: 'The beat is a half-beat late and you feel it in your teeth before the last stroke finishes. A hundred clocks in the lagoon are now a quarter minute wrong because you filed a tooth on a tired night.'
+        },
+        chain: { follows: 'belfry-night-seat-the-wheel', label: 'With the wheel seated' },
+        noStanding: true,
+        requires: [{ type: 'chainRun', action: 'belfry-night-seat-the-wheel' }],
+        repeatable: true
+      },
+      {
+        id: 'belfry-night-ring-the-correction',
+        title: 'Ring the Correction',
+        summary:
+          'The last thing the guild does in a night, and the only thing the whole city is waiting for without knowing it. You pull the rope on the correction, which is not an alarm and not a chime: it is a single stroke a quarter-minute early, rung so that the people who keep the tide tables can set them before they are needed. It is the least dramatic thing the bell does and it saves more people per night than everything else the guild has ever built. Then you put the can back on the rail, and you are on the ladder before the sound has finished arriving.',
+        appearanceReason: 'The correction is rung once per night, at the end of the work, and it is the stroke the whole lagoon is actually waiting for.',
+        when: 'night',
+        test: 'resolve',
+        difficulty: 6,
+        success: {
+          stats: { resolve: 3, vigilance: 2, audacity: 2 },
+          resources: { ducatsOfSalt: 8, phosphorAmber: 2 },
+          items: ['guild-escapement-bronze', 'guild-escapement-bronze', 'guild-escapement-bronze'],
+          log: 'The correction goes out a quarter-minute early, the tide tables get written, and the night is over. You put the can back on the rail with three curls of bronze in your pocket and the foreman says, without looking up, that the bench is yours on Friday.'
+        },
+        failure: {
+          resources: { scandal: 2, wounds: 1 },
+          log: 'You pull the rope and the stroke comes a full beat out, and the correction is useless, and the foreman takes the card off the rail and writes on the back of it, which nobody has ever had done.'
+        },
+        chain: { follows: 'belfry-night-strike-the-hour', label: 'With the beat confirmed' },
+        noStanding: true,
+        requires: [{ type: 'chainRun', action: 'belfry-night-strike-the-hour' }],
         repeatable: true
       }
     ]
@@ -533,6 +804,62 @@ const locations = {
           log: 'You overpay and underread the room. The clerk turns away, and suspicion settles over your coat like a wet stain.'
         },
         requires: []
+      },
+
+      // ------------------------------------------------------------------
+      // Due storie notturne negli Archivi Affogati.
+      //
+      // Stanno nella stessa stanza del Council of Ten e non gli appartengono:
+      // il registro che chi ti paga e' un altro, e lo capisci dal fatto che
+      // nessuno dei due ti ha chiesto il permesso.
+      //
+      // Entrambe danno reputazione a una fazione che non e' in rivalita' con
+      // nessuno: salire con loro non costa niente al Consiglio, e il conto che
+      // ti interessano e' l'unico che quelle tengono.
+      // ------------------------------------------------------------------
+      {
+        id: 'ledger-carry-the-refusal',
+        title: 'Carry the Refusal Back to the Second Book',
+        summary:
+          'Somebody said no. You were sent to be refused, which is a job, and the job is to come back with the no intact and unembellished: who refused, what they were offered, what they said instead of yes. A refusal is worth more than a signature, because a signature can be bought and a refusal cannot be forged without somebody willing to be caught. You stand in a doorway that is too clean and you listen to a person explain, at some length and with real politeness, why they are not going to do this. Then you take it home.',
+        appearanceReason: 'The Ledger sends people out to be told no, and pays for the no rather than for the errand.',
+        when: 'night',
+        test: 'cunning',
+        difficulty: 4,
+        success: {
+          stats: { cunning: 2 },
+          resources: { ducatsOfSalt: 4 },
+          standing: { faction: 'black-ledger', points: 8, exclusive: true },
+          log: 'You bring the refusal back word for word. The Ledger pays, because a no kept exactly as it was said is the only thing in this city they cannot make themselves.'
+        },
+        failure: {
+          resources: { scandal: 1, suspicion: 1 },
+          log: 'You argue, in the doorway, on the way out, and the refusal you carry back has an opinion in it that was not there when you arrived.'
+        },
+        requires: [],
+        repeatable: true
+      },
+      {
+        id: 'rats-run-the-word-along-the-rope',
+        title: 'Run the Word Along the Rope-Line',
+        summary:
+          'After dark the laundresses hang their lines across the canal and the lines stay up until the water drops, and every one of those lines is a street the rats use. You go along the quay with something small in your hand and you give it to a child who is not waiting for you, who does not look at it, and who will pass it on before the water is out. It takes an hour and it costs almost nothing and it beats every courier in the lagoon, and the whole arrangement exists because nobody ever wrote down who agreed to it.',
+        appearanceReason: 'The Salt Rats move everything after dark along the washing lines, and they take work from anyone who can walk a quay without asking questions.',
+        when: 'night',
+        test: 'cunning',
+        difficulty: 3,
+        success: {
+          stats: { cunning: 2, persuasion: 1 },
+          resources: { ducatsOfSalt: 2 },
+          standing: { faction: 'salt-rats', points: 8, exclusive: true },
+          log: 'The word is gone before you reach the end of the quay. Three days later it arrives somewhere you were not told about, which is the part that makes the whole thing work.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You are seen stopping on the quay. Nobody says anything to you, but by morning three of the lines have changed and none of them are yours.'
+        },
+        requires: [],
+        repeatable: true
       }
     ]
   },
@@ -713,6 +1040,42 @@ const locations = {
           log: 'Two leases went to the same bed and both lessees have a witness. The notice on the wall is your notice, and the whole wall can read it.'
         },
         requires: [{ type: 'flag', id: 'farmOpenToCity' }],
+        repeatable: true
+      },
+
+      // ------------------------------------------------------------------
+      // LA NOTTE DELLA SORELLA DI FERRO.
+      //
+      // La prima persona vera che il gioco ti mette davanti, e la unica che
+      // non ti chiede il permesso e non ti spiega niente. Lei tiene la porta
+      // fredda da quattrocento anni e non l'apre mai.
+      //
+      // E' di notte per una ragione sola: sotto, alle ottocento braccia, di
+      // giorno non viene nessuno a controllare niente, e di notte viene soltanto
+      // lei. Quindi il lavoro che ti lascia e' lavoro che nessuno vede, e la
+      // riputazione che ne nasce non puo' essere comprata con una bella figura
+      // in faccia.
+      // ------------------------------------------------------------------
+      {
+        id: 'sister-take-the-cold-door-shift',
+        title: "Take the Iron Sister's Shift at the Cold Door",
+        summary:
+          'She tells you the temperature and nothing else. Not what is behind the door, not why the pipe beyond it runs warm when nothing down here should, not who taught her to stand in it. She tells you the temperature, she holds the lamp at the height where you can see the frost and not her face, and she leaves. You take the shift. The cold is not a temperature; it is a door with a person somewhere on the other side of it that you have been told to keep shut, and the whole shift consists of reading the frost on the sill, writing the number down, and not opening anything. When she comes back she reads the page without a word and goes away, and that is the entire conversation, and it happens every night.',
+        appearanceReason: 'The Iron Sister works the cold door by night and leaves the hours to whoever will hold them.',
+        when: 'night',
+        test: 'resolve',
+        difficulty: 5,
+        success: {
+          stats: { resolve: 2, vigilance: 1 },
+          resources: { phosphorAmber: 2, ducatsOfSalt: 2 },
+          standing: { faction: 'iron-sister', points: 8, exclusive: true },
+          log: 'The frost holds the number she wrote, the pipe beyond the door keeps its warmth, and you write down a temperature you were told to write down. She reads it standing up and gives you your name back instead of a thank you.'
+        },
+        failure: {
+          resources: { wounds: 1, suspicion: 1 },
+          log: 'The cold gets into you somewhere around the third hour and by dawn you are shivering in a place that is not cold, which is the sort of detail the rota will record very carefully.'
+        },
+        requires: [],
         repeatable: true
       }
     ]
@@ -1296,7 +1659,13 @@ function sanitizeInventory(raw, equipped) {
   return source
     .filter((id) => typeof id === 'string')
     .filter((id) => {
-      if (!findEquipmentItem(id) || equippedIds.has(id) || seen.has(id)) return false;
+      const item = findEquipmentItem(id);
+      if (!item || equippedIds.has(id)) return false;
+      // I materiali si accorpano, quindi due righe identiche sono due pezzi e non
+      // un salvataggio corrotto: buttare via la seconda significa buttare via
+      // materiale, che e' l'unica cosa che questo gioco non puo' rifare.
+      if (item.material) return true;
+      if (seen.has(id)) return false;
       seen.add(id);
       return true;
     });
@@ -2157,15 +2526,34 @@ function applyReward(reward, source = null) {
   // Un oggetto non si duplica in inventario: quello che si possiede gia' resta
   // quello, e non viene conteggiato due volte. Il caso vero pero' e' l'esaurito:
   // un oggetto consumato non torna.
+  // Un materiale si conta, il resto no: un mantello che ne possedessi due sarebbe
+  // uno solo con due maniche, mentre un pezzo di ottone sfregato puo' davvero
+  // essercene due. Quindi un materiale si accorpa nello zaino, ogni altro oggetto
+  // no: restano pezzi singoli come sono sempre stati.
   if (reward.items) {
     reward.items.forEach((itemId) => {
       const item = findEquipmentItem(itemId);
       if (!item) return;
-      if (state.player.equipment[item.slot] === item.id) return;
+      // Un materiale non si equipaggia, quindi non ha uno slot: la riga sotto
+      // guarderebbe in `equipment[undefined]` e troverebbe sempre undefined.
+      if (!item.material && state.player.equipment[item.slot] === item.id) return;
+      if (item.material) {
+        state.player.inventory.push(item.id);
+        return;
+      }
       if (state.player.inventory.includes(item.id)) return;
       state.player.inventory.push(item.id);
     });
   }
+}
+
+// I materiali posseduti, uno per riga con la sua quantita'. Vengono dal
+// catalogo e non da un elenco scritto a parte, cosi' un materiale che sparisce
+// dal catalogo sparisce anche dalla pagina invece di restarci per sempre.
+function materialCounts() {
+  const held = state.player.inventory.filter((id) => findEquipmentItem(id)?.material);
+  const unique = [...new Set(held)];
+  return unique.map((id) => ({ item: findEquipmentItem(id), count: held.filter((entry) => entry === id).length }));
 }
 
 const RESOLUTION_ROLL_MS = 1300;
@@ -2237,29 +2625,10 @@ function snapshotPlayer() {
 function applyCardStanding(card, before) {
   const effect = card.effects?.standing;
   if (!effect) return null;
-  const faction = factions[effect.faction];
-  // Una carta che nomina una fazione inesistente e' un dato rotto: si ignora
-  // l'effetto invece di fermare il gioco, cosi' la carta resta giocabile e il
-  // problema si vede in un test e non in una partita.
-  if (!faction) return null;
-
-  const points = Number(effect.points) || 0;
-  const beforeXp = (before?.reputation?.[faction.id] ?? 0);
-  const beforeLevel = factionLevelFromXp(beforeXp);
-  setFactionXp(faction.id, beforeXp + points);
-  const afterXp = getFactionXp(faction.id);
-  const afterLevel = factionLevelFromXp(afterXp);
-
-  return {
-    faction,
-    points,
-    gained: Math.round(afterXp - beforeXp),
-    levelBefore: beforeLevel,
-    levelAfter: afterLevel,
-    promoted: afterLevel > beforeLevel,
-    tier: factionTierForLevel(faction, afterLevel),
-    newTitle: factionTierForLevel(faction, afterLevel).level !== factionTierForLevel(faction, beforeLevel).level
-  };
+  // Stessa regola degli incontri, con una differenza dichiarata: la carta non
+  // tocca la rivalita'. Il mazzo non e' un impegno nella citta', quindi concedere
+  // una carta non puo' comprare a prezzo la neutralita' di un rivale.
+  return applyStandingGrant(effect.faction, effect.points, { penaliseRival: false });
 }
 
 function diffSnapshots(before, after) {
@@ -2497,17 +2866,19 @@ function resolveAction(actionId) {
   if (!(action.test in explicitStatXp)) addStatExperience(action.test, eventXp);
   const experienceText = Object.entries(xpGains).map(([stat, amount]) => `${statNames[stat]} +${amount} XP`).join('; ');
   let dropped = [];
-  // Il risultato della reputazione, mostrato nella finestra di risoluzione.
-  // Resta null se il fallimento o se la zona non ha una fazione: in quel caso
-  // la finestra semplicemente non ne parla.
-  let standing = null;
+  // I risultati della reputazione, mostrati nella finestra di risoluzione.
+  // Sono una lista perche' un incontro puo' pagare due organizzazioni: chi
+  // presidia la zona e, se l'incontro lo dichiara, qualcun altro. Resta vuota se
+  // l'incontro e' fallito o se nessuno e' stato pagato: in quel caso la finestra
+  // semplicemente non ne parla.
+  let standings = [];
 
   if (success) {
     applyReward(action.success, { action, outcome: 'Success' });
     dropped = grantChanceRewards(action);
-    standing = awardFactionStanding(action, state.currentLocationId);
+    standings = awardFactionStanding(action, state.currentLocationId);
     const levelChanges = Object.entries(statNames).filter(([stat]) => state.player.stats[stat] > startingStats[stat]).map(([stat, label]) => `${label} +${state.player.stats[stat] - startingStats[stat]} level${state.player.stats[stat] - startingStats[stat] === 1 ? '' : 's'}`);
-    addLog(`${action.success.log || `${action.title} succeeds.`} ${experienceText}${levelChanges.length ? `; ${levelChanges.join(', ')}` : ''}.${describeChanceOutcome(dropped)}${standing ? ` ${standing.faction.name} remembers you as ${standing.tier.title}.` : ''}`, 'Success', `${summarizeUnlock(action)} ${action.appearanceReason}`);
+    addLog(`${action.success.log || `${action.title} succeeds.`} ${experienceText}${levelChanges.length ? `; ${levelChanges.join(', ')}` : ''}.${describeChanceOutcome(dropped)}${describeWhoRemembers(standings)}`, 'Success', `${summarizeUnlock(action)} ${action.appearanceReason}`);
   } else {
     applyReward(action.failure, { action, outcome: 'Failure' });
     const levelChanges = Object.entries(statNames).filter(([stat]) => state.player.stats[stat] > startingStats[stat]).map(([stat, label]) => `${label} +${state.player.stats[stat] - startingStats[stat]} level${state.player.stats[stat] - startingStats[stat] === 1 ? '' : 's'}`);
@@ -2529,7 +2900,7 @@ function resolveAction(actionId) {
     tone: success ? 'success' : 'failure',
     die: { value: test.roll, threshold: test.chance, detail: `You needed ${test.chance} or lower to pass` },
     narrative: outcomeReward.log || (success ? `${action.title} succeeds.` : `${action.title} fails and leaves a mark upon you.`),
-    rows: [...diffSnapshots(snapshot, state.player), ...describeStandingChange(standing)],
+    rows: [...diffSnapshots(snapshot, state.player), ...describeStandingChange(standings)],
     note: success ? (dropped.length ? describeChanceOutcome(dropped).trim() : 'No chance reward fell this time.') : 'A failed test yields no chance reward.'
   });
 }
@@ -2544,17 +2915,36 @@ function resolveAction(actionId) {
 // cambiare titolo: il primo e' continuo, il secondo arriva ogni cinque livelli e
 // vale una riga tutta sua, perche' e' quello che il giocatore sta inseguendo
 // leggendo la pagina.
-function describeStandingChange(standing) {
-  if (!standing) return [];
+// Accetta una lista o un singolo risultato: un incontro puo' pagare due
+// organizzazioni con lo stesso tiro, e questa funzione non deve costringere il
+// chiamante a sapere se quel caso si e' verificato.
+function describeStandingChange(standings) {
+  const list = Array.isArray(standings) ? standings : [standings];
+  return list.filter(Boolean).flatMap(describeOneStanding);
+}
+
+// La frase che chiude la riga di cronaca: chi ti ha pagato e come ti chiama.
+function describeWhoRemembers(standings) {
+  if (!standings || !standings.length) return '';
+  return ` ${standings.map((entry) => `${entry.faction.name} remembers you as ${entry.tier.title}.`).join(' ')}`;
+}
+
+function describeOneStanding(standing) {
   const rows = [{
     tone: 'gold',
     label: `${standing.faction.name} standing`,
     value: `+${standing.gained}`
-  }, {
-    tone: 'bad',
-    label: `${standing.rival.name} standing`,
-    value: `-${standing.lost}`
   }];
+  // Una fazione che non dichiara una rivale non toglie punti a nessuno, e non
+  // c'e' quindi una riga da mostrare. Inventarne una vuota farebbe sembrare che
+  // aiutarla costi qualcosa, mentre nel mondo non costa niente.
+  if (standing.rival) {
+    rows.push({
+      tone: 'bad',
+      label: `${standing.rival.name} standing`,
+      value: `-${standing.lost}`
+    });
+  }
   if (standing.promoted) {
     rows.push({
       tone: 'gold',
@@ -3248,6 +3638,10 @@ function renderPersona() {
 function equipItem(itemId) {
   const item = findEquipmentItem(itemId);
   if (!item) return;
+  // Un materiale non si indossa. Non avendo uno slot, la riga sotto lo
+  // bloccherebbe gia' da sola, ma detto per detto: e' una regola, non un
+  // effetto collaterale di come funzionano gli slot.
+  if (item.material) return;
 
   const slot = getEquipmentSlot(item.slot);
   if (!slot) return;
@@ -3334,6 +3728,25 @@ function renderEquipmentItemCard(item) {
   `;
 }
 
+// Una riga di materiale. Non ha bottone: un materiale non si indossa e mettergli
+// un "Wear" sarebbe un bottone che non puo' funzionare. Mostra invece quanto ne
+// porti, perche' un materiale e' l'unica cosa che si conta.
+function renderMaterialCard(entry) {
+  return `
+    <li class="gear-card is-material">
+      <div class="gear-card-button">
+        <span class="gear-icon" aria-hidden="true">${entry.item.icon || '◆'}</span>
+        <span class="gear-copy">
+          <span class="gear-name">${entry.item.name}</span>
+          <span class="gear-meta"><span class="gear-slot">Material</span><span class="gear-rarity">×${entry.count}</span></span>
+          ${entry.item.notes ? `<span class="gear-notes">${entry.item.notes}</span>` : ''}
+        </span>
+        <span class="gear-state">Carried</span>
+      </div>
+    </li>
+  `;
+}
+
 function renderEquipment() {
   setPageHeading('What you carry, and who walks with you', 'Equipment');
   const bonuses = getEquipmentBonuses();
@@ -3350,7 +3763,11 @@ function renderEquipment() {
     extraLines.push(`<div class="info-row"><span>${malusNames[key] || key}</span><strong><em class="equip-bonus">eased ${amount}</em></strong></div>`);
   });
 
-  const satchel = state.player.inventory.map(findEquipmentItem).filter(Boolean);
+  // I materiali hanno una sezione propria: non si indossano e non si tolgono,
+  // quindi mescolarli allo zaino metterebbe fra pezzi cliccabili e pezzi morti.
+  const owned = state.player.inventory.map(findEquipmentItem).filter(Boolean);
+  const satchel = owned.filter((item) => !item.material);
+  const materials = materialCounts();
   const companionItem = state.player.equipment.companion ? findEquipmentItem(state.player.equipment.companion) : null;
   const companionChoices = equipmentItems.filter((item) => item.companion);
 
@@ -3382,6 +3799,14 @@ function renderEquipment() {
         ${satchel.length
           ? `<ul class="gear-list">${satchel.map(renderEquipmentItemCard).join('')}</ul>`
           : '<p class="deck-empty">Your satchel is empty. Anything you find will be listed here.</p>'}
+      </section>
+
+      <section class="info-panel equip-satchel-panel">
+        <h3>Materials <span class="equip-count">${materials.reduce((sum, entry) => sum + entry.count, 0)}</span></h3>
+        <p class="panel-hint">Not worn and not spent: what the work left you holding, counted.</p>
+        ${materials.length
+          ? `<ul class="gear-list">${materials.map(renderMaterialCard).join('')}</ul>`
+          : '<p class="deck-empty">No materials yet. They are the things a long job leaves behind.</p>'}
       </section>
     </section>
   `;
@@ -3524,8 +3949,10 @@ function renderFactionCard(faction) {
   const xp = getFactionXp(faction.id);
   const progress = factionProgress(faction, xp);
   const rank = factionRankFromXp(xp);
-  const rival = factions[faction.rival];
-  const rivalXp = getFactionXp(rival.id);
+  // Una fazione che non dichiara una rivale non ne ha: aiutarla non costa niente
+  // a nessuno, quindi la scheda non promette una riga che il mondo non chiede.
+  const rival = faction.rival ? factions[faction.rival] : null;
+  const rivalXp = rival ? getFactionXp(rival.id) : 0;
 
   const meterWidth = xp < 0 ? 100 : progress.percent;
   const toneClass = xp < 0 ? 'is-sour' : xp >= factionThreshold(30) ? 'is-great' : '';
@@ -3557,7 +3984,7 @@ function renderFactionCard(faction) {
     `;
 
   return `
-    <article class="faction-card ${toneClass}" style="--faction-colour: ${faction.colour}; --faction-image: url('${faction.image}')">
+    <article class="faction-card ${toneClass}" style="--faction-colour: ${faction.colour}; --faction-image: url('${faction.image || DEFAULT_ART}')">
       <header class="faction-head">
         <span class="faction-sigil" aria-hidden="true">${faction.sigil}</span>
         <div class="faction-heading">
@@ -3597,10 +4024,10 @@ function renderFactionCard(faction) {
 
       ${nextBlock}
 
-      <p class="faction-rival">
+      ${rival ? `<p class="faction-rival">
         <span aria-hidden="true">⚔</span>
         ${rival.name} has you as <b>${factionRankFromXp(rivalXp).label}</b>
-      </p>
+      </p>` : ''}
     </article>
   `;
 }
@@ -3718,9 +4145,17 @@ function renderStoryThread(thread) {
 function renderChronicles() {
   setPageHeading('Who you have made yourself to', 'Chronicles');
   const list = factionList();
+  // Le quattro che presidiano un reame tengono la loro sezione, che parla di
+  // potere e di rivalita'. Le altre sono organizzazioni che si trovano dentro le
+  // zone e ne prendono una propria: accodarle a "the four powers" direbbe che il
+  // gioco ha sette potenze, mentre ne ha quattro piu' un numero di corpi che il
+  // mondo non ha ancora scritto da nessuna parte.
+  const principals = list.filter((entry) => entry.principal);
+  const others = list.filter((entry) => !entry.principal);
   // La pagina resta leggibile anche se un giorno una zona non avesse una
   // fazione: si mostra quello che c'e', senza lasciare un vuoto.
-  const cards = list.map(renderFactionCard).join('');
+  const cards = principals.map(renderFactionCard).join('');
+  const otherCards = others.map(renderFactionCard).join('');
 
   // I percorsi stanno prima delle fazioni perche' rispondono a una domanda
   // diversa e piu' urgente: le fazioni dicono chi ti conosce, i percorsi dicono
@@ -3728,7 +4163,10 @@ function renderChronicles() {
   // idea di come sia finita li', quindi quella domanda viene prima.
   const threads = storyThreads.map(renderStoryThread).join('');
 
-  const highest = list.reduce((best, faction) => {
+  // Il riepilogo sta sotto "the four powers", quindi parla delle quattro: se il
+  // giocatore conoscesse meglio una gilda minore, quel primato apparterrebbe a
+  // una sezione che sta piu' in basso.
+  const highest = principals.reduce((best, faction) => {
     const level = factionLevelFromXp(getFactionXp(faction.id));
     return level > best.level ? { level, faction } : best;
   }, { level: 0, faction: null });
@@ -3764,6 +4202,18 @@ function renderChronicles() {
       <div class="faction-grid">
         ${cards || '<p class="deck-empty">No faction has claimed this city yet.</p>'}
       </div>
+
+      ${others.length ? `
+      <p class="eyebrow">Standing, other accounts</p>
+      <h3>Bodies that keep their own accounts</h3>
+      <p class="panel-hint chronicles-hint">
+        These do not rival the four powers and are not part of the running with them: nobody loses
+        standing because you gain it here. What they think of you is the only account they keep, and
+        they keep it in their own way.
+      </p>
+      <div class="faction-grid">
+        ${otherCards}
+      </div>` : ''}
     </section>
   `;
 }
@@ -4130,6 +4580,26 @@ function findActionById(actionId) {
   return getAllActions().find((entry) => entry.action.id === actionId)?.action || null;
 }
 
+// I passi che vengono dopo un certo passo, in ordine.
+//
+// La catena si conosce da se': ogni passo dichiara a quale segue, quindi non
+// serve tenere da parte un elenco scritto a mano che andrebbe aggiornato ogni
+// volta che la catena cresce.
+function getChainFollowers(actionId) {
+  const followers = [];
+  const queue = [actionId];
+  while (queue.length) {
+    const current = queue.shift();
+    getAllActions().forEach(({ action }) => {
+      if (action.chain?.follows === current && !followers.includes(action.id)) {
+        followers.push(action.id);
+        queue.push(action.id);
+      }
+    });
+  }
+  return followers;
+}
+
 function isChainedBehindPendingStep(action) {
   return (action.requires || []).some((requirement) => requirement.type === 'chain' && !hasSucceeded(requirement.action));
 }
@@ -4245,23 +4715,30 @@ function setFactionXp(factionId, value) {
   state.player.reputation[factionId] = Math.max(FACTION_XP_FLOOR, Math.round(value));
 }
 
-// Concede reputazione alla fazione della zona in cui l'incontro e' stato
-// risolto, e toglie un po' all'avversaria. Restituisce quello che e' successo,
-// cosi' la finestra di risoluzione puo' mostrarlo al giocatore.
+// Concede punti di reputazione a una fazione e ne toglie un po' alla sua
+// rivale, se ne dichiara una. E' l'unico posto in cui la reputazione si muove,
+// cosi' carte e incontri non possono avere due versioni della stessa regola.
 //
-// Si chiama solo su successo: fallire non dice niente su di te a chi ti ha
-// dato il lavoro.
-function awardFactionStanding(action, locationId) {
-  const faction = factionForRealm(locationRealmOf(locationId));
+// Una fazione che non dichiara una rivale non toglie niente a nessuno: nel
+// mondo non e' in gara con altri, quindi aiutarla non costa niente a chi sta
+// accanto. Non e' un caso dimenticato, e' una posizione.
+function applyStandingGrant(factionId, points, { penaliseRival = true } = {}) {
+  const faction = factions[factionId];
+  // Una carta o un incontro che nomina una fazione inesistente e' un dato
+  // rotto: si ignora l'effetto invece di fermare il gioco, cosi' la cosa resta
+  // giocabile e il problema si vede in un test e non in una partita.
   if (!faction) return null;
-  const gained = factionXpForAction(action);
+  const gained = Number(points) || 0;
+  if (!gained) return null;
+
   const before = getFactionXp(faction.id);
   setFactionXp(faction.id, before + gained);
 
-  const rival = factions[faction.rival];
-  const lost = Math.max(1, Math.round(gained * FACTION_RIVAL_DAMPING));
-  const rivalBefore = getFactionXp(rival.id);
-  setFactionXp(rival.id, rivalBefore - lost);
+  // `penaliseRival` e' falso solo per le carte: li' la rivalita' non viene toccata
+// perche' il mazzo non e' un impegno nella citta'. Vedi `applyCardStanding`.
+  const rival = penaliseRival && faction.rival ? factions[faction.rival] : null;
+  const lost = rival ? Math.max(1, Math.round(gained * FACTION_RIVAL_DAMPING)) : 0;
+  if (rival) setFactionXp(rival.id, getFactionXp(rival.id) - lost);
 
   const levelBefore = factionLevelFromXp(before);
   const levelAfter = factionLevelFromXp(before + gained);
@@ -4282,6 +4759,68 @@ function awardFactionStanding(action, locationId) {
     // Un titolo nuovo e' un avvenimento raro e vale la pena dirlo a parte.
     newTitle: factionTierForLevel(faction, levelAfter).level !== factionTierForLevel(faction, levelBefore).level
   };
+}
+
+// Concede reputazione alla fazione che PRESIDIA la zona in cui l'incontro e'
+// stato risolto. E' il default: lavorare in una zona ti rende noto a chi la
+// governa.
+//
+// Un incontro puo' pero' dire il contrario, in due modi distinti.
+//
+// `noStanding: true` sull'incontro: questo lavoro non entra nel libro di nessuno.
+// E' il caso dei turni notturni. Le quattro potenze hanno gia' i lavori di tutti
+// i giorni che le riguardano e sono gia' coperte; se anche la Notte della Campana
+// finisce nel loro registro, il loro contatore sale per un lavoro che nessuno
+// ricorda e il turno diventa un modo per far soldi al potere invece che a chi
+// lo chiede.
+//
+// `success.standing` invece nomina qualcun altro e mette la firma sotto
+// `exclusive`, per quando il lavoro e' stato per una gilda che sta dentro la
+// zona ma non e' il potere di quella zona: li' si paga la gilda e basta.
+//
+// Si chiama solo su successo: fallire non dice niente su di te a chi ti ha
+// dato il lavoro.
+// Chi verrebbe pagato da questo incontro, di quanto, e chi ci perde.
+//
+// La stessa risposta serve in due posti: la riga di anteprima sulla scheda
+// dell'incontro e il premio vero quando lo passi. Tenere i due calcoli separati
+// e' il modo piu' rapido per promettere una cosa e farne un'altra, quindi il
+// ragionamento sta qui una volta sola e i due posti leggono questo.
+function planStandingGrants(action, locationId) {
+  // Un turno notturno non entra nel libro di nessuno.
+  if (action?.noStanding) return [];
+  const plans = [];
+  const counted = new Set();
+  const plan = (faction, points, penaliseRival) => {
+    if (!faction || !points) return;
+    // Una fazione si paga una volta sola anche se e' insieme la zona e la riga
+    // nominata, altrimenti il conto raddoppia senza che nessuno l'abbia chiesto.
+    if (counted.has(faction.id)) return;
+    counted.add(faction.id);
+    const rival = penaliseRival && faction.rival ? factions[faction.rival] : null;
+    plans.push({ faction, points, rival, lost: rival ? Math.max(1, Math.round(points * FACTION_RIVAL_DAMPING)) : 0 });
+  };
+
+  const named = action?.success?.standing;
+  const realmFaction = factionForRealm(locationRealmOf(locationId));
+  // La zona paga chi la presidia, tranne quando l'incontro nomina qualcun altro e
+  // chiede esplicitamente di non pagare anche il reame.
+  //
+  // Serve per i lavori organizzati da qualcuno che sta dentro la zona ma non e'
+  // il potere di quella zona: se aiuti la Sorella di Ferro alle ottocento braccia,
+  // il Combine non ti deve niente perche' tu non hai fatto niente del Combine.
+  // Senza questa riga, aiutare una gilda minore finiva per essere anche un regalo
+  // al potere che la guarda e non c'entra, il che e' il contrario di "chi non
+  // e' in gara con nessuno non ti costa niente".
+  if (realmFaction && !named?.exclusive) plan(realmFaction, factionXpForAction(action), true);
+  if (named?.faction) plan(factions[named.faction], named.points, true);
+  return plans;
+}
+
+function awardFactionStanding(action, locationId) {
+  return planStandingGrants(action, locationId)
+    .map((entry) => applyStandingGrant(entry.faction.id, entry.points, { penaliseRival: Boolean(entry.rival) }))
+    .filter(Boolean);
 }
 
 // La zona di un luogo. Passa dall'id del luogo al nome della regione, che e' la
@@ -4422,6 +4961,91 @@ function describeRequirement(requirement) {
       phrase: `the decision “${label}”`,
       infinitive: 'make a decision the chronicle can read',
       detail: held ? `Your chronicle reads: ${label}.` : 'You have not settled it yet.'
+    };
+  }
+
+  // Il passo dopo di una catena che si ripete.
+  //
+  // Una catena normale si chiude: finito l'ultimo passo non c'e' piu' niente da
+  // fare, e `chain` basta. Questa invece ricomincia, e quindi "ho finito il
+  // passo prima" non basta: se anche i passi dopo sono gia' stati fatti, quello
+  // che hai fatto per ultimo e' il passo sbagliato e la catena e' tornata
+  // indietro da sola.
+  //
+  // Si risolve guardando l'ordine, non un contatore tenuto da parte: i record
+  // stanno dal piu' recente al piu' vecchio, quindi l'ultimo passo superato e'
+  // quello col primo indice. Se e' il passo precedente, tocca a questo.
+  if (requirement.type === 'chainRun') {
+    const previous = findActionById(requirement.action);
+    const title = previous ? previous.title : requirement.action;
+    const record = getEventRecord(requirement.action);
+    const order = state.player.completedEvents || [];
+    const succeeded = record?.outcome === 'Success';
+    const previousAt = succeeded ? order.indexOf(record) : -1;
+    const overtaken = getChainFollowers(requirement.action)
+      .map((id) => getEventRecord(id))
+      .filter((entry) => entry?.outcome === 'Success')
+      .filter((entry) => previousAt === -1 || order.indexOf(entry) < previousAt);
+    const waiting = succeeded && overtaken.length === 0;
+    return {
+      type: 'chainRun',
+      met: waiting,
+      label: `Continue the run from “${title}”`,
+      phrase: `coming back to “${title}”`,
+      infinitive: `work your way to “${title}”`,
+      detail: !succeeded
+        ? 'You have not taken that step yet.'
+        : waiting
+          ? 'You stopped there last. It is the only step waiting on you.'
+          : 'You already went past it, so the run carried on without you and this is where it must start again.'
+    };
+  }
+
+  // Il primo passo di un turno che si ripete.
+  //
+  // `chainRun` chiede "il passo prima e' l'ultima cosa che hai fatto qui". Il
+  // primo passo non ha un passo prima, quindi fa la stessa domanda girata: e'
+  // aperto quando nessun passo piu' avanti e' stato fatto piu' di recente di lui.
+  // Se non e' mai stato fatto nessuno dei due, e' aperto perche' il turno non e'
+  // mai iniziato, che dal punto di vista di chi deve lavorarci e' la stessa cosa.
+  //
+  // Senza questo, il primo passo di una catena che ricominca resterebbe aperto
+  // per sempre accanto a quello in cui ti trovi: due scelte quando la promessa
+  // fatta al giocatore era una.
+  if (requirement.type === 'runEntry') {
+    const entry = findActionById(requirement.action);
+    const title = entry ? entry.title : requirement.action;
+    const order = state.player.completedEvents || [];
+    const mine = getEventRecord(requirement.action);
+    // La catena per intero, nell'ordine in cui si percorre.
+const chain = [requirement.action, ...getChainFollowers(requirement.action)];
+// Gli ultimi passi: quelli che non hanno un seguito. In una catena dritta e' uno,
+// ma cosi' resta vero anche se un giorno la catena si biforca.
+const endings = chain.filter((id) => getChainFollowers(id).length === 0);
+// L'ultimo passo superato in questa zona: il record col primo indice, perche'
+    // i record stanno dal piu' recente al piu' vecchio.
+    let newest = null;
+    let newestAt = Infinity;
+    chain.forEach((id) => {
+      const record = getEventRecord(id);
+      if (record?.outcome !== 'Success') return;
+      const at = order.indexOf(record);
+      if (at >= 0 && at < newestAt) { newestAt = at; newest = record; }
+    });
+    // Aperto solo in due casi: il turno non e' ancora cominciato, oppure l'ultima
+    // cosa che hai fatto qui e' arrivata in fondo e quindi si ricomincia. Se hai
+    // superato questo passo e poi altro, il lavoro e' avanti: tornare indietro
+    // sarebbe ricominciare dal mezzo.
+    const met = newest === null || endings.includes(newest.id);
+    return {
+      type: 'runEntry',
+      met,
+      label: `Start the run at “${title}”`,
+      phrase: `being back at the beginning of the run`,
+      infinitive: `finish the run and come back to “${title}”`,
+      detail: met
+        ? 'The run is with you: either it has not begun, or it is finished and this is where it starts again.'
+        : 'You are further into the run than this. Finish what is ahead of you first.'
     };
   }
 
@@ -4604,13 +5228,16 @@ function renderActionRewards(action) {
   const itemLine = describeActionItems(action);
   if (itemLine) lines.push(line('items', 'Items', itemLine));
 
-  // Quanto standing porta questo incontro, detto prima di giocarlo. Il numero e'
-  // quello che `awardFactionStanding` assegna davvero, dalla stessa tabella, quindi
-  // non puo' divergere da quello che il giocatore vede dopo.
+  // Quanto standing porta questo incontro, detto prima di giocarlo. La riga viene
+  // dalla stessa `planStandingGrants` che assegna davvero il premio, quindi qui e'
+  // la stessa risposta e non una versione vicina: quando i due calcoli erano
+  // separati la scheda prometteva il potere della zona anche quando l'incontro
+  // era segnato come lavoro di qualcun altro.
   //
   // La riga e' sull'esito e non sul pulsante perche' e' `awardFactionStanding` a
   // decidere se lo standing arriva, e lo chiama solo sul successo: fallire non
-  // dice niente su di te a chi ti ha dato il lavoro.
+  // dice niente su di te a chi ti ha dato il lavoro. Su un turno che non entra
+  // nei libri di nessuno la riga semplicemente non c'e'.
   const standingLine = describeActionStanding(action);
   if (standingLine) lines.push(line('standing', 'Standing', standingLine));
 
@@ -4660,18 +5287,21 @@ function describeActionItems(action) {
 
 // La riga di reputazione dentro i premi di un incontro.
 //
-// La fazione viene dalla zona in cui l'incontro si svolge, non dall'incontro: e'
-// il lavoro che fai in un posto a farti notare da chi lavora li'. La perdita per
-// l'avversaria e' metta di quanto guadagni, e la riga lo dice, perche' una cosa
-// che arriva e una cosa che va altrove devono essere entrambe visibili prima di
-// premere.
+// Non ricalcola niente: chiede a `planStandingGrants` la stessa risposta che
+// riceverai davvero quando passi l'incontro, e la mette in fila. Prima le due
+// cose erano calcolate in due punti diversi e l'anteprima diceva una cosa che il
+// gioco non faceva: il potere della zona compariva anche quando l'incontro era
+// segnato come lavoro di qualcun altro, o come turno che non entra nei libri.
+//
+// Una riga che arriva e una che va altrove devono essere entrambe visibili prima
+// di premere, quindi ogni voce porta con se' la perdita della sua rivale.
 function describeActionStanding(action) {
-  const faction = factionForRealm(locationRealmOf(state.currentLocationId));
-  if (!faction) return '';
-  const gained = factionXpForAction(action);
-  const lost = Math.max(1, Math.round(gained * FACTION_RIVAL_DAMPING));
-  const rival = factions[faction.rival];
-  return `${faction.name} +${gained}, ${rival.name} −${lost}, on success only`;
+  const plans = planStandingGrants(action, state.currentLocationId);
+  if (!plans.length) return '';
+  const rows = plans.map((entry) => (entry.rival
+    ? `${entry.faction.name} +${entry.points}, ${entry.rival.name} −${entry.lost}`
+    : `${entry.faction.name} +${entry.points}`));
+  return `${rows.join('; ')}, on success only`;
 }
 
 function renderActionUnlock(action) {
@@ -4791,8 +5421,16 @@ function renderActions() {
   // La miniatura di un incontro senza arte sua cade sulla figura di default. Il
   // fallback e' dichiarato qui e non lasciato al CSS perche' `url("undefined")`
   // produrrebbe un riquadro rotto senza nessun errore in console che lo spieghi.
-  list.querySelectorAll('.action-thumb').forEach((thumb, index) => {
-    thumb.style.backgroundImage = `linear-gradient(180deg, rgba(15, 12, 9, 0.08), rgba(15, 12, 9, 0.3)), url("${visibleActions[index].image || DEFAULT_ART}")`;
+  //
+  // Il confronto e' per posizione, quindi le due liste devono stare in passo. Se
+  // un giorno non ci stanno, il posto peggiore in cui accorgersene e' dentro una
+  // pagina gia' scritta: percio' una miniatura in piu' o in meno viene saltata e
+  // non trascina via tutta la pagina.
+  const thumbs = list.querySelectorAll('.action-thumb') || [];
+  Array.from(thumbs).forEach((thumb, index) => {
+    const action = visibleActions[index];
+    if (!thumb || !action) return;
+    thumb.style.backgroundImage = `linear-gradient(180deg, rgba(15, 12, 9, 0.08), rgba(15, 12, 9, 0.3)), url("${action.image || DEFAULT_ART}")`;
   });
 }
 

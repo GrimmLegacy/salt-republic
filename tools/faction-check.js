@@ -53,12 +53,25 @@ log('=== 1) Faction data integrity ===');
 const dataCheck = checkFactionData();
 log(`   ${dataCheck.reason || 'all rivals symmetrical, thresholds agree'}`);
 check('the faction table is coherent', dataCheck.ok);
-check('one faction per realm', factionList().length === 4);
-check('every region has a faction', regions.every((region) => factionForRealm(region.id)));
+check('every region has a faction that holds it', regions.every((region) => factionForRealm(region.id)));
+// The world is not one faction per realm. A zone has the one that governs it and,
+// beside that, as many bodies as the lore needs. What has to hold is that every
+// faction reaches the page and that no two claim to govern the same zone.
+check('every faction reaches the Chronicles page',
+  factionList().length === Object.keys(factions).length, `${factionList().length} of ${Object.keys(factions).length}`);
+check('some realms host more than one organisation',
+  factionList().length > regions.length, 'still one faction per realm');
+check('no two factions claim the same realm',
+  new Set(factionList().filter((entry) => entry.principal).map((entry) => entry.realm)).size === regions.length,
+  'two principal factions share a realm');
+check('some factions stand in no rivalry at all',
+  Object.values(factions).some((entry) => !entry.rival), 'every faction was forced into a rival');
 
 log('');
 log('=== 2) Rival symmetry ===');
-Object.values(factions).forEach((faction) => {
+// Only the factions that declare a rival can be checked for symmetry: the ones
+// that declare none are not in the running with anybody, which is the point.
+Object.values(factions).filter((faction) => faction.rival).forEach((faction) => {
   check(`${faction.id} <-> ${faction.rival}`, factions[faction.rival].rival === faction.id);
 });
 
@@ -127,18 +140,61 @@ check('an absurd difficulty still pays', factionXpForAction({ difficulty: 99 }) 
 
 log('');
 log('=== 5) Winning raises the local faction and lowers the rival ===');
+// The award comes back as a list: one encounter can pay more than one
+// organisation, so the honest shape of the answer is "who got paid", not "who
+// got paid".
 state.currentLocationId = 'grand-canal';
 state.player.reputation = {};
 const council = factions.council;
 const councilRival = factions[council.rival];
 log(`   playing in ${locations['grand-canal'].realm} -> ${council.name} (rival ${councilRival.name})`);
 const beforeRival = getFactionXp(councilRival.id);
-const standing = awardFactionStanding({ difficulty: 5 }, 'grand-canal');
+const grants = awardFactionStanding({ difficulty: 5 }, 'grand-canal');
+const standing = grants[0];
 log(`   gained=${standing.gained} lost=${standing.lost} promoted=${standing.promoted}`);
-check('the award names the faction of the realm', standing.faction.id === council.id);
+check('a plain encounter pays exactly one organisation', grants.length === 1, `${grants.length} grants`);
+check('the award names the faction that holds the realm', standing.faction.id === council.id);
 check('standing actually rose', getFactionXp(council.id) === standing.gained);
 check('the rival actually fell', getFactionXp(councilRival.id) === beforeRival - standing.lost);
 check('the loss is smaller than the gain', standing.lost < standing.gained);
+
+log('');
+log('=== 5b) A realm is not one faction, and not every faction has a rival ===');
+// The world does not tie an organisation to a realm. A zone has the one that
+// governs it and, standing next to it, as many bodies as the lore needs. Only
+// the four that hold a realm are in the running with each other.
+check('every realm still has exactly one holder', regions.every((region) => Boolean(factionForRealm(region.id))), 'a realm lost its holder');
+check('every declared rival points back', Object.values(factions).filter((f) => f.rival).every((f) => factions[f.rival].rival === f.id), 'rival is not symmetric');
+check('at most one faction claims to hold each realm',
+  new Set(Object.values(factions).filter((f) => f.principal).map((f) => f.realm)).size
+    === Object.values(factions).filter((f) => f.principal).length, 'two factions claim the same realm');
+
+// A faction with no rival takes nothing from anyone: helping a body that is not
+// competing with you costs nothing to the ones nearby. The fixture is made up on
+// purpose, so this keeps proving the rule whatever the catalogue says later.
+// It needs a `tiers` array because every grant resolves the title the faction
+// calls you by, exactly as it would for a real one.
+factions.__check_neutral__ = { id: '__check_neutral__', name: 'Check Neutral', rival: null, tiers: [{ level: 1, title: 'Nobody' }] };
+try {
+  const others = Object.values(factions).filter((f) => f.id !== '__check_neutral__');
+  const beforeOthers = Object.fromEntries(others.map((f) => [f.id, getFactionXp(f.id)]));
+  const report = applyStandingGrant('__check_neutral__', 10);
+  check('a faction with no rival can be paid', Boolean(report) && report.gained === 10, 'no grant came back');
+  check('paying it costs nobody else',
+    others.every((f) => getFactionXp(f.id) === beforeOthers[f.id]), 'someone else paid for it');
+  check('and there is no rival row to show', Boolean(report) && report.rival === null, 'a rival was invented');
+} finally {
+  delete factions.__check_neutral__;
+}
+
+// An encounter may name someone the realm does not answer to.
+state.currentLocationId = 'grand-canal';
+state.player.reputation = {};
+const sameHolder = awardFactionStanding({ difficulty: 3, success: { standing: { faction: 'council', points: 6 } } }, 'grand-canal');
+check('naming the holder pays once, not twice', sameHolder.length === 1, `${sameHolder.length} grants`);
+const bothPayees = awardFactionStanding({ difficulty: 3, success: { standing: { faction: 'clockwrights', points: 6 } } }, 'grand-canal');
+check('naming somebody else pays both', bothPayees.length === 2, `${bothPayees.length} grants`);
+check('the realm holder is still paid', getFactionXp('council') > 0, 'the realm holder was skipped');
 
 log('');
 log('=== 6) Failing changes nothing ===');
