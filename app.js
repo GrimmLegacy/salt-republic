@@ -1891,6 +1891,12 @@ function snapshotPlayer() {
     // Anche la reputazione, perche' una carta puo' darla: senza questa copia la
     // finestra di risoluzione non avrebbe con cosa mostrare il guadagno.
     reputation: { ...(state.player.reputation || {}) },
+    // Inventario ed equipaggiamento servono al confronto di `diffSnapshots` per
+    // capire quale oggetto e' appena finito in borsa: senza la copia di prima, la
+    // finestra di risoluzione non avrebbe modo di distinguere una novita' da un
+    // pezzo che il giocatore aveva gia'.
+    inventory: [...state.player.inventory],
+    equipment: { ...state.player.equipment },
     properties: [...state.player.properties]
   };
 }
@@ -1956,6 +1962,33 @@ function diffSnapshots(before, after) {
 
   after.properties.filter((property) => !before.properties.includes(property)).forEach((property) => {
     rows.push({ tone: 'gold', label: 'Property claimed', value: property });
+  });
+
+  // Gli oggetti devono comparire nella finestra di risoluzione. Un pezzo appena
+  // finito in borsa senza che nessuno lo dica e' la parte migliore della riuscita
+  // che sparisce: il giocatore vede il dado e i numeri, esce dalla finestra, e non
+  // sa che gli e' capitato qualcosa fra le mani.
+  //
+  // Il confronto e' fra la copia di prima e lo stato di adesso, e guarda l'unica
+  // cosa che conta: un id che non era posseduto prima e che e' posseduto adesso.
+  // Non si controlla se l'oggetto e' "nuovo" nel catalogo, perche' un oggetto
+  // vecchio che il giocatore non aveva e' una novita' esattamente come uno appena
+  // scritto.
+  const ownedBefore = new Set([
+    ...(before.inventory || []),
+    ...Object.values(before.equipment || {}).filter(Boolean)
+  ]);
+  const ownedNow = [
+    ...Object.values(state.player.equipment).filter(Boolean),
+    ...state.player.inventory
+  ];
+  const freshItems = ownedNow.filter((itemId) => !ownedBefore.has(itemId));
+
+  freshItems.forEach((itemId) => {
+    const item = findEquipmentItem(itemId);
+    if (!item) return;
+    const slotLabel = equipmentSlots.find((slot) => slot.key === item.slot)?.label || item.slot;
+    rows.push({ tone: 'good', label: 'Item gained', value: `${item.name} (${slotLabel})` });
   });
 
   return rows;
@@ -4053,10 +4086,13 @@ function describeActionItems(action) {
   });
 
   // I pezzi nuovi vengono per primi: sono quelli per cui vale la pena premere.
-  // Dietro, spenti, quelli che il giocatore ha gia' raccolto da questa azione.
+  // Dietro, spenti e dichiarati, quelli che il giocatore ha gia' raccolto. La
+  // parola "already yours" resta anche se il colore dice gia' la stessa cosa:
+  // il colore si perde sui monitor spenti, in una pagina lunga, e per chi legge
+  // veloce. La frase e' la certezza, il colore e' l'aiuto visivo.
   return [
     ...fresh,
-    ...owned.map((entry) => `<span class="item-owned">${entry}</span>`)
+    ...owned.map((entry) => `<span class="item-owned">${entry} · already yours</span>`)
   ].join(' · ');
 }
 
