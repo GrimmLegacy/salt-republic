@@ -1,4 +1,8 @@
 const STORAGE_KEY = 'salt-republic-save-v1';
+// Il dorso della carta: la stessa faccia nel pescato, nella carta giocata e negli
+// slot vuoti della pagina del mazzo. Un'unica immagine, cosi' non si vede mai un
+// dorso diverso da un altro dorso.
+const CARD_BACK_IMAGE = 'immagini/carte/dorso.jpg';
 const VIGOR_MAX = 20;
 const DRAW_RESERVE_MAX = 10;
 const VIGOR_REGEN_INTERVAL = 5 * 60 * 1000;
@@ -988,7 +992,7 @@ const rarityCards = [
     symbol: '☼',
     image: 'immagini/carte/The First Light Beneath the Sea.jpg',
     quote: 'For one impossible instant, the drowned city remembers the morning.',
-    appearanceReason: 'The unique tide card surfaced from the deepest reserve; no second copy exists.',
+    appearanceReason: 'The unique tide card surfaced from the deepest reserve. It is rare to meet, but the deck is an open pool, so it can surface again.',
     effects: { statXp: { vigilance: 3, resolve: 3 }, malusChanges: { nightmare: -1, wounds: -1 } }
   }
 ];
@@ -1218,9 +1222,15 @@ function loadSave() {
         malusSources: savedMalusSources,
         statXp: legacyProgression ? { ...defaults.player.statXp } : { ...defaults.player.statXp, ...(parsed.player?.statXp || {}) },
         hand: Array.isArray(parsed.player?.hand) ? parsed.player.hand : defaults.player.hand,
+        // Il mazzo non si consuma piu': e' un pool di scelte sempre aperto, quindi
+        // le carte che una versione precedente aveva messe fra le esaurite (le
+        // `unique`, giocate una volta sola) tornano disponibili come tutte le
+        // altre. Il campo resta perche' un salvataggio vecchio lo contiene ancora,
+        // ma non viene piu' scritto e non viene piu' letto: ignorarlo qui e' cio'
+        // che restituisce quei Premi alle partite che li avevano persi.
+        exhaustedCards: [],
         drawPile: Array.isArray(parsed.player?.drawPile) ? parsed.player.drawPile : [],
         discardPile: Array.isArray(parsed.player?.discardPile) ? parsed.player.discardPile : [],
-        exhaustedCards: Array.isArray(parsed.player?.exhaustedCards) ? parsed.player.exhaustedCards : [],
         completedEvents: Array.isArray(parsed.player?.completedEvents) ? parsed.player.completedEvents.filter((entry) => entry && entry.id) : [],
         pendingMalus: Array.isArray(parsed.player?.pendingMalus) ? parsed.player.pendingMalus.filter((key) => typeof key === 'string') : [],
         dismissedMalus: Array.isArray(parsed.player?.dismissedMalus)
@@ -1571,24 +1581,24 @@ function dismissMalusCard(malusKey) {
 // mentre lui non guardava.
 function syncContentWithCatalog() {
   const player = state.player;
-  const report = { cardsAdded: 0 };
 
-  // Il mazzo, che e' l'unica collezione che congela. Una carta manca se non e'
-  // gia' in mano, non e' nella pila degli scarti e non e' fra le esaurite: chi e'
-  // esaurita non torna indietro, e chi e' in mano non deve duplicarsi.
-  const inPlay = new Set([
-    ...player.hand,
-    ...player.drawPile,
-    ...player.discardPile,
-    ...player.exhaustedCards
-  ]);
-  const missing = allTideCards.map((card) => card.id).filter((id) => !inPlay.has(id));
-  if (missing.length) {
-    player.drawPile = [...player.drawPile, ...missing];
-    report.cardsAdded = missing.length;
-  }
-
-  return report;
+  // Il mazzo e' un pool di scelte sempre attivo, quindi non ha carte "da
+  // riaggiungere": esistono tutte, per sempre. Qui si ricostruisce il mucchio
+  // togliendo quello che il giocatore ha gia' in mano, cosi' una carta non puo'
+  // arrivare due volte nella stessa mano e nulla sparisce per sempre.
+  //
+  // Il nome e' rimasto perche' chiamarlo cosi' da problemi: quando si aggiungono
+  // carte nuove al catalogo il giocatore le vede subito nel sorteggio, senza
+  // aprire nessuna pagina e senza che nessuno debba ricordarsi di riempire un
+  // mucchio a mano.
+  const inHand = new Set(player.hand);
+  const pool = allTideCards.map((card) => card.id).filter((id) => !inHand.has(id));
+  const missing = pool.length - player.drawPile.length;
+  player.drawPile = pool;
+  // `cardsAdded` vale solo quando il mucchio era davvero piu' corto: ritornerebbe
+  // il numero totale a ogni chiamata, e il chiamante lo usa per annunciare al
+  // giocatore che il mazzo e' cresciuto.
+  return { cardsAdded: missing > 0 ? missing : 0 };
 }
 
 function initializeTideDeck() {
@@ -1621,10 +1631,14 @@ function drawTideCard() {
   syncHandWithActiveMalus();
   if (state.player.hand.length >= 4) return;
   if (state.player.drawTokens < 1 || state.player.vigor < 1) return;
-  if (!state.player.drawPile.length) {
-    state.player.drawPile = [...new Set(state.player.discardPile)].filter((id) => !state.player.exhaustedCards.includes(id));
-    state.player.discardPile = [];
-  }
+
+  // Il mazzo e' un pool, non una pila che si esaurisce: nessuna carta sparisce
+  // perche' e' stata pescata in precedenza. Il sorteggio parte dall'intero
+  // catalogo e la mano ci mette dentro quello che manca. Il filtro non e' la
+  // novita' (la carta chiusa restava gia' nel mucchio), e' il fatto che qui la
+  // si ricostruisce ogni volta invece di togliere la carta pescata: e' quello
+  // che faceva sparire il mazzo col tempo.
+  syncContentWithCatalog();
 
   // Una carta chiusa non entra nel sorteggio, ma resta nel mazzo: e' il premio di
   // un livello che ancora non e' stato raggiunto, e toglierla dal mucchio la
@@ -1679,11 +1693,15 @@ function drawTideCard() {
       },
       narrative: 'The tide gives up something you would rather not hold. Still, it is in your hand now.',
       rows: [{ tone: 'gold', label: 'Hand slot', value: `${state.player.hand.length} of 4` }],
-      note: 'Playing it costs 1 Vigor and lowers the affliction by one level. The card is spent when you play it, so an affliction lasting several levels has to be fought one draw at a time.'
+      note: 'Playing it costs 1 Vigor and lowers the affliction by one level. An affliction card is spent when you play it, so an affliction lasting several levels has to be fought one draw at a time.'
     });
     return;
   }
 
+  // La carta pescata esce dal mucchio solo per non finire due volte in mano. Non
+  // e' un consumo: `syncContentWithCatalog()` la rimette dentro al prossimo
+  // pescato, quindi la carta torna disponibile subito dopo averla giocata o
+  // scartata.
   state.player.drawPile = state.player.drawPile.filter((id) => id !== drawnCard.id);
   state.player.hand.push(drawnCard.id);
   const poolOdds = Math.round((rarityWeights[drawnCard.rarity] / totalWeight) * 100);
@@ -1708,19 +1726,22 @@ function drawTideCard() {
 }
 
 function discardTideCard(cardId) {
+  // Le carte afflizione non si buttano: restano in mano finche' il malus non e'
+  // a zero. Scartarle non abbasserebbe nulla e lascerebbe l'afflizione senza
+  // modo per affrontarla.
   if (cardId.startsWith('malus-')) return;
   if (state.player.malus[cardId] !== undefined) return;
   const cardIndex = state.player.hand.indexOf(cardId);
   if (cardIndex === -1) return;
-  if (!consumeVigor()) {
-    addLog('You are too exhausted to discard a card.', 'Vigor', 'Discarding a card costs 1 Vigor; Vigor returns by 1 point every 5 minutes.');
-    render();
-    return;
-  }
-  const [card] = state.player.hand.splice(cardIndex, 1);
-  state.player.discardPile.push(card);
+  // Lo scarto e' gratuito. Costare il Vigore rendeva il pulsante inutilizzabile
+  // quando il giocatore era stanco, e lo costringeva a giocare una carta che non
+  // voleva solo per non sprecare vigore buttandola: il contrario di una scelta.
+  state.player.hand.splice(cardIndex, 1);
+  // Lo scarto non porta la carta fuori dal mazzo: resta nel pool ed e'
+  // pescabile al sorteggio successivo, esattamente come se fosse stata giocata.
+  syncContentWithCatalog();
   const cardData = allTideCards.find((entry) => entry.id === cardId);
-  addLog(`${cardData.title} was discarded from your hand.`, 'Card Discarded', 'You chose to discard this non-malus card. Affliction cards cannot be discarded; to get rid of one you must play it and lower the malus it carries.');
+  addLog(`${cardData.title} was discarded from your hand.`, 'Card Discarded', 'You put this card aside without playing it. Discarding is free and the card goes straight back into the pool, so you can draw it again later. Affliction cards cannot be discarded; to get rid of one you must play it and lower the malus it carries.');
   saveGame();
   render();
 }
@@ -1759,7 +1780,9 @@ function playTideCard(cardId) {
       title: activeMalus.title,
       subtitle: activeMalus.description,
       tone: 'neutral',
-      die: { text: '−1', detail: `${activeMalus.label} reduced by one level` },
+      // Come per le carte normali, niente dado: qui non si tira niente, si abbassa
+    // un'afflizione. La carta che si gira mostra l'afflizione giocata.
+    draw: { image: `immagini/carte/malus ${activeMalus.asset} low.jpg`, detail: `${activeMalus.label} reduced by one level` },
       narrative: levelText,
       rows: diffSnapshots(snapshot, state.player),
       note: 'Playing any card costs 1 Vigor. Affliction cards are spent when played: draw them again to keep working on the same malus.'
@@ -1792,8 +1815,10 @@ function playTideCard(cardId) {
   // La reputazione guadagnata dalla carta. I punti si sommano a quello che aveva
   // gia', letto sulla copia fatta all'inizio, non a quello appena modificato.
   const standingResult = applyCardStanding(card, snapshot);
-  if (card.rarity === 'unique') state.player.exhaustedCards.push(card.id);
-  else state.player.discardPile.push(card.id);
+  // La carta torna nel pool: dopo averla giocata si puo' ripescarlo, quindi
+  // nessuna rarita' e' usa-e-getta. `syncContentWithCatalog()` rimette nel mucchio
+  // quello che manca, quindi la carta e' di nuovo pescabile al sorteggio dopo.
+  syncContentWithCatalog();
   const rewardText = Object.entries(card.effects?.statXp || {}).map(([stat, amount]) => `${statNames[stat]} +${amount} XP`).join(', ');
   const levelText = [...levelUps, ...malusChanges].join('; ');
   const standingText = standingResult ? ` ${standingResult.faction.name} +${standingResult.gained} standing.` : '';
@@ -1807,13 +1832,17 @@ function playTideCard(cardId) {
     title: card.title,
     subtitle: card.quote,
     tone: 'neutral',
-    die: { text: rarityNames[card.rarity], detail: `${rarityWeights[card.rarity]}% base rarity` },
+    // Giocare una carta mostra la carta che si gira, non il dado. Il dado dice "ho
+    // tirato un numero econtro una soglia": qui non c'e' nessun test da superare,
+    // e mostrare un dado avrebbe descritto un rischio che la carta non ha. La
+    // carta che si rovescia dice la cosa giusta, cioe' che cosa hai giocato.
+    draw: { image: card.image, sigil: card.symbol, detail: `${rarityNames[card.rarity]} · ${rarityWeights[card.rarity]}% base rarity` },
     narrative: card.quote,
     // La riga di standing entra insieme alle altre: il giocatore deve vedere
     // subito che cosa gli ha fatto guadagnare, non indovinarlo dalla pagina
     // delle fazioni dopo.
     rows: [...diffSnapshots(snapshot, state.player), ...describeCardStanding(standingResult)],
-    note: `Playing a card costs 1 Vigor.${card.rarity === 'unique' ? ' This unique card is now exhausted and cannot return.' : ''}`
+    note: 'Playing a card costs 1 Vigor. The deck is an open pool: this card can be drawn again whenever you have a free hand slot.'
   });
 }
 
@@ -2112,13 +2141,20 @@ function renderResolutionDraw(draw) {
     <div class="resolution-draw">
       <div class="draw-card">
         <div class="draw-card-inner">
-          <div class="draw-face draw-back" aria-hidden="true"><span class="draw-back-mark">✦</span></div>
+          <div class="draw-face draw-back" aria-hidden="true">${renderCardBack()}</div>
           <div class="draw-face draw-front">${art}</div>
         </div>
       </div>
       ${draw.detail ? `<p class="die-detail">${draw.detail}</p>` : ''}
     </div>
   `;
+}
+
+// La faccia del dorso della carta. Vale per il pescato, per la carta giocata e per
+// gli slot vuoti: e' sempre lo stesso disegno, cosi' il giocatore riconosce la
+// carta girata in tutti i punti in cui compare.
+function renderCardBack() {
+  return `<img class="draw-back-art" src="${CARD_BACK_IMAGE}" alt="" />`;
 }
 
 function buildResolutionMarkup(payload) {
@@ -2780,8 +2816,28 @@ function renderDeck() {
   const handCards = state.player.hand.map((id) => allTideCards.find((card) => card.id === id)).filter(Boolean);
   const heldMalus = state.player.hand.map((id) => malusCards.find((card) => `malus-${card.id}` === id)).filter(Boolean);
   const cardsInHand = handCards.length + heldMalus.length;
-  const canDraw = cardsInHand < 4 && state.player.drawTokens > 0 && state.player.vigor > 0 && (state.player.drawPile.length > 0 || state.player.discardPile.length > 0 || heldMalus.length < activeCards.length);
+  // Il mazzo e' un pool sempre aperto, quindi la disponibilita' a pescare dipende
+  // solo dagli spazi in mano, dalla riserva e dal vigore: non serve controllare
+  // quanto resta nel mucchio, perche' non si svuota.
+  const canDraw = cardsInHand < 4 && state.player.drawTokens > 0 && state.player.vigor > 0;
+  // I due numeri del pool. Il giocatore vede solo quante carte ha in mano e quante
+  // ne puo' pescare, e non ha modo di sapere quanto e' grande il mazzo: senza
+  // questi numeri non si distingue "ho pescato tutto quello che potevo" da "non
+  // c'e' nient'altro da prendere".
+  //
+  // Le carte chiuse contano nel totale del gioco ma non in quello pescabile: e'
+  // la differenza che il giocatore deve poter vedere, perche' spiega perche'
+  // alcune carte non gli escono mai.
+  const drawableCount = allTideCards.filter((card) => isCardAvailable(card.id)).length;
+  const lockedCount = allTideCards.length - drawableCount;
   const rarityOdds = Object.entries(rarityWeights).map(([rarity, weight]) => `<span class="rarity-odds rarity-${rarity}">${rarityNames[rarity]} <b>${weight}%</b></span>`).join('');
+  // Gli slot liberi si vedono come carte a dorso. La pagina mostra quattro posti
+  // sempre: quando la mano e' piena e' gia' tutto chiaro, e quando non lo e' il
+  // giocatore vede subito quanti ne ha persi e che quel vuoto si puo' riempire.
+  // Un numero direbbe la stessa cosa, ma non sembrerebbe qualcosa da prendere.
+  const emptySlotCards = Array.from({ length: Math.max(0, 4 - cardsInHand) }, () => `
+    <div class="deck-card empty-slot-card" aria-hidden="true">${renderCardBack()}</div>
+  `).join('');
   setPageHeading('Divination & fortune hand', 'The Tide Deck');
   document.getElementById('viewContent').innerHTML = `
     <section class="deck-view">
@@ -2790,10 +2846,10 @@ function renderDeck() {
         <div class="deck-stat"><span>Cards in hand</span><strong>${cardsInHand} <small>/ 4 max</small></strong></div>
         <div class="deck-stat"><span>Afflictions undrawn</span><strong>${activeCards.length} <small>/ 5</small></strong></div>
         <div class="deck-stat"><span>Draw reserve</span><strong>${state.player.drawTokens} <small>/ ${DRAW_RESERVE_MAX}</small></strong><small>+1 every ${DRAW_REGEN_MINUTES} min</small></div>
-        <div class="hand-limit">${cardsInHand >= 4 ? `Hand full (${cardsInHand}/4)` : `${4 - cardsInHand} open slot${cardsInHand === 3 ? '' : 's'}`}</div>
+        <div class="deck-stat"><span>Drawable Pool</span><strong>${drawableCount} <small>/ ${allTideCards.length} cards</small></strong><small>${lockedCount ? `${lockedCount} locked by standing or level` : 'every card is open'}</small></div>
       </div>
       <div class="deck-draw-row">
-        <div class="rarity-odds-list"><span class="odds-label">Draw odds</span>${rarityOdds}</div>
+        <div class="rarity-odds-list"><span class="odds-label">Draw odds</span>${rarityOdds}<p class="odds-note">The deck is an open pool: nothing is used up. Play or discard a card and it goes straight back, so you can draw it again whenever a hand slot is free.</p></div>
         <div class="draw-control"><button class="draw-card-button" type="button" data-card-draw ${canDraw ? '' : 'disabled'} title="Costs 1 Vigor and 1 draw reserve · reserve refills by 1 card every ${DRAW_REGEN_MINUTES} min, up to ${DRAW_RESERVE_MAX}">Draw a tide card <span aria-hidden="true">↻</span></button><span id="drawTimer" class="draw-timer">Draw reserve full</span></div>
       </div>
       <section class="deck-section">
@@ -2804,6 +2860,7 @@ function renderDeck() {
         <div class="deck-card-grid">
           ${heldMalus.map((card) => renderMalusCard(card)).join('')}
           ${handCards.map((card) => renderTideCard(card)).join('')}
+          ${emptySlotCards}
         </div>
       </section>
     </section>
@@ -2817,7 +2874,7 @@ function renderTideCard(card) {
   return `
     <article class="deck-card common-card rarity-${card.rarity}">
       ${artwork}
-      <button class="card-discard" type="button" data-card-discard="${card.id}" aria-label="Discard ${card.title}" title="Discard card · costs 1 Vigor" ${state.player.vigor < 1 ? 'disabled' : ''}>
+      <button class="card-discard" type="button" data-card-discard="${card.id}" aria-label="Discard ${card.title}" title="Discard card · free">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14m-6 4v7m4-7v7" /></svg>
       </button>
       <div class="deck-card-copy">
@@ -4279,7 +4336,7 @@ function renderActions() {
             ? 'Resting'
             : 'Initiate';
     return `
-      <article class="action-card ${accessible ? '' : 'locked'}">
+      <article class="action-card ${accessible ? '' : 'locked'}${unlock.unique ? ' is-unique' : ' is-repeatable'}">
         <div class="action-thumb" aria-hidden="true"></div>
         <div class="action-body">
           <h4>${action.title}</h4>

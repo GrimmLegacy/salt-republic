@@ -1241,6 +1241,53 @@ button {
   opacity: 0.68;
 }
 
+/* Gli incontri che capitano una volta sola portano un bordo un filo diverso da
+   quelli ripetibili: non un colore nuovo, che sembrerebbe un altro stato, ma lo
+   stesso oro con una riga continua invece che tratteggiata piu' chiara. La scheda
+   resta leggibile come scheda, e a colpo d'occhio il giocatore sa che quella
+   non la rifa.
+   `locked` resta com'era: una scheda chiusa puo' essere unica o ripetibile, e le
+   due cose non si escludono. */
+/* Le storie uniche portano una cornice incisa, disegnata come immagine
+   (immagini/frame-unico.svg) e non con i gradienti: un riccio o una foglia fatti
+   con gradienti CSS vengono male, e una cornice fatta male e' peggio di nessuna.
+
+   La cornice sta SOPRA la scheda, non dentro. Mettendola nel bordo (bordo
+   trasparente di 18px + `border-image`) si rubava uno spazio che non le
+   tocca: l'immagine in alto smetteva di arrivare al bordo della scheda e
+   restava un gradino vuoto sopra, mentre tutte le altre storie la prendono
+   tutta. Qui e' uno pseudo-elemento teso su tutta la scheda, sopra
+   l'immagine, e la scheda sotto resta identica a com'e'.
+
+   Il disegno non copre nulla: il centro dell'immagine resta vuoto, quindi
+   sotto la cornice si vede sempre la foto e il testo.
+
+   `border-image-slice` con `round` e' la parte importante: gli angoli sono
+   disegni separati e restano intatti, i lati lunghi e corti si ripetono del
+   motivo senza deformarsi. Per questo la cornice regge anche quando due
+   schede hanno altezze diverse, che e' il caso normale qui. */
+.action-card.is-unique {
+  /* `border-radius` e `border-image` sono in conflitto: il raggio ritaglia
+     l'immagine del bordo e ne spegne gli angoli, e su una cornice lavorata si
+     vede subito che manca un pezzo. Qui il raggio va azzerato. */
+  border-radius: 0;
+}
+
+.action-card.is-unique::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  /* la scheda resta cliccabile sotto la cornice */
+  pointer-events: none;
+  border: 14px solid transparent;
+  border-image: url('immagini/frame-unico.svg') 24 round;
+}
+
+.action-card.is-unique:hover {
+  filter: brightness(1.14) saturate(1.08);
+}
+
 .action-thumb {
   flex: 0 0 auto;
   width: 100%;
@@ -2616,7 +2663,9 @@ summary:focus-visible {
 
 .deck-status-bar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr)) auto;
+  /* Quattro statistiche, tutte uguali: il riquadro degli slot liberi e' sparito e al
+   suo posto ci sono i dorsi delle carte, che dicono la stessa cosa guardandoli. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -2654,17 +2703,6 @@ summary:focus-visible {
   font-weight: 400;
 }
 
-.hand-limit {
-  padding: 9px 11px;
-  border: 1px solid rgba(197, 151, 79, 0.18);
-  border-radius: 3px;
-  color: #c0ad8b;
-  font-size: 0.58rem;
-  font-weight: 700;
-  text-align: center;
-  text-transform: uppercase;
-}
-
 .deck-section {
   display: grid;
   gap: 10px;
@@ -2696,6 +2734,9 @@ summary:focus-visible {
 .deck-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 218px), 1fr));
+  /* Allinea in alto perche' le carte hanno altezze diverse (il testo cambia) e lo
+     slot vuoto e' alto per natura: senza questo ogni riga prenderebbe l'altezza
+     della piu' alta e le carte vere resterebbero sospese a mezz'aria. */
   align-items: start;
   gap: 14px;
 }
@@ -2715,6 +2756,34 @@ summary:focus-visible {
 .deck-card.malus-card {
   border-color: rgba(190, 52, 55, 0.62);
   background: #241615;
+}
+
+/* Lo slot vuoto e' una carta vera, solo che girata: il dorso grande e in piedi.
+   Prima stava dentro il riquadro orizzontale delle altre carte, ridotto a una
+   miniatura con due bande nere ai lati, e non si leggeva come una carta.
+   dorso.jpg e' 728x1024, cioe' un cartone verticale: qui viene mostrato intero e
+   alla sua altezza naturale, non stirato nel rettangolo largo dell'arte.
+   `minmax` sulla griglia e' la parte che conta: senza, lo slot si stringerebbe a
+   zero e l'immagine sparirebbe. */
+.deck-card.empty-slot-card {
+  display: block;
+  align-self: start;
+  justify-self: stretch;
+  aspect-ratio: 728 / 1024;
+  min-width: 0;
+  border-color: rgba(197, 151, 79, 0.2);
+  background: #17110d;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.19);
+  animation: rise-in 340ms both;
+  overflow: hidden;
+}
+
+/* L'immagine riempie tutta la carta: il dorso e' gia' della forma giusta, quindi
+   qui non serve contenere nulla, basta coprire. */
+.deck-card.empty-slot-card .draw-back-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .deck-card > img {
@@ -3864,15 +3933,14 @@ summary:focus-visible {
 
 @media (max-width: 760px) {
   .deck-status-bar {
+    /* Quattro statistiche su due colonne: due righe piene, e il bordo divisorio
+       cade sulle colonne pari, dove non sta separando nulla. */
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .deck-stat:nth-child(2) {
+  .deck-stat:nth-child(2),
+  .deck-stat:nth-child(4) {
     border-right: 0;
-  }
-
-  .hand-limit {
-    grid-column: 1 / -1;
   }
 
   .persona-columns {
@@ -4122,6 +4190,18 @@ summary:focus-visible {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+/* `flex-basis: 100%` tiene la nota su una riga tutta sua: dentro il contenitore
+   flex delle probabilita' si metterebbe in linea con le percentuali e si leggerebbe
+   come se fosse una probabilita' anch'essa. */
+.odds-note {
+  flex-basis: 100%;
+  margin: 3px 0 0;
+  color: #897963;
+  font-size: 0.68rem;
+  font-style: italic;
+  line-height: 1.5;
 }
 
 .rarity-odds {
@@ -4850,17 +4930,20 @@ summary:focus-visible {
   backface-visibility: hidden;
 }
 
+/* Il giocatore deve riconoscere lo stesso dorso nel pescato, nella carta giocata e
+   negli slot vuoti. `object-fit: cover` perche' il disegno puo' essere piu'
+   quadrato della faccia, e `background: none` altrimenti resterebbe il gradiente
+   sotto l'immagine. */
 .draw-back {
-  background:
-    radial-gradient(circle at 50% 40%, rgba(211, 154, 56, 0.2), rgba(12, 9, 6, 0.97) 72%),
-    var(--ink);
-  box-shadow: inset 0 0 20px rgba(211, 154, 56, 0.16);
+  background: none;
+  overflow: hidden;
 }
 
-.draw-back-mark {
-  color: #d8b26a;
-  font-size: 1.9rem;
-  opacity: 0.7;
+.draw-back-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .draw-front {

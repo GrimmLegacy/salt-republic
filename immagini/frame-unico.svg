@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <!-- Cornice per le storie uniche: un disegno pensato per `border-image-slice`.
+
+       `border-image` non prende "un'immagine e basta": divide il file in nove
+       zone e ogni lato della cornice viene preso dalla *sua* fascia. Il lato
+       destro si disegna dentro la fascia x 72-96, quello basso dentro y 72-96.
+       Una versione precedente disegnava il motivo solo in alto e a sinistra: il
+       destro e il basso uscivano vuoti. Non era un problema di ritaglio ne' di
+       contenitore, era la zona sbagliata del disegno.
+
+       Qui ogni fascia che il browser legge ha il suo motivo, quindi il giro e'
+       chiuso. Le righe dei lati arrivano al bordo della propria zona (0, 24, 72,
+       96) e si incontrano esattamente: nessuno spazio bianco in mezzo.
+
+       Le zone 0-24 e 72-96 sono gli angoli, disegnati a parte e mai distorti;
+       dentro una fascia il tratto 24-72 e' quello che si ripete. Il centro resta
+       vuoto, cosi' la scheda si vede attraverso. Serve `round`. -->
+  <defs>
+    <!-- L'angolo, disegnato nell'angolo alto-sinistra del quadrato 24. -->
+    <g id="corner">
+      <!-- la cornice esterna e quella interna, fino al bordo della zona -->
+      <path d="M2 24 V2 H24" fill="none" stroke="#c99a33" stroke-width="2" stroke-linecap="square"/>
+      <path d="M7 24 V7 H24" fill="none" stroke="#a8802b" stroke-width="1" opacity="0.55"/>
+      <!-- il riccio: parte dall'angolo e si arrotla -->
+      <path d="M2 15 C 8 15, 15 8, 15 2" fill="none" stroke="#e2ba6a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M5 19 C 5 12, 12 5, 19 5" fill="none" stroke="#c99a33" stroke-width="1.1" opacity="0.7"/>
+      <!-- la foglia all'angolo, dove il riccio chiude -->
+      <path d="M10.5 10.5 C 6.5 10.5 6 5.5 10.5 5.5 C 15 5.5 14.5 10.5 10.5 10.5 Z" fill="#e9c883"/>
+      <circle cx="10.5" cy="10.5" r="1.2" fill="#6b4f18"/>
+      <!-- le due bacche lungo il riccio -->
+      <circle cx="13" cy="3.8" r="1.5" fill="#e9c883"/>
+      <circle cx="3.8" cy="13" r="1.5" fill="#e9c883"/>
+    </g>
+
+    <!-- Il lato orizzontale: periodo 48, disegnato nella fascia in alto. -->
+    <g id="edge-h">
+      <path d="M0 2 H48" stroke="#c99a33" stroke-width="2"/>
+      <path d="M0 7 H48" stroke="#a8802b" stroke-width="1" opacity="0.55"/>
+      <path d="M24 0 L26.6 3 L24 6 L21.4 3 Z" fill="#e9c883"/>
+      <circle cx="12" cy="3" r="1.3" fill="#c99a33"/>
+      <circle cx="36" cy="3" r="1.3" fill="#c99a33"/>
+      <!-- le spine, alternate lungo la fascia -->
+      <path d="M16 7 L18 10.5" stroke="#e2ba6a" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M32 7 L34 10.5" stroke="#e2ba6a" stroke-width="1.3" stroke-linecap="round"/>
+    </g>
+
+    <!-- Il lato verticale: lo stesso motivo, girato. -->
+    <g id="edge-v">
+      <path d="M2 0 V48" stroke="#c99a33" stroke-width="2"/>
+      <path d="M7 0 V48" stroke="#a8802b" stroke-width="1" opacity="0.55"/>
+      <path d="M0 24 L3 21.4 L6 24 L3 26.6 Z" fill="#e9c883"/>
+      <circle cx="3" cy="12" r="1.3" fill="#c99a33"/>
+      <circle cx="3" cy="36" r="1.3" fill="#c99a33"/>
+      <path d="M7 16 L10.5 18" stroke="#e2ba6a" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M7 32 L10.5 34" stroke="#e2ba6a" stroke-width="1.3" stroke-linecap="round"/>
+    </g>
+  </defs>
+
+  <!-- I due lati lunghi: in alto cosi' com'e', in basso capovolto, cosi' il
+       motivo guarda verso l'esterno anche da sotto. -->
+  <use href="#edge-h" x="24" y="0"/>
+  <use href="#edge-h" transform="translate(24 96) scale(1 -1)"/>
+
+  <!-- I due lati corti: a sinistra cosi' com'e', a destra specchiato. -->
+  <use href="#edge-v" x="0" y="24"/>
+  <use href="#edge-v" transform="translate(96 24) scale(-1 1)"/>
+
+  <!-- I quattro angoli. -->
+  <use href="#corner"/>
+  <use href="#corner" transform="translate(96 0) scale(-1 1)"/>
+  <use href="#corner" transform="translate(0 96) scale(1 -1)"/>
+  <use href="#corner" transform="translate(96 96) scale(-1 -1)"/>
+</svg>
