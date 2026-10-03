@@ -41,6 +41,10 @@ const sandbox = {
   getEventRecord: () => null,
   getEffectiveStat: () => 0,
   findActionById: (id) => ({ id, title: id }),
+  // `evaluateLoreGate` chiama `findEquipmentItem` solo sui gate di tipo `item`, ma
+  // la sandbox deve conoscerlo comunque: senza, un id di un pezzo non si risolve e
+  // la voce che lo usa resterebbe chiusa per sempre senza dire perchè.
+  findEquipmentItem: (id) => ({ id, name: id, slot: 'trinket' }),
   addLog: () => {},
   console
 };

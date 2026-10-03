@@ -199,6 +199,36 @@ check('all six steps are listed', thread.steps.every((s) => html.includes(s.titl
 check('an open fork shows three buttons',
   (html.match(/data-story-option=/g) || []).length === 3, 'wrong button count');
 
+// Le tre macchine devono stare nella stessa riga, e questo e' l'unica cosa che
+// nessuna verifica sui dati puo' vedere: il layout vive in styles.css. Quindi si
+// legge il CSS e si controlla che la lista abbia una griglia a colonne, e che la
+// soglia sia quella delle fazioni. Senza questo, togliere una riga dal foglio di
+// stile rimette tutto in colonna e la pagina sembra ancora corretta.
+const cssText = require('fs').readFileSync(require('path').join(__dirname, '..', 'styles.css'), 'utf8');
+const threadListRule = /\.story-thread-list\s*\{([^}]*)\}/.exec(cssText)?.[1] || '';
+const factionGridRule = /\.faction-grid\s*\{([^}]*)\}/.exec(cssText)?.[1] || '';
+check('the thread list is a grid with columns', /grid-template-columns:/.test(threadListRule),
+  threadListRule.replace(/\s+/g, ' ').trim() || 'no rule found');
+const threadColumns = /grid-template-columns:\s*([^;]+);/.exec(threadListRule)?.[1].trim();
+const factionColumns = /grid-template-columns:\s*([^;]+);/.exec(factionGridRule)?.[1].trim();
+check('the threads use the same column rule as the factions',
+  threadColumns === factionColumns, `threads ${threadColumns} / factions ${factionColumns}`);
+// Sotto i 720px anche le fazioni tornano in colonna, e i percorsi devono fare lo
+// stesso: se tornassero a tre su uno schermo stretto diventerebbero tre colonne
+// troppo strette per una lista di sei passi.
+// Il blocco viene isolato per `@media` e non con una regex a parentesi: fra la
+// apertura della media query e la regola dei percorsi c'e' `.faction-grid`, e
+// `[^}]*` non arriva oltre la sua graffa di chiusura. In piu' il foglio ha piu' di
+// una media query a 720px, quindi va cercato il blocco che contiene davvero la
+// regola dei percorsi e non il primo che capita.
+const narrowBlock = (cssText.split('@media')
+  .find((block) => block.includes('max-width: 720px') && block.includes('story-thread-list')) || '')
+  .split('@media')[0];
+const narrowRule = (/\.story-thread-list\s*\{([^}]*)\}/.exec(narrowBlock)?.[1]) || '';
+check('narrow screens collapse the threads too, like the factions',
+  /grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(narrowRule),
+  narrowRule.replace(/\s+/g, ' ').trim() || 'no narrow rule');
+
 // Dopo la scelta i tre bottoni non devono piu' esserci: un bivio chiuso che
 // sembra aperto e' la lettura peggiore che questa pagina puo' fare.
 state.player.decisions['brine-farm-mandate'] = 'open';
@@ -255,8 +285,22 @@ const branchCards = {
   open: 'uncommon-farm-names-on-the-wall'
 };
 
-const noonClock = getGameClock(new Date(2026, 9, 1, 12));
-const midnightClock = getGameClock(new Date(2026, 9, 1, 23));
+// L'orologio di gioco segue il tempo vero e resta sullo stato, quindi chiedere
+// "l'incontro notturno e' aperto?" richiederebbe di aspettare la notte. Si ferma
+// invece la finzione su un'ora scelta e si riallinea l'orologio vero a quell'istante:
+// la deriva e' zero e la sonda non dipende da quando e' partito il test. Le sonde
+// sono copre di orari, non istanti di verita'.
+const fictionClockAt = (hour) => {
+  state.clock = { year: GAME_YEAR, month: 0, day: 1, hour, minute: 0 };
+  state.clockSyncedAt = Date.now();
+  return getGameClock();
+};
+const noonClock = fictionClockAt(12);
+const midnightClock = fictionClockAt(23);
+// Dopo aver costruito le sonde l'orologio di stato resta a mezzanotte, e il resto
+// della suite legge l'orologio ambientale per davvero. Si riporta a mezzogiorno:
+// e' l'ora che questa suite assumeva di trovare quando passava per caso.
+fictionClockAt(12);
 // `getVisibleActions` reads the hour off the wall clock, so the only way to ask
 // "is this open by day and by night" is to hand it a clock and take it back.
 const visibleAt = (locationId, clock) => {
@@ -349,8 +393,12 @@ renderChronicles();
 const artHtml = elements.viewContent.innerHTML;
 check('the art reaches the page',
   artHtml.includes(`--story-thread-art: url('${thread.art}')`), 'the art variable is not on the article');
-check('the art sits on one thread only',
-  (artHtml.match(/--story-thread-art/g) || []).length === 1, 'a second thread carries art');
+// Il ritratto di un percorso deve stare su quel percorso e non macchiare gli altri.
+// Con due percorsi in pagina entrambi dichiarano la variabile, quindi il conto
+// totale non distingue piu' niente: si conta quante volte compare QUEL ritratto.
+check('a thread\'s own art is not borrowed by another',
+  (artHtml.match(new RegExp(`--story-thread-art: url\\('${thread.art.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'\\)`, 'g')) || []).length === 1,
+  `${(artHtml.match(/--story-thread-art/g) || []).length} threads declare art`);
 // A thread with no art of its own falls back to the declared default, rather than
 // emitting no `url()` at all or an empty panel.
 const noArt = renderStoryThread({ ...thread, art: undefined });
@@ -693,8 +741,224 @@ closeResolution();
 Math.random = realRandom;
 check('the Guard lost nothing to the Court', getFactionXp('bohemian-court') >= 0, `court ${getFactionXp('bohemian-court')}`);
 
+log('=== N) The Deep Draft: an object after an object, not a row of chapters ===');
+// La catena del sottomarino si regge su un requisito di tipo `item`, quindi due
+// cose devono essere vere e non si vedono a occhio: che ogni pezzo sia materiale
+// di catalogo (non un oggetto da spalla, che finirebbe in uno slot e non in
+// inventario), e che ogni passo chieda davvero il pezzo precedente. Se un passo
+// perde il requisito, la catena diventa una fila di capitoli e il test lo dice.
+const draft = findStoryThread('deep-draft');
+check('the Deep Draft is a thread', Boolean(draft), 'missing from Chronicles');
+check('it has six steps', draft.steps.length === 6, `${draft.steps.length} steps`);
+check('every step names an encounter that exists',
+  draft.steps.every((step) => Boolean(findActionById(step.action))),
+  draft.steps.filter((s) => !findActionById(s.action)).map((s) => s.action).join(','));
+
+const draftActions = draft.steps.map((step) => findActionById(step.action));
+check('every step is done once and cannot be repeated',
+  draftActions.every((a) => a.repeatable === false), 'a step can be done again');
+check('every step has a summary worth reading',
+  draftActions.every((a) => (a.summary || '').length > 200),
+  draftActions.filter((a) => (a.summary || '').length <= 200).map((a) => a.id).join(','));
+check('every step has its own reason to appear',
+  draftActions.every((a) => (a.appearanceReason || '').length > 40), 'a step arrives with no explanation');
+
+// Ogni passo, tranne il primo, deve pretendere un pezzo. Non un flag: un oggetto.
+const draftParts = draftActions.flatMap((a) => a.success?.items || []);
+check('the chain pays five parts', draftParts.length === 5, `${draftParts.length}: ${draftParts.join(',')}`);
+check('no two steps pay the same part', new Set(draftParts).size === draftParts.length, 'a part is paid twice');
+draftParts.forEach((part) => {
+  const item = findEquipmentItem(part);
+  check(`${part} is a real catalogue part`, Boolean(item), 'no such item');
+  check(`${part} is material, so it stays in the satchel`, item?.material === true, 'it would go on a shoulder instead');
+});
+
+// I passi che chiedono un pezzo sono quelli in mezzo: il primo non ha niente da
+// chiedere e l'ultimo chiede la barca, che e' una proprieta' e non un oggetto.
+// Includere l'ultimo qui farebbe leggere `gates[0].item` su un array vuoto.
+const partGates = draftActions.slice(1, -1).map((a) => (a.requires || []).filter((r) => r.type === 'item'));
+check('every middle step waits on a part',
+  partGates.every((gates) => gates.length === 1),
+  draftActions.slice(1, -1).map((a) => a.id).join(','));
+check('each middle step waits on the part the last one paid',
+  partGates.every((gates, index) => gates[0]?.item === draftParts[index]),
+  draftParts.slice(0, 4).join(' -> '));
+check('the first step waits on nothing', (draftActions[0].requires || []).length === 0,
+  JSON.stringify(draftActions[0].requires));
+
+// Il passo finale non chiede un pezzo: chiede la barca, che e' una proprieta'.
+// E' la distinzione che tiene insieme i due sistemi: quattro pezzi sono oggetti,
+// il quinto traguardo e' una cosa che possiedi.
+const lastGates = (draftActions[draftActions.length - 1].requires || []).map((r) => r.type);
+check('the last step waits on the hull itself', lastGates.includes('property'), lastGates.join(','));
+check('the hull is granted before the last step needs it',
+  draftActions.some((a) => (a.success?.properties || []).includes('The Deep Draft')),
+  'nothing ever grants the hull');
+
+// Gli orari. Sei turni diversi su sei passi, e uno solo notturno: era il patto,
+// quello di non mettere una catena lunga tutta di finestre strette.
+const draftShifts = draftActions.map((a) => a.when);
+check('every step is on a declared shift',
+  draftActions.every((a) => a.when && SHIFTS[a.when.shift]),
+  draftShifts.map((w) => (typeof w === 'object' ? w.shift : w)).join(','));
+check('the shifts are six different ones', new Set(draftShifts.map((w) => w.shift)).size === 6,
+  draftShifts.map((w) => w.shift).join(','));
+const nightSteps = draftActions.filter((a) => !SHIFTS[a.when.shift]
+  || SHIFTS[a.when.shift].from >= 21 || SHIFTS[a.when.shift].to <= 5);
+check('exactly one step happens in the dark hours', nightSteps.length === 1,
+  nightSteps.map((a) => a.id).join(','));
+check('the last step is the one in the dark',
+  nightSteps[0]?.id === draftActions[draftActions.length - 1].id,
+  nightSteps.map((a) => a.id).join(','));
+
+// Il bivio: tre usciti, tre flag, e nessuno dei due finiti insieme.
+const draftFork = findStoryFork('deep-draft-manifest');
+check('the thread declares its fork', (draft.forks || []).includes('deep-draft-manifest'));
+check('the fork belongs to the thread', draftFork?.threadId === 'deep-draft', draftFork?.threadId);
+check('the fork has three ways', (draftFork?.options || []).length === 3,
+  `${(draftFork?.options || []).length} options`);
+check('no two ways write the same flag',
+  new Set((draftFork?.options || []).map((o) => Object.keys(o.sets || {})[0])).size === 3,
+  (draftFork?.options || []).map((o) => Object.keys(o.sets || {})[0]).join(','));
+check('the fork opens on the signature, not on the parts',
+  (draftFork?.requires?.flags || []).includes('deepdraftSigned'), JSON.stringify(draftFork?.requires));
+check('the fork says something while it is shut', (draftFork?.shutHint || '').length > 20, draftFork?.shutHint || 'none');
+
+// Camminare la catena per davvero. `resolveAction` non controlla la finestra, quindi
+// il giro intero si fa in un test senza aspettare l'alba: quello che si prova qui e'
+// la catena dei pezzi, non l'orario, e l'orario ha i suoi assert sopra.
+state = createDefaultState();
+const walkErrors = [];
+draft.steps.forEach((step, index) => {
+  const action = findActionById(step.action);
+  state.currentLocationId = getStoryStepRealm(step) === 'Abyssal Depth' ? 'leviathan-trench' : 'grand-canal';
+  state.player.vigor = VIGOR_MAX;
+  state.player.reputation = {};
+  Math.random = () => 0;
+  if (!canAccessAction(action)) walkErrors.push(`${index + 1} ${step.action}`);
+  else {
+    resolveAction(step.action);
+    closeResolution();
+  }
+});
+Math.random = realRandom;
+check('the chain opens one step at a time', walkErrors.length === 0, walkErrors.join(' | '));
+check('all four parts are in the satchel after the walk',
+  draftParts.slice(0, 4).every((part) => state.player.inventory.includes(part)),
+  JSON.stringify(state.player.inventory));
+check('the hull is signed by the end of the walk',
+  state.player.properties.includes('The Deep Draft'), JSON.stringify(state.player.properties));
+check('the descent happened and paid the dive log',
+  state.player.flags.deepdraftFirstDive === true && state.player.inventory.includes('draft-dive-log'),
+  String(state.player.flags.deepdraftFirstDive));
+check('the Deep Draft sits on the Chronicles page',
+  renderStoryThread(draft).includes('The Deep Draft'), 'the thread does not draw');
+
+// === O) The Escapement Wing: the same shape, proved the same way ==========
+// Il Wing e' costruito sullo stampo del Deep Draft, quindi si prova con gli stessi
+// controlli invece di一套 nuovi: se un giorno i due thread smettono di essere
+// intercambiabili, la differenza deve essere voluta e non casuale.
+const wing = findStoryThread('escapement-wing');
+check('the Escapement Wing is a thread', Boolean(wing), 'missing from Chronicles');
+check('it has six steps', wing.steps.length === 6, `${wing.steps.length} steps`);
+check('every step names an encounter that exists',
+  wing.steps.every((step) => Boolean(findActionById(step.action))),
+  wing.steps.filter((s) => !findActionById(s.action)).map((s) => s.action).join(','));
+
+const wingActions = wing.steps.map((step) => findActionById(step.action));
+check('every step is done once', wingActions.every((a) => a.repeatable === false), 'a step repeats');
+check('every step has a summary worth reading',
+  wingActions.every((a) => (a.summary || '').length > 200),
+  wingActions.filter((a) => (a.summary || '').length <= 200).map((a) => a.id).join(','));
+check('every step has its own reason to appear',
+  wingActions.every((a) => (a.appearanceReason || '').length > 40), 'a step arrives unexplained');
+
+const wingParts = wingActions.flatMap((a) => a.success?.items || []);
+check('the wing chain pays five parts', wingParts.length === 5, `${wingParts.length}: ${wingParts.join(',')}`);
+check('no two wing steps pay the same part', new Set(wingParts).size === wingParts.length, 'a part is paid twice');
+// Nessun pezzo del Wing puo' essere un pezzo del sottomarino: se coincidessero,
+// "oggetto dopo oggetto" comincerebbe a valere per le due macchine insieme.
+check('the two machines share no parts',
+  !wingParts.some((part) => draftParts.includes(part)),
+  wingParts.filter((part) => draftParts.includes(part)).join(','));
+wingParts.forEach((part) => {
+  const item = findEquipmentItem(part);
+  check(`${part} is a real catalogue part`, Boolean(item), 'no such item');
+  check(`${part} is material, so it stays in the satchel`, item?.material === true, 'it would go on a shoulder instead');
+});
+
+const wingGates = wingActions.slice(1, -1).map((a) => (a.requires || []).filter((r) => r.type === 'item'));
+check('every middle wing step waits on a part',
+  wingGates.every((gates) => gates.length === 1), wingActions.slice(1, -1).map((a) => a.id).join(','));
+check('each middle wing step waits on the part the last one paid',
+  wingGates.every((gates, index) => gates[0]?.item === wingParts[index]), wingParts.slice(0, 4).join(' -> '));
+check('the wing opens on nothing at all', (wingActions[0].requires || []).length === 0);
+check('the wing ends on the machine, not on a part',
+  (wingActions[wingActions.length - 1].requires || []).map((r) => r.type).includes('property'));
+check('the wing is granted before its last step needs it',
+  wingActions.some((a) => (a.success?.properties || []).includes('The Escapement Wing')), 'nothing grants it');
+
+// Gli orari dei due thread non devono contendersi la stessa notte, altrimenti un
+// passo del Wing e uno del Deep Draft si aspettano a vicenda e la coda si chiude
+// su se stessa.
+const wingShifts = wingActions.map((a) => a.when.shift);
+check('the wing is on six declared shifts', new Set(wingShifts).size === 6, wingShifts.join(','));
+check('every wing shift exists in the catalogue', wingShifts.every((s) => Boolean(SHIFTS[s])), wingShifts.join(','));
+const wingNight = wingActions.filter((a) => !SHIFTS[a.when.shift]
+  || SHIFTS[a.when.shift].from >= 21 || SHIFTS[a.when.shift].to <= 5);
+check('exactly one wing step happens in the dark hours', wingNight.length === 1,
+  wingNight.map((a) => a.id).join(','));
+check('the wing night step is the last one',
+  wingNight[0]?.id === wingActions[wingActions.length - 1].id, wingNight.map((a) => a.id).join(','));
+check('the two machines do not compete for the same night window',
+  wingNight[0]?.when.shift !== nightSteps[0]?.when.shift,
+  `wing ${wingNight[0]?.when.shift}, draft ${nightSteps[0]?.when.shift}`);
+
+const wingFork = findStoryFork('escapement-wing-hour');
+check('the wing declares its fork', (wing.forks || []).includes('escapement-wing-hour'));
+check('the wing fork belongs to the wing', wingFork?.threadId === 'escapement-wing', wingFork?.threadId);
+check('the wing fork has three ways', (wingFork?.options || []).length === 3, `${(wingFork?.options || []).length}`);
+check('no two wing ways write the same flag',
+  new Set((wingFork?.options || []).map((o) => Object.keys(o.sets || {})[0])).size === 3,
+  (wingFork?.options || []).map((o) => Object.keys(o.sets || {})[0]).join(','));
+check('the wing fork opens on the signature', (wingFork?.requires?.flags || []).includes('wingRegistered'));
+check('the wing fork says something while it is shut', (wingFork?.shutHint || '').length > 20, wingFork?.shutHint || 'none');
+
+// Cammino anche il Wing per davvero, come ho fatto col sottomarino.
+state = createDefaultState();
+const wingWalkErrors = [];
+wing.steps.forEach((step, index) => {
+  const action = findActionById(step.action);
+  state.currentLocationId = getStoryStepRealm(step) === 'Astral Terminus' ? 'astronavigators-salon' : 'spire';
+  state.player.vigor = VIGOR_MAX;
+  state.player.reputation = {};
+  Math.random = () => 0;
+  if (!canAccessAction(action)) wingWalkErrors.push(`${index + 1} ${step.action}`);
+  else {
+    resolveAction(step.action);
+    closeResolution();
+  }
+});
+Math.random = realRandom;
+check('the wing chain opens one step at a time', wingWalkErrors.length === 0, wingWalkErrors.join(' | '));
+check('all four wing parts are in the satchel after the walk',
+  wingParts.slice(0, 4).every((part) => state.player.inventory.includes(part)),
+  JSON.stringify(state.player.inventory));
+check('the wing is signed by the end of the walk',
+  state.player.properties.includes('The Escapement Wing'), JSON.stringify(state.player.properties));
+check('the first night happened and paid the flight log',
+  state.player.flags.wingFirstFlight === true && state.player.inventory.includes('wing-flight-log'),
+  String(state.player.flags.wingFirstFlight));
+check('the Wing sits on the Chronicles page',
+  renderStoryThread(wing).includes('The Escapement Wing'), 'the thread does not draw');
+
+// Nessuna delle due macchine riusa il ritratto dell'altra o quello della fattoria:
+// il pannello di un percorso senza arte deve cadere sul default dichiarato.
+const wingArtHtml = renderStoryThread(wing);
+check('the wing has no artwork of its own yet',
+  wingArtHtml.includes(`--story-thread-art: url('${DEFAULT_ART}')`), 'it borrows somebody else\'s picture');
+
 log('');
 log(`story-check: ${failures} FAILURES`);
-
 require('fs').writeFileSync(readOut('story-check.out.txt'), out.join('\n'), 'utf8');
 console.log(failures ? `FAILURES: ${failures}` : 'STORY HARNESS OK');

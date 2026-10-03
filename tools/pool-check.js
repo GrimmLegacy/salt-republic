@@ -376,6 +376,13 @@ console.log('=== 14) Unique encounters are marked on the card itself ===');
 // The "Unique" pill existed but it is a line of small text: to notice it the player
 // has to read every card. The border is what gets seen at a glance, so the class
 // has to reach the card element for both kinds and for locked ones too.
+//
+// L'orologio si ferma a mezzogiorno prima di guardare. I quattro incontri unici
+// del Canale sono tutti diurni, quindi di notte la scheda ne mostra solo due
+// ripetibili e questo controllo fallirebbe per l'ora che e', non per il codice:
+// lo stesso difetto che aveva `story-check` e `reward-check`.
+state.clock = { year: GAME_YEAR, month: 0, day: 1, hour: 12, minute: 0 };
+state.clockSyncedAt = Date.now();
 state.currentLocationId = 'grand-canal';
 state.player.vigor = 20;
 state.player.completedEvents = [];

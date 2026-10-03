@@ -259,6 +259,19 @@ log(`the passed encounter is gone      = ${!afterSuccess.includes('take-ledger-j
 log(`successor open                   = ${canAccessAction(findActionById('carry-sealed-cargo'))}`);
 
 log('');
+// L'orologio segue il tempo vero, e un orologio cosi' non e' provabile: per dire
+// "alle 18:00 e' notte" servirebbe di aspettare le 18. `pinClock` ferma la finzione
+// su un'ora scelta e riallinea l'orologio vero a quell'istante, cosi' la deriva e'
+// zero e il test non dipende dal minuto in cui e' partito.
+// Ritorna l'orologio cosi' com'e': la sonda puo' essere `pinClock(23)` e basta,
+// senza dover chiedere due volte e senza il trucco dell'operatore virgola che
+// mette in fila due chiamate per costruirne una.
+function pinClock(hour, minute = 0) {
+  state.clock = { year: GAME_YEAR, month: 0, day: 1, hour, minute };
+  state.clockSyncedAt = Date.now();
+  return getGameClock();
+}
+
 log('=== 16) Clock and calendar ===');
 const clock = getGameClock();
 log(`date  = ${clock.day} ${clock.monthName}, Anno Domini ${clock.year} (${clock.weekday})`);
@@ -268,24 +281,105 @@ log(`clock = ${formatGameClock(clock)} (real now ${new Date().toString().slice(0
 renderCalendarPanel();
 const grid = calendarEl.innerHTML;
 log(`grid: dayCells=${(grid.match(/data-calendar-day=/g) || []).length} today=${grid.includes('is-today')} todayIsDay=${grid.includes('is-day')} todayIsNight=${grid.includes('is-night')}`);
+// La griglia deve disegnare il mese intero. Un anno sbagliato non lancia: `new
+// Date(NaN, ...)` restituisce `NaN`, il confronto del `for` non parte e la griglia
+// esce semplicemente vuota. Questo file e' un rapporto e non ha `check()`: la
+// verifica vera sta in map-check.js, che ha gli assert.
+const expectedCells = new Date(clock.year, clock.month + 1, 0).getDate();
+const drawnCells = (grid.match(/data-calendar-day=/g) || []).length;
+log(`cells = ${drawnCells} of ${expectedCells} days in ${clock.monthName} ${drawnCells === expectedCells ? 'OK' : 'BAD'}`);
+log(`NaN on the panel = ${grid.includes('NaN')} ${grid.includes('NaN') ? 'BAD' : 'OK'}`);
 [[0, 'Night'], [5, 'Night'], [6, 'Day'], [12, 'Day'], [17, 'Day'], [18, 'Night'], [23, 'Night']].forEach(([hour, expected]) => {
-  const probe = new Date(2026, 9, 1, hour);
-  const got = getDayPhase(getGameClock(probe)).label;
+  pinClock(hour);
+  const got = getDayPhase(getGameClock()).label;
   log(`hour ${String(hour).padStart(2, '0')}:00 -> ${got} ${got === expected ? 'OK' : 'MISMATCH (expected ' + expected + ')'}`);
 });
 
 log('');
+log('=== 16b) The fiction clock keeps real time, one for one ===');
+// La finzione deve raddoppiare esattamente come il tempo reale, e soprattutto deve
+// farlo anche a gioco chiuso: e' la differenza fra un orologio e un contatore di
+// sessioni, ed e' l'unica cosa che rende una finestra stretta davvero aspettabile.
+pinClock(6, 0);
+const base = Date.now();
+state.clockSyncedAt = base;
+syncClock(base + 3 * 60 * 60 * 1000);            // tre ore dopo
+log(`+3h from 06:00 -> ${formatGameClock(getGameClock())} ${getGameClock().hour === 9 ? 'OK' : 'BAD'}`);
+pinClock(23, 30);
+state.clockSyncedAt = base;
+syncClock(base + 2 * 60 * 60 * 1000);            // due ore di traverso della mezzanotte
+const rolled = getGameClock();
+log(`23:30 +2h -> ${rolled.day} ${rolled.monthName} ${String(rolled.hour).padStart(2, '0')}:${String(rolled.minute).padStart(2, '0')} ${rolled.day === 2 && rolled.hour === 1 ? 'OK' : 'BAD (day did not roll)'}`);
+pinClock(31, 12);
+state.clockSyncedAt = base;
+syncClock(base + 24 * 60 * 60 * 1000);           // un mese che non esiste viene sanificato
+log(`day 31 of month 0 -> ${getGameClock().day} ${getGameClock().monthName} ${getGameClock().day <= 28 ? 'OK' : 'BAD'}`);
+log(`sanitizeClock({hour: 99}) -> ${JSON.stringify(sanitizeClock({ hour: 99, month: 44, day: 0 }))}`);
+
+log('');
 log('=== 17) Day and night gating on encounters ===');
-const noon = getGameClock(new Date(2026, 9, 1, 12));
-const midnight = getGameClock(new Date(2026, 9, 1, 23));
-getAllActions().forEach(({ action }) => {
-  const dayWindow = describeEncounterWindow(action, noon);
-  const nightWindow = describeEncounterWindow(action, midnight);
-  const expectedNoon = action.when !== 'night';
-  const expectedMidnight = action.when !== 'day';
-  const ok = dayWindow.open === expectedNoon && nightWindow.open === expectedMidnight;
-  log(`${ok ? 'OK  ' : 'BAD '} ${action.id.padEnd(28)} when=${String(action.when).padEnd(6)} noon=${dayWindow.open ? 'open' : 'shut'} midnight=${nightWindow.open ? 'open' : 'shut'}`);
+const dayProbe = { when: 'day' };
+const nightProbe = { when: 'night' };
+const anyProbe = { when: null };
+[[0, false], [5, false], [6, true], [12, true], [17, true], [18, false], [23, false]].forEach(([hour, expectedDay]) => {
+  pinClock(hour);
+  const got = describeEncounterWindow(dayProbe).open;
+  const night = describeEncounterWindow(nightProbe).open;
+  const any = describeEncounterWindow(anyProbe).open;
+  const ok = got === expectedDay && night === !expectedDay && any === true;
+  log(`${ok ? 'OK  ' : 'BAD '} hour ${String(hour).padStart(2, '0')}:00 day=${got ? 'open' : 'shut'} night=${night ? 'open' : 'shut'} any=${any ? 'open' : 'shut'}`);
 });
+
+log('');
+log('=== 17b) A shift opens at its own hour and no other ===');
+// Ogni turno dichiarato deve aprirsi alla sua ora e chiudersi alla sua, e deve dire
+// quando riapre quando e' chiuso. Un turno che non dice quando riapre e' un muro.
+const firstWatch = { when: { shift: 'first-watch' } };
+// Il turno dichiara 21:00-24:00, quindi 20:00 deve essere chiuso. Scrivere qui
+// l'aspettativa esplicita e non il contrario: un test che segna "OK" quando e'
+// aperto e "BAD" quando e' chiuso passerebbe anche se il codice fosse invertito.
+[[19, false], [20, false], [21, true], [22, true], [23, true], [0, false]].forEach(([hour, expected]) => {
+  pinClock(hour);
+  const w = describeEncounterWindow(firstWatch);
+  const ok = w.open === expected;
+  log(`${ok ? 'OK  ' : 'BAD '} hour ${String(hour).padStart(2, '0')}:00 first-watch open=${w.open} ${ok ? '' : `(expected ${expected})`}`);
+});
+// E quando e' chiuso deve dire quando riapre: un turno che non lo dice e' un muro.
+[0, 6, 20].forEach((hour) => {
+  pinClock(hour);
+  const w = describeEncounterWindow(firstWatch);
+  const today = hour < 21;
+  const ok = !w.open && w.opensAt === '21:00' && w.opensOn === (today ? 'today' : 'tomorrow');
+  log(`${ok ? 'OK  ' : 'BAD '} hour ${String(hour).padStart(2, '0')}:00 shut, opens ${w.opensOn} at ${w.opensAt}`);
+});
+pinClock(8);
+log(`daylight action at 08:00: "${describeWaitingFor(describeEncounterWindow(dayProbe))}"`);
+pinClock(22);
+log(`shift action at 22:00: "${describeWaitingFor(describeEncounterWindow(firstWatch))}"`);
+
+// === 17c) Nessuna pagina deve stampare la parola undefined ================
+// Bug vero, segnalato dal giocatore: gli incontri giorno/notte non dichiaravano
+// un'ora di riapertura e la sezione "waiting on the hour" li elencava lo stesso,
+// scrivendo "tomorrow at undefined". Il tipo `when` che vale davvero e' quello che
+// non ha un'ora, quindi qui si prova esattamente quello.
+// Questo file e' un rapporto e non ha `check()`: si registra l'esito sulla riga.
+pinClock(3);
+const bareWindow = describeEncounterWindow({ when: null });
+log(`hourless window opensAt = ${String(bareWindow.opensAt)} ${bareWindow.opensAt === undefined ? 'OK' : 'BAD'}`);
+const bareLine = describeWaitingFor(bareWindow);
+log(`hourless window says: "${bareLine}" ${bareLine.length > 20 && !bareLine.includes('undefined') ? 'OK' : 'BAD'}`);
+
+// Ogni finestra chiusa, di qualunque tipo dichiarato, deve sapere quando riapre.
+[['day', 3], ['day', 23], ['night', 12], ['night', 5], [{ shift: 'first-watch' }, 10], [{ shift: 'midday' }, 2]]
+  .forEach(([when, hour]) => {
+    pinClock(hour);
+    const w = describeEncounterWindow({ when });
+    const ok = w.open || (typeof w.opensAt === 'string' && w.opensAt.length === 5);
+    log(`${ok ? 'OK  ' : 'BAD '} ${(typeof when === 'string' ? when : when.shift).padEnd(13)} ${String(hour).padStart(2, '0')}:00 open=${w.open} opensAt=${w.opensAt} opensOn=${w.opensOn}`);
+  });
+pinClock(12);
+log(`night action at 12:00 closed says: "${describeWaitingFor(describeEncounterWindow({ when: 'night' }))}"`);
+log(`shifts declared = ${Object.keys(SHIFTS).length}, order = ${SHIFT_ORDER.join(', ')}`);
 
 log('');
 log('=== 18) Inventory shows real names and real amounts ===');
@@ -411,8 +505,8 @@ state.currentLocationId = 'grand-canal';
 state.player.completedEvents = [];
 state.player.properties = [];
 state.player.stats = { vigilance: 1, cunning: 1, audacity: 1, elegance: 1, persuasion: 1, resolve: 1 };
-const noonClock = getGameClock(new Date(2026, 9, 1, 12));
-const nightClock = getGameClock(new Date(2026, 9, 1, 23));
+const noonClock = pinClock(12);
+const nightClock = pinClock(23);
 const idsAt = (probe) => {
   const realClock = getGameClock;
   getGameClock = () => probe;

@@ -27,8 +27,11 @@ A prototype for a text-heavy narrative game inspired by the tone and structure o
 - worn gear adds real bonuses to the attributes, to the roll odds of a test, to Max Vigor and to resource pools, so equipping something changes the game and not just the look
 - the companion slot holds a beast or a person who walks with you and grants their own bonuses
 - gear only counts while worn, and the bonuses are recalculated from scratch, so nothing can drift out of sync
-- encounters declare when they happen (`when: 'day' | 'night' | 'any'`) and the card says whether the hour is right
-- the calendar drawer browses months and seasons and opens a day sheet listing what that day holds
+- encounters declare when they happen: `when: 'day' | 'night' | { shift: 'dusk' }`, and the card says whether the hour is right
+- the clock in Serenissima **is your own clock**. It is seeded from your machine the first time you open a chronicle, put in the year 1530, and then runs one to one with real time — including while the game is closed. Your Tuesday at 22:00 is the city's Tuesday at 22:00
+- a shift is a named band of hours (`dawn`, `morning`, `midday`, `afternoon`, `dusk`, `first-watch`, `small-hours`), at least three hours wide. They are wide on purpose: with a clock that follows real time, a one-hour window is one hour a week
+- a closed window always says when it reopens ("opens tonight at 21:00"), because with a real clock the only thing separating *I cannot* from *I cannot yet* is knowing the hour
+- the calendar drawer browses months and seasons, opens a day sheet listing what that day holds, and lists what is **waiting on the hour** with the time it opens — which is what the line "weekly and dated events will be announced here" used to promise
 - a night-only run of ten steps in the Belfry that goes one to ten and then starts again, resuming at the step it stopped on if the game is closed halfway
 - repeatable night-only stories that pay a guild or a person rather than the power that governs the zone
 - a card per faction body that unlocks from the deck at level 5 and another at level 15, so a standing curve is never a dead end
@@ -161,6 +164,41 @@ already exists, and the step's state is read back from that encounter's record i
 | `failed` | the encounter was attempted and failed; the step stays reopenable |
 | `open` | the requirements are met and you can act on it now |
 | `locked` | something is still missing. The path is still shown, never hidden |
+
+### Two machines, and what "object after object" has to mean
+
+There are three threads now. The Brine-Farm is a **lease**: you are given a place
+that already exists and describe it in a document. The other two are
+**constructions**, and they are built the same way on purpose:
+
+| | The Deep Draft | The Escapement Wing |
+| --- | --- | --- |
+| what it is | a submersible | a clockwork wing |
+| realm | Abyssal Depth, and the Grand Canal | Aether Heights, and the Salon |
+| the parts come from | a wreck, a bench, a lens, a weigh-house | a room the guild stopped using |
+| last step | a night descent, 00:00–05:00 | a night flight, 21:00–24:00 |
+
+The chain is held together by a requirement type that had to be invented for it:
+
+```js
+requires: [{ type: 'item', item: 'draft-brass-spar' }]
+```
+
+`item` counts a piece in the satchet **or** already worn, and it names the encounter
+that pays it when you do not have it yet — "not I cannot" but "not I cannot yet",
+which is the difference between a gate and a wall. Both machines pay their parts
+as `material: true`, so the parts go to the satchet instead of fighting over an
+equipment slot, and both keep the last step on a `property`: four steps are about
+objects, the fifth is about owning the finished thing.
+
+Two rules the `story-check` harness enforces, because nothing else would notice
+either:
+
+- **the two machines share no parts.** If they did, "object after object" would
+  quietly start applying to both vehicles at once.
+- **they do not compete for the same night window.** One step per thread happens
+  after dark, in a different shift. If they shared one, the two chains would each
+  wait on the other.
 
 ### Runs: a chain that comes back around
 
@@ -390,6 +428,16 @@ they cannot drift away from the gates the game actually uses.
 | `farmSoleKept` | The Brine-Farm answers to you alone | helpful | **How the farm is run** (choosing *Keep it in your own hands*) |
 | `farmCombineBacked` | The Combine bankrolls your Brine-Farm | helpful | **How the farm is run** (choosing *Take the Combine's backing*) |
 | `farmOpenToCity` | The Brine-Farm is leased row by row | helpful | **How the farm is run** (choosing *Open the rows to the city*) |
+| `deepdraftSigned` | A hull is signed in your name | helpful | **Get the Hull Signed Before the Council of Ten** (success) |
+| `deepdraftFirstDive` | You went down in the Deep Draft | helpful | **Take Her Down at Night** (success) |
+| `draftManifestSurvey` | The Deep Draft carries a Survey licence | helpful | **What the manifest says she carries** (choosing *Survey only — and file every reading*) |
+| `draftManifestFreight` | The Deep Draft carries whatever is paid for | helpful | **What the manifest says she carries** (choosing *Freight for whoever is paying*) |
+| `draftManifestQuiet` | The Deep Draft carries nothing but yours | helpful | **What the manifest says she carries** (choosing *Nobody's cargo — yours alone*) |
+| `wingRegistered` | The Wing is signed in your name | helpful | **Register the Wing Before the Foreman** (success) |
+| `wingFirstFlight` | You flew the Wing over the lagoon | helpful | **Fly It Over the Lagoon After Dark** (success) |
+| `wingPurposeCharts` | The Wing flies for the Survey charts | helpful | **What hour you intend to be over the water** (choosing *Dawn — to re-draw the Survey charts from the air*) |
+| `wingPurposeGuild` | The Wing carries the guild's business | helpful | **What hour you intend to be over the water** (choosing *Dusk — to carry what the guild has no ground for*) |
+| `wingPurposeRats` | The Wing flies the rope-lines at night | helpful | **What hour you intend to be over the water** (choosing *The small hours — over the rope-lines, where nobody looks up*) |
 <!-- FLAGS:END -->
 <!-- LORE:START -->
 | Id | Kind | Subject | Opens when | Chapters |
@@ -407,6 +455,10 @@ they cannot drift away from the gates the game actually uses.
 | `faction-clergy` | Factions | The Drowned Clergy | resolving **Carry the Bell Book Up the Stair** | 2 |
 | `faction-bohemian-court` | Factions | The Bohemian Court | resolving **Stand in the Long Room Until You Are Fed** | 2 |
 | `faction-imperial-guard` | Factions | The Imperial Guard | resolving **Take a Reading Where the Current Moves** | 2 |
+| `place-deep-draft` | Places | The Deep Draft | flag `deepdraftSigned` | 2 (1 flag-gated) |
+| `faction-weigh-house` | Factions | The Weigh-House | item | 2 (1 flag-gated) |
+| `place-reject-room` | Places | The Reject Room | resolving **Take an Escapement Out of the Reject Room** | 2 (1 flag-gated) |
+| `place-escapement-wing` | Places | The Escapement Wing | flag `wingRegistered` | 2 (1 flag-gated) |
 | `place-salt-pans` | Places | The Abandoned Salt Pans | from the start | 3 (2 flag-gated) |
 | `person-keeper` | People | The Last Keeper of the Pans | flag `pansLeased` | 2 (1 flag-gated) |
 | `place-trench` | Places | The Leviathan Trench | from the start | 3 (1 flag-gated) |
@@ -448,6 +500,14 @@ they cannot drift away from the gates the game actually uses.
 | `faction-bohemian-court` | Fourteen plates | with its subject |
 | `faction-imperial-guard` | Orders, and the days they arrive on | with its subject |
 | `faction-imperial-guard` | Why two reports | with its subject |
+| `place-deep-draft` | Why a boat is not a farm | with its subject |
+| `place-deep-draft` | What is at the bottom of the charts | flag `deepdraftFirstDive` |
+| `faction-weigh-house` | The only question he asks | with its subject |
+| `faction-weigh-house` | Entered under amber | flag `deepdraftSigned` |
+| `place-reject-room` | Not full of broken clocks | with its subject |
+| `place-reject-room` | The one that runs | flag `wingRegistered` |
+| `place-escapement-wing` | The guild does not give machines away | with its subject |
+| `place-escapement-wing` | Why the keeper counts six | flag `wingFirstFlight` |
 | `place-salt-pans` | Abandoned in a single season | with its subject |
 | `place-salt-pans` | The keeper who signed anyway | flag `pansLeased` |
 | `place-salt-pans` | What the vent carries | flag `desaltinators` |

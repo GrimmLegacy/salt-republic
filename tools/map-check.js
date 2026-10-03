@@ -33,7 +33,7 @@ function makeEl(id = '') {
   };
 }
 const elements = {};
-['viewContent', 'mapViewport', 'mapCanvas', 'mapReadout'].forEach((id) => { elements[id] = makeEl(id); });
+['viewContent', 'mapViewport', 'mapCanvas', 'mapReadout', 'calendarPanel'].forEach((id) => { elements[id] = makeEl(id); });
 Object.defineProperty(elements.viewContent, 'innerHTML', {
   get() { return captured.html || ''; },
   set(v) { captured.html = v; }
@@ -229,6 +229,62 @@ check('harvest-orchids is genuinely locked now', !describeActionUnlock(abyss.act
 const lockedSheet = renderDaySheet({ month: getGameClock().month, isCurrentMonth: true });
 check('calendar day sheet hides locked harvest-orchids', !lockedSheet.includes('Harvest Your Phosphor-Orchids'));
 check('calendar day sheet hides locked desalinators', !lockedSheet.includes('Install Sub-Zero Desalinators'));
+
+// --- the calendar grid actually draws its month ---------------------------
+// Questo controllo c'e' perche' la griglia non lancia mai quando riceve un anno
+// sbagliato: `new Date(NaN, ...)` restituisce `NaN`, il confronto del ciclo `for`
+// semplicemente non parte, e il mese esce vuoto senza un errore in console.
+// Un anno inesistente produceva esattamente questo difetto, in silenzio.
+const gridClock = getGameClock();
+renderCalendarPanel();
+const grid = elements.calendarPanel.innerHTML;
+const drawnCells = (grid.match(/data-calendar-day=/g) || []).length;
+const expectedCells = new Date(gridClock.year, gridClock.month + 1, 0).getDate();
+check('the calendar draws every day of the month', drawnCells === expectedCells, `${drawnCells} of ${expectedCells}`);
+check('no NaN reached the calendar panel', !grid.includes('NaN'));
+check('the calendar names the fiction year, not this machine\'s',
+  grid.includes(`Anno Domini ${gridClock.year}`) && !grid.includes(String(new Date().getFullYear())),
+  `panel says ${/Anno Domini (\d+)/.exec(grid)?.[1]}, machine is ${new Date().getFullYear()}`);
+check('the fiction year starts at Anno Domini 1530', gridClock.year === 1530, `${gridClock.year}`);
+
+// --- a reset must not leave the clock parked at the catalogue default -------
+// Bug segnalato dal giocatore: resettando, l'orologio ripartiva dal 1 gennaio alle
+// sei e restava li'. Il motivo e' che `syncClock`, quando non c'era un allineamento
+// salvato, si limitava a registrare l'istante senza seminare, e il reset non passa
+// da `boot()` quindi nessuno lo seminava. Ora semina li' dentro.
+state.clock = { year: GAME_YEAR, month: 0, day: 1, hour: 6, minute: 0 };
+state.clockSyncedAt = 0;
+const seeded = getGameClock();
+const wall = new Date();
+check('an unsynced clock seeds itself from this machine',
+  seeded.hour === wall.getHours() && seeded.month === wall.getMonth() && seeded.day === wall.getDate(),
+  `fiction ${seeded.day}/${seeded.month + 1} ${seeded.hour}:00, machine ${wall.getDate()}/${wall.getMonth() + 1} ${wall.getHours()}:00`);
+check('a seeded clock is not the catalogue default',
+  !(seeded.month === 0 && seeded.day === 1 && seeded.hour === 6), 'it is still January 1st at six');
+check('seeding records the alignment, so it does not re-seed',
+  typeof state.clockSyncedAt === 'number' && state.clockSyncedAt > 0, String(state.clockSyncedAt));
+
+// --- no page may print the word undefined ---------------------------------
+// `renderDaySheet` si aspetta un mese per intero: `getViewedMonth()` fornisce
+// `monthName` e `year`, e passargli solo `{month}` faceva stampare "undefined"
+// nell'intestazione. Il difetto non era nel gioco ma in questo test, ed e' stato
+// proprio questo controllo a dirlo.
+const sheetHtml = renderDaySheet({ month: seeded.month, monthName: MONTH_NAMES[seeded.month], year: seeded.year, isCurrentMonth: true });
+// Il dettaglio porta via venti caratteri per lato: dire "undefined" senza dire
+// dove serve a niente, e la prima volta che l'ho scritto cosi' non sapevo neppure
+// in quale riga guardare.
+const undefAt = sheetHtml.indexOf('undefined');
+check('the day sheet never prints undefined', undefAt === -1,
+  undefAt === -1 ? 'clean' : `...${sheetHtml.slice(Math.max(0, undefAt - 30), undefAt + 30)}...`);
+// Ogni riga "waiting on the hour" deve avere un'ora, non una vuota: si guarda il
+// testo dell'etichetta e non la presenza della parola, cosi' il controllo resta
+// valido anche se qualcun altro scrive "undefined" altrove sulla pagina.
+const whenLabels = sheetHtml.match(/class="day-when">([^<]+)</g) || [];
+check('every waiting line names an hour', whenLabels.every((line) => /\d\d:\d\d/.test(line)),
+  whenLabels.join(' | '));
+// `renderGameClock` non restituisce una stringa — scrive sugli elementi del DOM —
+// quindi non si puo' controllarne il testo qui. Il controllo equivalente vive sul
+// day sheet, che e' la pagina dove il difetto compariva.
 
 state.player.properties = ['The Brine-Farm (La Fattoria 1)'];
 state.player.stats.audacity = 6;

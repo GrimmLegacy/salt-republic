@@ -3278,8 +3278,19 @@ summary:focus-visible {
 
 .story-thread-list {
   display: grid;
+  /* Le tre macchine stanno dove stanno le fazioni: stessa regola, stessa soglia,
+     stesso `auto-fit`, letteralmente la stessa riga di `.faction-grid`. Senza
+     `grid-template-columns` questa resta una griglia a colonna singola, che e'
+     cio' che e' per definizione: i figli occupano una colonna sola e vanno in
+     fila sotto. La soglia senza `min(100%, ...)` puo' spingere fuori bordo su una
+     colonna piu' stretta di 330px, ma sotto i 720px la media query sotto tiene
+     gia' le due griglie a una colonna sola, quindi il caso non si presenta. */
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
   gap: 18px;
   margin-bottom: 32px;
+  /* I pannelli partono dall'alto e crescono verso il basso: metterli allineati in
+     fondo li lascerebbe sporgere sotto una riga che non e' piu' una riga. */
+  align-items: start;
 }
 
 .story-thread {
@@ -3761,6 +3772,13 @@ summary:focus-visible {
 
 @media (max-width: 720px) {
   .faction-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* I tre percorsi tornano in colonna insieme alle fazioni, e non prima: sotto i
+     720px una riga da tre diventa tre colonne troppo strette per una lista di
+     passi, e una lista illeggibile e' peggio di una pagina lunga. */
+  .story-thread-list {
     grid-template-columns: minmax(0, 1fr);
   }
 }

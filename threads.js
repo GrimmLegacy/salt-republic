@@ -45,6 +45,40 @@ const storyThreads = [
     // se manca, la pagina Chronicles disegna il fondo piatto di sempre, quindi un
     // percorso nuovo non ha bisogno di nessuna riga di CSS per esistere.
     art: 'immagini/fattoria.jpg'
+  },
+  {
+    id: 'deep-draft',
+    title: 'The Deep Draft',
+    icon: '🌀',
+    realm: 'Abyssal Depth',
+    teaser:
+      'A boat is not a farm. A farm could be leased, because water that already exists can be described in a document. A boat needs somebody to answer for a hull, and answering is done in writing, in a room with water on the floor. Forty centimetres of brass off a wreck, one screw turned for a hull that does not exist yet, one lens ground by a woman who refused to sell it, one pallet of lead invoiced to a company that has never been founded. Then the only question anybody asks you.',
+    steps: [
+      { action: 'deepdraft-cut-the-sill', title: 'Cut the brass sill out of the survey wreck' },
+      { action: 'deepdraft-turn-the-screw', title: 'Have the screw turned on the shallow edge' },
+      { action: 'deepdraft-grind-the-lens', title: 'Have the lamp lens ground at the customs house' },
+      { action: 'deepdraft-buy-the-ballast', title: 'Buy lead at the weigh-house under a name that is not yours' },
+      { action: 'deepdraft-sign-the-hull', title: 'Answer for the hull in front of the Council of Ten' },
+      { action: 'deepdraft-take-her-down', title: 'Take her down at night and find the mark on the charts' }
+    ],
+    forks: ['deep-draft-manifest']
+  },
+  {
+    id: 'escapement-wing',
+    title: 'The Escapement Wing',
+    icon: '✈',
+    realm: 'Aether Heights',
+    teaser:
+      'A guild machine is not yours because you built it, it is yours because it is written down. So you go down the last ladder and take an escapement out of a room of forty-one stopped clocks where exactly one of them is still beating, and you cut a spar out of four hundred years of bell yoke, and you file a weight by ear against a count nobody has ever written down, and you are given silk off a dead shelf in the Salon by a navigator who points out, not unkindly, that somebody is going to find their own handwriting on it one day and be annoyed for a very long time. Then the foreman asks you one question, and it is not about the machine.',
+    steps: [
+      { action: 'wing-take-the-reject-escapement', title: 'Take the escapement that runs, out of the Reject Room' },
+      { action: 'wing-cut-the-yoke', title: 'Cut one spar out of the bell yoke' },
+      { action: 'wing-thread-the-weight', title: 'File a weight to the beat the foreman taps' },
+      { action: 'wing-ask-the-salon-for-silk', title: 'Take silk off the two dead shelves in the Salon' },
+      { action: 'wing-register-the-wing', title: 'Answer for the hour, and be signed for' },
+      { action: 'wing-fly-it-over-the-lagoon', title: 'Six crossings, six roofs, and a keeper who counts them wrong' }
+    ],
+    forks: ['escapement-wing-hour']
   }
 ];
 
@@ -93,6 +127,90 @@ const storyForks = [
         resources: { ducatsOfSalt: 8 },
         stats: { cunning: 1 },
         log: 'You posted the rows for lease on the customs house wall, at a price per bed per season. By evening four names were on the list and three of them were not the Combine.'
+      }
+    ]
+  },
+  {
+    id: 'deep-draft-manifest',
+    threadId: 'deep-draft',
+    title: 'What the manifest says she carries',
+    prompt:
+      'The hull is signed and the ledger is open, and there is one line left to fill in, and every version of it is defensible. The Combine will not give you a licence without a manifest. The Iron Sister does not ask what is in a boat. The Council has already written down an answer it did not get from you. Whatever you choose here becomes the reason the Deep Draft exists, and the reason is the thing people will repeat about her.',
+    requires: { flags: ['deepdraftSigned'] },
+    shutHint:
+      'A hull can be signed for and still carry nothing. The manifest is not written until somebody answers for what goes out of the lagoon.',
+    options: [
+      {
+        id: 'surveyor',
+        title: 'Survey only — and file every reading',
+        sets: { draftManifestSurvey: true },
+        body:
+          'She goes down to measure and comes back with numbers. The Surveyors have wanted a proper sounding at the bottom of the trench since before the deluge and have never been given one, because nobody has been down there with a lamp they made themselves. Filing every reading is the price of the licence, and it means that from today the deepest mark on every chart in the city has your handwriting under it.',
+        resources: { ducatsOfSalt: 6, whisperedSecrets: 1 },
+        stats: { vigilance: 1 },
+        log: 'The Surveyors read your licence twice, then once more, and then the clerk says the word "properly" in a voice nobody has used in this building before.'
+      },
+      {
+        id: 'combine',
+        title: 'Freight for whoever is paying',
+        sets: { draftManifestFreight: true },
+        body:
+          'You take what is paid for and you do not open it. The Combine has amber coming up out of the warm layer and a weight they cannot account for, and they do not need a boat with principles, they need a hull. Every trip is written up as ballast and every ballast is weighed at the weigh-house, which means the weigh-house now knows exactly how often you go down and exactly how heavy you come back.',
+        resources: { ducatsOfSalt: 12, phosphorAmber: 2 },
+        stats: { cunning: 1 },
+        log: 'The weigh-master books the first load without looking up, and you understand that he had already booked it, weeks ago, on paper you never saw.'
+      },
+      {
+        id: 'quiet',
+        title: 'Nobody\'s cargo — yours alone',
+        sets: { draftManifestQuiet: true },
+        body:
+          'You write the only manifest that is really yours: no cargo, no charter, no employer. It earns nothing and it opens nothing, and it is the only version of the document that belongs to whoever is in the boat. What you find down there is yours to do as you like with, which is exactly what nobody will be able to write down about it afterwards.',
+        resources: { ducatsOfSalt: 3 },
+        stats: { resolve: 1 },
+        log: 'The clerk stamps a manifest with nothing on it and asks, twice, whether you are sure, and you are, and that is the entire cost of the thing.'
+      }
+    ]
+  },
+  {
+    id: 'escapement-wing-hour',
+    threadId: 'escapement-wing',
+    title: 'What hour you intend to be over the water',
+    prompt:
+      'The foreman asked, and he wrote down whatever you said, and then he added a line of his own. There is no more room in the register for a machine that does something else, so whatever hour you name is the hour the Wing keeps, and the city will learn it the way it learns everything, by being flown over. Three answers are defensible and only one of them is comfortable.',
+    requires: { flags: ['wingRegistered'] },
+    shutHint:
+      'A machine with no hour is a machine in pieces. The foreman asks what time you mean, and he asks it out loud, in front of everybody.',
+    options: [
+      {
+        id: 'charts',
+        title: 'Dawn — to re-draw the Survey charts from the air',
+        sets: { wingPurposeCharts: true },
+        body:
+          'From four hundred feet the drowned canals are legible in a way they have never been from a boat, because a boat can only follow a street and an aeroplane can see the whole shape of it at once. Every chart the Surveyors hold of this city was drawn by people standing in it. Yours will be the first drawn from outside it, and they will pay for the privilege and correct every error you make, and the correcting is the part they actually want.',
+        resources: { ducatsOfSalt: 6, whisperedSecrets: 1 },
+        stats: { vigilance: 1 },
+        log: 'The Surveyors send a man up the ladder at four in the morning to meet you on the roof, and he has brought a theodolite, and he has brought it personally.'
+      },
+      {
+        id: 'guild',
+        title: 'Dusk — to carry what the guild has no ground for',
+        sets: { wingPurposeGuild: true },
+        body:
+          'The guild keeps the hour for a city that has no ground left to walk between. A machine that crosses the lagoon in the evening turns a tower with four hundred floors into a building with a door on one side and a window on the other, and the apprentices will carry things they have never been allowed to carry, and the foreman will sign for all of it, and that is what the signature was for.',
+        resources: { ducatsOfSalt: 12 },
+        stats: { resolve: 1 },
+        log: 'The foreman puts a small brass case on the wing before you leave and does not say what is in it, and you do not open it until you are over the water.'
+      },
+      {
+        id: 'rats',
+        title: 'The small hours — over the rope-lines, where nobody looks up',
+        sets: { wingPurposeRats: true },
+        body:
+          'The washing lines go up after dark and stay up until the water drops, and they are the only roads left in this city, and they belong to children who have never once been asked what they use. A machine that crosses low and slow at two in the morning turns those lines into something with an address, and the Salt Rats know which lines feed which doors and would like to know what is coming over them. Nobody signs for this. That is rather the point of it.',
+        resources: { ducatsOfSalt: 4 },
+        stats: { cunning: 1 },
+        log: 'A child you have never met is waiting on a roof at two in the morning to tell you which line goes where, and she has been waiting since about eleven.'
       }
     ]
   }

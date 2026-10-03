@@ -33,7 +33,25 @@ const loreFlags = {
   // continua a leggerli come qualsiasi altro flag.
   farmSoleKept: { label: 'The Brine-Farm answers to you alone', tone: 'good' },
   farmCombineBacked: { label: 'The Combine bankrolls your Brine-Farm', tone: 'neutral' },
-  farmOpenToCity: { label: 'The Brine-Farm is leased row by row', tone: 'neutral' }
+  farmOpenToCity: { label: 'The Brine-Farm is leased row by row', tone: 'neutral' },
+  // Il Deep Draft. Tre flag per tre cose diverse: la firma, la prima discesa, e il
+  // manifesto. Il manifesto e' un bivio e non un traguardo, quindi i suoi tre esiti
+  // sono tre flag separati e non uno solo: "che cosa trasporta" e' una domanda a
+  // tre vie esattamente come "come e' gestita la fattoria".
+  deepdraftSigned: { label: 'A hull is signed in your name', tone: 'good' },
+  deepdraftFirstDive: { label: 'You went down in the Deep Draft', tone: 'good' },
+  draftManifestSurvey: { label: 'The Deep Draft carries a Survey licence', tone: 'neutral' },
+  draftManifestFreight: { label: 'The Deep Draft carries whatever is paid for', tone: 'neutral' },
+  draftManifestQuiet: { label: 'The Deep Draft carries nothing but yours', tone: 'neutral' },
+  // L'Escapement Wing. Come il sottomarino: la firma, la prima notte, e un
+  // manifesto a tre vie. Le tre vie del Wing pero' sono tre ore diverse della
+  // giornata, e non tre merci diverse: e' l'unico bivio dei due in cui la
+  // risposta e' quando, non cosa.
+  wingRegistered: { label: 'The Wing is signed in your name', tone: 'good' },
+  wingFirstFlight: { label: 'You flew the Wing over the lagoon', tone: 'good' },
+  wingPurposeCharts: { label: 'The Wing flies for the Survey charts', tone: 'neutral' },
+  wingPurposeGuild: { label: 'The Wing carries the guild\'s business', tone: 'neutral' },
+  wingPurposeRats: { label: 'The Wing flies the rope-lines at night', tone: 'neutral' }
 };
 
 const loreKinds = {
@@ -418,6 +436,102 @@ const loreEntries = [
     ]
   },
   {
+    id: 'place-deep-draft',
+    kind: 'place',
+    realm: 'abyssal-depth',
+    title: 'The Deep Draft',
+    icon: '🌀',
+    teaser: 'Forty centimetres of brass, one screw, one lens, one pallet of lead.',
+    unlocks: [{ type: 'flag', id: 'deepdraftSigned' }],
+    lockedHint: 'You have not had a hull signed for.',
+    chapters: [
+      {
+      id: 'not-a-lease',
+      title: 'Why a boat is not a farm',
+      requires: [{ type: 'always' }],
+      text: 'The farm could be leased because water that already exists can be described in a document. A boat cannot: somebody has to accept responsibility for a hull, and responsibility here is only ever transferred in writing, in a room with water on the floor, in front of ten sealed voices who are looking for the clause that will bind you later. So the Deep Draft has one owner on paper and no owner in the water, and the difference between those two things is the entire distance between a farm and a boat.'
+      },
+      {
+      id: 'the-wall',
+      title: 'What is at the bottom of the charts',
+      requires: [{ type: 'flag', id: 'deepdraftFirstDive' }],
+      text: 'Every trench chart in the Survey carries a mark at the deepest sounding that nobody has ever described in words, and the Surveyors have been drawing the same mark since before the water came. You went down there with a lamp of your own making and you saw it. It is not a wall. The nine lines of the dive log stop at the ninth because the person writing them stopped, and the tenth line is in a hand that is not yours, and the sheet has no blank after it, because whoever filled it in did not need another line.'
+      }
+    ]
+  },
+  {
+    id: 'faction-weigh-house',
+    kind: 'faction',
+    realm: 'abyssal-depth',
+    title: 'The Weigh-House',
+    icon: '⚖',
+    teaser: 'Thirty years, and he has never once asked what it is for.',
+    unlocks: [{ type: 'item', id: 'draft-ballast-lead' }],
+    lockedHint: 'You have never bought anything that was only weighed.',
+    chapters: [
+      {
+      id: 'the-one-question',
+      title: 'The only question he asks',
+      requires: [{ type: 'always' }],
+      text: 'Everything the Combine needs is counted rather than sold, and the count happens in a room where nothing has a name written on it. The weigh-master asks one question, which is under whose name, and then he writes down whatever you say, including names that have never existed. An invoice drawn on an invented company is not fraud. It is how the Combine records weight that is not trade, and the oilcloth on the pallet is not for the water: the oilcloth is for the ledger.'
+      },
+      {
+      id: 'entered-under-amber',
+      title: 'Entered under amber',
+      requires: [{ type: 'flag', id: 'deepdraftSigned' }],
+      text: 'Your lead went on the books as phosphor amber. He did not mistake it and he did not care: the whole point of the weigh-house is that the second column is the one the Combine actually keeps, and everything anybody says is the first column. You have now been inside that arrangement by accident, and there is a difference between a thing that was misfiled and a thing that was filed on purpose by somebody who was not you.'
+      }
+    ]
+  },
+  {
+    id: 'place-reject-room',
+    kind: 'place',
+    realm: 'aether-heights',
+    title: 'The Reject Room',
+    icon: '⏱',
+    teaser: 'Forty-one stopped clocks in a room with no window, and nobody may throw one away.',
+    unlocks: [{ type: 'event', id: 'wing-take-the-reject-escapement' }],
+    lockedHint: 'You have not been down the last ladder.',
+    chapters: [
+      {
+      id: 'not-broken',
+      title: 'Not full of broken clocks',
+      requires: [{ type: 'always' }],
+      text: 'The Guild does not repair these and does not sell these and has never permitted one to be thrown out, and the reason given is always the same sentence, delivered by the foreman in exactly the same tone: the room is not full of broken clocks, it is full of clocks that are waiting. Nobody has ever asked what they are waiting for, and the sentence has survived four hundred years without being finished, which in this city is the normal condition of a true thing.'
+      },
+      {
+      id: 'the-one-that-runs',
+      title: 'The one that runs',
+      requires: [{ type: 'flag', id: 'wingRegistered' }],
+      text: 'One of the forty-one is in perfect repair, and it is beating. Nothing in it is worn: the pallets are polished, the teeth are bright, the movement is immaculate inside a case full of dust. It has run against a stopped dial for longer than the guild has had a name for the tower it sits under, and it has never once needed winding. Fenn looked at it for a long time and said the only sentence anybody says about that room: that one is not ours. Nobody in the tower has ever explained which would be worse, that the room contains something that was never the guild\'s, or that the guild has been keeping it.'
+      }
+    ]
+  },
+  {
+    id: 'place-escapement-wing',
+    kind: 'place',
+    realm: 'aether-heights',
+    title: 'The Escapement Wing',
+    icon: '✈',
+    teaser: 'An escapement that runs, a spar out of the yoke, and the silk somebody else corrected.',
+    unlocks: [{ type: 'flag', id: 'wingRegistered' }],
+    lockedHint: 'You have not had a machine signed for in the belfry.',
+    chapters: [
+      {
+      id: 'not-a-gift',
+      title: 'The guild does not give machines away',
+      requires: [{ type: 'always' }],
+      text: 'A guild machine is yours because it is written down, and being written down means a foreman reads your intentions out loud in front of the apprentices and then signs them. That is a ceremony and not a formality: the guild has never once signed anything it was not willing to be responsible for, and has therefore never signed anything at all until now. Every part of the Wing came out of something the tower had already stopped using, which the foreman considers neither theft nor cleverness but bookkeeping, and the one part you paid for, the oil, is the one he keeps on his own bench and will not explain.'
+      },
+      {
+      id: 'six-crossings',
+      title: 'Why the keeper counts six',
+      requires: [{ type: 'flag', id: 'wingFirstFlight' }],
+      text: 'The keeper on the ladder will not let you land twice in the same place, and when you did it anyway once, long before anybody thought to sign anything, he landed you on a different roof and logged it as a second crossing and did not say why. He wrote six crossings in the book and you told him it was one flight, and he said six, and did not argue, and you did not argue either. The silk has the Salon handwriting on it. That is not decoration: it is a record, and a record in this city is the only thing anybody genuinely cannot take back.'
+      }
+    ]
+  },
+  {
     id: 'place-salt-pans',
     kind: 'place',
     realm: 'lagoon-heart',
@@ -622,6 +736,14 @@ function evaluateLoreGate(requirement) {
   if (requirement.type === 'lore') return hasDiscoveredLore(requirement.id);
   if (requirement.type === 'chapter') return hasDiscoveredChapter(requirement.id, requirement.chapter);
   if (requirement.type === 'companion') return Boolean(state.player.equipment?.companion);
+  // Un pezzo posseduto vale quanto un flag: la Weigh-House si apre quando hai
+  // comprato il piombo, non quando hai firmato l'incontro. Senza questo gate il
+  // tipo sconosciuto cade in fondo e vale `true`, e la voce si aprirebbe sempre.
+  if (requirement.type === 'item') {
+    const item = typeof findEquipmentItem === 'function' ? findEquipmentItem(requirement.id) : null;
+    return Boolean(state.player.inventory?.includes(requirement.id)
+      || (item && state.player.equipment?.[item.slot] === requirement.id));
+  }
 
   return true;
 }

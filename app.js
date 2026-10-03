@@ -19,6 +19,24 @@ const MALUS_DRAW_WEIGHT = 55;
 const GAME_YEAR = 1530;
 const DAY_START_HOUR = 6;
 const DAY_END_HOUR = 18;
+// L'orologio e' di fantasia ma segue il tempo vero uno a uno: se apri il gioco alle
+// 22:40, in citta' sono le 22:40, e scorrono anche mentre il gioco e' chiuso.
+// È la scelta che rende il calendario una cosa da consultare invece di un ricamo.
+//
+// I turni sono le finestre in cui un incontro e' davvero aperto. Sono larghi apposta:
+// con un orologio che segue il tempo reale, una finestra di un'ora significa un'ora
+// a settimana, e una catena di sei passi con dentro una finestra stretta non la
+// finisce nessuno. Qui ogni turno copre almeno tre ore.
+const SHIFTS = {
+  dawn: { label: 'Dawn', icon: '❋', from: 5, to: 9 },
+  morning: { label: 'Morning', icon: '☼', from: 9, to: 12 },
+  midday: { label: 'Midday', icon: '◑', from: 12, to: 15 },
+  afternoon: { label: 'Afternoon', icon: '◐', from: 15, to: 18 },
+  dusk: { label: 'Dusk', icon: '◒', from: 18, to: 21 },
+  'first-watch': { label: 'The first watch', icon: '☾', from: 21, to: 24 },
+  'small-hours': { label: 'The small hours', icon: '✧', from: 0, to: 5 }
+};
+const SHIFT_ORDER = ['dawn', 'morning', 'midday', 'afternoon', 'dusk', 'first-watch', 'small-hours'];
 // Il cielo che la scheda della data mostra. Sono un dato e non due stringhe scritte
 // dentro `renderGameClock`: `tools/assets-check.js` li controlla contro il disco
 // leggendoli da qui, quindi un file rinominato o cancellato salta fuori li' invece
@@ -325,6 +343,111 @@ const equipmentItems = [
     icon: '⚙',
     notes:
       'The pale filings that come off the great bell every night the guild works it. Too fine to cast with, fine enough to take a bearing on. The foreman keeps them in a jar with no label, which is either carelessness or the whole point.'
+  },
+
+  // ---- I pezzi del Deep Draft --------------------------------------------
+  //
+  // Materiali come i ritagli di bronzo, non oggetti da indossare: vanno in
+  // inventario, si possono ripetere, e non finiscono mai su una spalla. Ogni
+  // pezzo richiede il precedente, quindi la catena è "oggetto dopo oggetto" e non
+  // una fila di capitoli. Sono le quattro cose che non si comprano e non si
+  // trovano: si strappano a qualcuno che le aveva già fatte fare.
+  {
+    id: 'draft-brass-sill',
+    name: 'Brass Pressure Sill',
+    material: true,
+    rarity: 'uncommon',
+    icon: '▤',
+    notes:
+      'Forty centimetres of forged brass, thicker at the corners than the drawing calls for. Cut out of the survey launch that went down in the winter before you were born, and it took two men and a crane barge to get it off the wreck, and the Combine has been very calm about this.'
+  },
+  {
+    id: 'draft-copper-screw',
+    name: 'Copper Screw of the Deep Draft',
+    material: true,
+    rarity: 'uncommon',
+    icon: '✦',
+    notes:
+      'Turned for a boat that no longer exists, in a shop that has closed twice and reopened once. It does not have a name on it. It has a maker on it, and the maker is your problem.'
+  },
+  {
+    id: 'draft-lens-glass',
+    name: 'Ground Lens for a Deep Lamp',
+    material: true,
+    rarity: 'uncommon',
+    icon: '◉',
+    notes:
+      'Ground at the customs house by a woman who asked only what it had to light and did not ask why, which is the only reason you have it. Thick at the middle, and at four hundred fathoms thick at the middle is what keeps you alive.'
+  },
+  {
+    id: 'draft-ballast-lead',
+    name: 'Ballast Lead, Wrapped in Oilcloth',
+    material: true,
+    rarity: 'uncommon',
+    icon: '▮',
+    notes:
+      'Enough to sink you and then, if you cut the right cords loose, to bring you back up. Bought at the weigh-house, invoiced to a company that does not exist, and paid for.'
+  },
+  {
+    id: 'draft-dive-log',
+    name: 'The Deep Draft Dive Log',
+    material: true,
+    rarity: 'rare',
+    icon: '❋',
+    notes:
+      'The first descent, written out longhand at the surface by somebody who was not you. Nine lines, one for each hour below, and the last line reads only "the door is not a door" and then nothing for a long time.'
+  },
+
+  // ---- I pezzi dell'Escapement Wing ----------------------------------------
+  //
+  // Come quelli del Deep Draft: materiali, non oggetti da spalla. Ogni pezzo
+  // richiede il precedente. Qui però non si strappa niente a nessuno: si prendono
+  // le cose che il Guild ha già buttato e che nessuno ha ancora capito perché
+  // buttava, il che è la versione più economica e meno onesta di "rubare a qualcuno".
+  {
+    id: 'wing-reject-escapement',
+    name: 'Escapement out of the Reject Room',
+    material: true,
+    rarity: 'uncommon',
+    icon: '⛭',
+    notes:
+      'A guild movement taken from a regulator they have never been able to mend and have never thrown away. It is older than the ladder you climbed to reach it, it runs, and nobody will explain why it runs when the clock around it does not.'
+  },
+  {
+    id: 'wing-yoke-spar',
+    name: 'Bell Yoke, Cut to a Spar',
+    material: true,
+    rarity: 'uncommon',
+    icon: '🪵',
+    notes:
+      'Four hundred years of seasoned larch from under the great bell, in use the whole time and out of use since the bell stopped being a thing anybody sat under. It is lighter than oak, it does not take water, and it has been holding four tonnes of bell since before the water came.'
+  },
+  {
+    id: 'wing-weight',
+    name: 'Mainspring Weight',
+    material: true,
+    rarity: 'uncommon',
+    icon: '◼',
+    notes:
+      'Turned from the same stock as a regulator weight, filed down to suit an escapement that was not designed to drive anything. It is heavier than it looks by a little, which is the entire margin between flying and not flying.'
+  },
+  {
+    id: 'wing-chart-silk',
+    name: 'Chart Silk off the Salon Rack',
+    material: true,
+    rarity: 'uncommon',
+    icon: '🪡',
+    notes:
+      'Torn off a rack where charts were stretched for three hundred years and are no longer stretched at all. It has been corrected so often it is more annotation than coastline, and every navigator in the Salon knows the handwriting and none of them will tell you whose it is.'
+  },
+  {
+    id: 'wing-flight-log',
+    name: 'The Escapement Wing Flight Log',
+    material: true,
+    rarity: 'rare',
+    icon: '✈',
+    notes:
+      'One night, six crossings, written by the keeper who let you take the ladder. He counts them as six flights. You count them as one, because you were on the ground for all of the other five, and neither of you is wrong and neither of you will move first.'
   }
 ];
 
@@ -681,6 +804,135 @@ const locations = {
         },
         requires: [],
         repeatable: true
+      },
+
+      // =================================================================
+      // L'ESCAPEMENT WING — la macchina volante che il giocatore costruisce.
+      //
+      // Stessa forma del Deep Draft: cinque pezzi, ognuno che pretende il
+      // precedente, sei turni diversi di cui uno solo notturno. La differenza e'
+      // che qui non si strappa niente a nessuno: si prendono le cose che la
+      // corporazione degli orologi ha gia' buttato e non ha ancora spiegato.
+      // =================================================================
+      {
+        id: 'wing-take-the-reject-escapement',
+        title: 'Take an Escapement Out of the Reject Room',
+        summary:
+          'Down the last ladder, past the level where the gallery stops being for people, there is a room with no window and forty-one clocks in it, all of them stopped, all of them kept. The Guild calls it the Reject Room and refers to it the way you refer to a relative. Nobody repairs these. Nobody sells them. Nobody has ever been allowed to throw one away, and when you ask why, the foreman says the room is not full of broken clocks, it is full of clocks that are waiting, and then he goes back to the bell and does not say waiting for what. You find out later from Fenn, in the way Fenn finds things out, which is by never being asked and then answering. You spend four hours finding the one that runs. It runs because nothing in it is worn: the pallets are polished, the teeth are bright, and the whole movement is in perfect repair inside a case full of dust. It has been beating against a stopped dial for longer than the guild has had a name for this tower, and it has never once needed winding. You lift it out with two hands. It is heavier than it looks and it is still going, and you carry it up fourteen flights with your ear against the case, listening to it keep time in a building that is four hundred years out of date.',
+        appearanceReason:
+          'Forty-one stopped clocks in a windowless room under the guild, and exactly one of them is running. The foreman will tell you the room is not full of broken clocks. He will not tell you what it is full of.',
+        when: { shift: 'dawn' },
+        test: 'vigilance',
+        difficulty: 4,
+        success: {
+          stats: { vigilance: 3, cunning: 1 },
+          resources: { ducatsOfSalt: 3 },
+          standing: { faction: 'clockwrights', points: 4 },
+          items: ['wing-reject-escapement'],
+          log: 'The movement comes off the board still beating, and you carry it up fourteen flights listening to it, and at the top Fenn looks at it for a long time and says the only thing anybody says all morning: "That one is not ours."'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You lift the wrong case, and forty-one clocks tell you so at once in a noise the foreman hears from three floors up, and he comes down, and he does not send you back up.'
+        },
+        requires: [],
+        repeatable: false
+      },
+      {
+        id: 'wing-cut-the-yoke',
+        title: 'Cut a Spar Out of the Bell Yoke',
+        summary:
+          'The yoke is the timber the bell hangs from: four hundred years of seasoned larch, four tonnes of bell on it, and the single most decorative object in the lagoon. It has not held anything up since the bell stopped being a thing people sat underneath, and nobody has had the standing to cut it, because cutting it is not a guild decision, it is a conversation, and the guild has been putting that conversation off since before you were born. You get the conversation started by asking the one question that makes it technical rather than a matter of taste: how much of it is not doing anything. The foreman does the arithmetic on his fingers, twice, because he wants to be sure, and then he says you may take one spar and not two, and that this is not a limit he invented but a number he has always had. It takes six hours with a hand saw and a great deal of swearing from the apprentices, who are not swearing about the saw. The spar comes away pale and dry and absurdly light for its size, and it smells of four centuries of bell, which smells of hot metal and wood and not of any of the things you would have guessed.',
+        appearanceReason:
+          'The yoke under the great bell is holding nothing up and the guild knows the tonnage. Ask how much of it is dead weight and you have asked a technical question instead of a sentimental one.',
+        when: { shift: 'morning' },
+        test: 'resolve',
+        difficulty: 4,
+        success: {
+          stats: { resolve: 3, vigilance: 1 },
+          resources: { ducatsOfSalt: 2 },
+          items: ['wing-yoke-spar'],
+          log: 'Six hours with a hand saw, one spar and not two, and the larch comes away pale and dry and lighter than a spar has any business being.'
+        },
+        failure: {
+          resources: { wounds: 1, suspicion: 1 },
+          log: 'The saw binds in the dry wood, and six apprentices watch you lose an afternoon to it, and the foreman takes the saw off you without a word and finishes the cut himself and will not say where it is now.'
+        },
+        requires: [{ type: 'item', item: 'wing-reject-escapement' }],
+        repeatable: false
+      },
+      {
+        id: 'wing-thread-the-weight',
+        title: 'File a Weight to Suit the Escapement',
+        summary:
+          'A mainspring weight is a lump of iron that decides how long you stay up, and this one has to be decided by a room full of people who would lose their way of living if you did it wrong, which is why nobody offers to help. You file it yourself, on a stone in the back workshop, and you file it by ear rather than by weight: you hang the escapement in its frame, wind it by hand, and take off iron until the beat of the movement matches the beat the foreman taps on the bench, which is the count the whole guild has used for a century and has never once written down. The first pass is far too heavy and drops the beat. The second is far too light and would not hold a wing up at all. The third is right, and you know it is right because the foreman stops tapping and only listens, and then he does something he has never done for an apprentice, which is to go and get the oil, and it is not the oil from the store, it comes off his own bench, and he does not explain where a bench keeps oil that the store does not.',
+        appearanceReason:
+          'The weight decides how long you stay up. The guild will not file it for you, and the only reference they will accept is the beat the foreman taps on the bench.',
+        when: { shift: 'midday' },
+        test: 'cunning',
+        difficulty: 5,
+        success: {
+          stats: { cunning: 3, resolve: 1 },
+          resources: { ducatsOfSalt: 2 },
+          items: ['wing-weight'],
+          log: 'The third pass is right, and the foreman stops tapping and only listens, and then he goes and gets oil that the store does not keep, and does not say where a bench keeps oil that the store does not.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You file it by the book instead of by the ear, and it is correct, and it is right by a tenth, and the foreman hears the tenth and tells you that a tenth is the whole difference between flying and arriving.'
+        },
+        requires: [{ type: 'item', item: 'wing-yoke-spar' }],
+        repeatable: false
+      },
+      {
+        id: 'wing-register-the-wing',
+        title: 'Register the Wing Before the Foreman',
+        summary:
+          'A guild machine is not yours because you built it, it is yours because it is written down, and being written down by the Guild of Clocksmiths means a foreman reads your intentions out loud in front of the apprentices and then signs them, which is a ceremony and not a formality, because the guild has never once signed anything it was not willing to be responsible for and has consequently never signed anything at all. The foreman reads what you wrote. Then he reads it again, slower. Then he asks the one question he actually wants answered, which is not about the machine at all, it is about the hour: what time do you intend to be over the water. You answer. He writes the answer down exactly as you said it, and then he adds a line of his own that you did not ask for and cannot take back, and only much later, on the ladder, do you work out what he wrote and why, and that this is the price of being allowed to sign anything in this tower at all.',
+        appearanceReason:
+          'The guild does not give a machine away. It signs for it, out loud, in front of the apprentices, and the foreman asks one question about the hour.',
+        when: { shift: 'dusk' },
+        test: 'persuasion',
+        difficulty: 5,
+        success: {
+          stats: { persuasion: 3, elegance: 1 },
+          resources: { ducatsOfSalt: 5 },
+          properties: ['The Escapement Wing'],
+          standing: { faction: 'clockwrights', points: 6 },
+          sets: { wingRegistered: true },
+          log: 'The foreman reads your sentence back in your own words, adds a line of his own that you did not ask for, and signs beneath both of you.'
+        },
+        failure: {
+          resources: { scandal: 1 },
+          log: 'You give an hour that sounds like a dare, and the foreman writes it down in exactly those words, and the apprentices hear how it sounds written down, and the room gets quieter than it was.'
+        },
+        requires: [{ type: 'item', item: 'wing-chart-silk' }],
+        repeatable: false
+      },
+      {
+        id: 'wing-fly-it-over-the-lagoon',
+        title: 'Fly It Over the Lagoon After Dark',
+        summary:
+          'It goes over the water at night for the same reason the Deep Draft goes down at night: there is less of the city awake to be surprised by it. You go out over the roof at the first stroke of the first watch and the first thirty seconds are the whole of the machine, because the wing is lighter than you built it to be and the first thing it does is arrive. Then the beat settles and the lagoon opens underneath. The drowned streets are lit from below by whatever is left of the phosphor in the water, and from up here the city is not a ruin, it is a chart: the canals are perfectly legible, the Grand Canal is the only straight line in it, and the tower you are circling is the only thing standing above the water by any distance at all. You fly six crossings and land on six different roofs, because the keeper on the ladder will not let you land twice in the same place and has not said why, and each time he is already there with the log open before you touch down, writing, in a hand that is unsteady because he is very old and not because he is afraid. At midnight he takes the log and reads your six lines back and says six, not one, and does not argue, and you do not argue either, and the machine is signed for and it has flown and there is nothing else to be done tonight.',
+        appearanceReason:
+          'There is less of the city awake to be surprised by it after dark. The keeper on the ladder will not let you land twice in the same place.',
+        when: { shift: 'first-watch' },
+        test: 'audacity',
+        difficulty: 5,
+        success: {
+          stats: { audacity: 4, resolve: 2 },
+          resources: { ducatsOfSalt: 6, whisperedSecrets: 1 },
+          standing: { faction: 'clockwrights', points: 8 },
+          items: ['wing-flight-log'],
+          sets: { wingFirstFlight: true },
+          log: 'Six crossings and six roofs, and the keeper is on every one of them with the log open before you touch down, and at midnight he reads your six lines back as six flights and you do not argue.'
+        },
+        failure: {
+          resources: { wounds: 1, suspicion: 1 },
+          log: 'The second crossing arrives one spar short of a roof, and you go into the water, and the keeper is there anyway, and says nothing at all while he pulls you out.'
+        },
+        requires: [{ type: 'property', value: 'The Escapement Wing' }],
+        repeatable: false
       }
     ]
   },
@@ -955,6 +1207,56 @@ const locations = {
         },
         requires: [],
         repeatable: true
+      },
+
+      // ---- Il Deep Draft, passi che passano in superficie ------------------
+      {
+        id: 'deepdraft-grind-the-lens',
+        title: 'Have the Lamp Lens Ground at the Customs House',
+        summary:
+          'The glass is ground at the customs house, which is not a place where glass is ground, and the woman who does it has been doing it behind the weighing floor for thirty years on the argument that the light has to come through something and she would rather it came through something she made. She asks exactly two questions: what has to be lit, and how deep. You say a lamp, and you say four hundred fathoms. She stops, which you did not expect, because you had braced for the second question to be about you. She goes and gets a blank, which is thicker than the blanks upstairs are, and she works it on a wheel older than the deluge with her foot, and the sound of the wheel is the sound of somebody counting. Twice she asks you to hold the lamp to it and she looks at the light coming through and makes a small sound that is not dissatisfaction. When it is done she puts it down, and holds it up, and says the sentence you will end up quoting: "At four hundred fathoms the water stops being a problem and becomes a lens." She will not sell it to you. She says she has not sold it, and that you are to take it, and that those are different.',
+        appearanceReason:
+          'The customs house grinds glass for people going down, and the woman doing it asks what has to be lit and how deep, and nothing else.',
+        when: { shift: 'morning' },
+        test: 'elegance',
+        difficulty: 4,
+        success: {
+          stats: { elegance: 2, resolve: 2 },
+          resources: { ducatsOfSalt: 2 },
+          items: ['draft-lens-glass'],
+          log: 'The lens comes off the wheel thick at the middle, and she tells you at four hundred fathoms the water stops being a problem and becomes a lens, and she refuses payment and is quite right to.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You say a lamp and then you say two hundred fathoms, and she grinds a beautiful thin lens for two hundred fathoms, and hands it to you, and you understand about ten paces away that you have just paid for the wrong thickness.'
+        },
+        requires: [{ type: 'item', item: 'draft-copper-screw' }],
+        repeatable: false
+      },
+      {
+        id: 'deepdraft-sign-the-hull',
+        title: 'Get the Hull Signed Before the Council of Ten',
+        summary:
+          'A boat is not a farm. The farm could be a lease because the farm was water that already existed and could be described; a boat has to be signed for, which means somebody has to accept responsibility for a hull, and in this city responsibility is transferred in writing in a flooded chamber in front of ten sealed voices who will read every line twice looking for the clause that binds you to something you never intended to owe. You have the sill on the dock. You have the screw, the lens and the lead. The last clerk wants to know what you intend to do with it, and this is the only question in the entire project that you have to answer out loud to somebody who can file the answer, so you think about it properly, which costs you most of the afternoon. When you finally answer, he writes it down exactly the way you said it, not the way it sounds, and presses the seal, and the first hull of the Deep Draft is yours in the only sense this city recognises, which is on paper, in a room with water on the floor.',
+        appearanceReason:
+          'Nobody signs for a boat without seeing it. Bring the sill, the screw, the lens and the lead to the chamber and answer the one question the clerk will ask.',
+        when: { shift: 'midday' },
+        test: 'persuasion',
+        difficulty: 5,
+        success: {
+          stats: { persuasion: 3, elegance: 1 },
+          resources: { ducatsOfSalt: 4 },
+          properties: ['The Deep Draft'],
+          standing: { faction: 'council', points: 5 },
+          sets: { deepdraftSigned: true },
+          log: 'The seal goes into wet paper and the clerk reads your sentence back to you in your own words rather than in the good ones, and the first hull is yours.'
+        },
+        failure: {
+          resources: { scandal: 1 },
+          log: 'You answer with something the room likes better than what you meant, and four voices agree on it very quickly, which is how the Council decides things, and now it is recorded that you built this to carry something out of the lagoon.'
+        },
+        requires: [{ type: 'item', item: 'draft-ballast-lead' }],
+        repeatable: false
       }
     ]
   },
@@ -1207,7 +1509,112 @@ const locations = {
         },
         requires: [],
         repeatable: true
-      }
+      },
+
+      // =================================================================
+      // IL DEEP DRAFT — il sottomarino che il giocatore costruisce.
+      //
+      // Cinque pezzi, ognuno dei quali richiede il pezzo prima. Non è una fila di
+      // capitoli: è un oggetto dopo l'altro, e l'incontro che paga ogni pezzo dice
+      // anche a chi lo hai strappato. L'ultimo passo è l'unico con una finestra
+      // notturna, perché la discesa va fatta di notte e va fatta una volta sola.
+      // =================================================================
+      {
+        id: 'deepdraft-cut-the-sill',
+        title: 'Cut the Sill Out of the Wreck',
+        summary:
+          'The survey launch went down in the winter before you were born, and it has been lying on the trench floor ever since with its brass sill under four inches of silt, which is why nobody has ever come for it. Nobody has come because the sill has to come off before the hull can be moved, nobody down here has a crane barge, and the Combine has been calm about this in the way organisations are calm about things they would rather nobody mentioned. You go down with a cold chisel and a long bar and the low green light you work by. The first hour is finding the sill at all, because the launch is lying on its side and the silt has made a shelf over it. The second hour is the cutting, which is less a matter of strength than of arguing with brass that was put there in order to survive. When it comes free it comes free all at once, which surprises everybody on the barge including you, and the man on the winch says nothing whatever for the whole of the deck wash.',
+        appearanceReason:
+          'The old survey launch is still on the trench floor with its sill buried. There is no Combine notice against taking it, and the absence of a notice is its own kind of answer.',
+        when: { shift: 'dawn' },
+        test: 'vigilance',
+        difficulty: 4,
+        success: {
+          stats: { vigilance: 3, resolve: 1 },
+          resources: { ducatsOfSalt: 3, phosphorAmber: 1 },
+          standing: { faction: 'brine-combine', points: 4 },
+          items: ['draft-brass-sill'],
+          log: 'Forty centimetres of forged brass come up out of the silt and go across the deck, and on the way back down the launch has already begun to fill in behind you.'
+        },
+        failure: {
+          resources: { wounds: 1, suspicion: 1 },
+          log: 'The chisel skates off a rivet head and opens your forearm, and the silt closes over the shelf you made, and the sill is exactly where it was this morning. Somebody has written a word on the board at the head of the ladder.'
+        },
+        requires: [],
+        repeatable: false
+      },
+      {
+        id: 'deepdraft-turn-the-screw',
+        title: 'Turn a Screw for a Boat That No Longer Exists',
+        summary:
+          'The screw has to be turned rather than bought, because the shops that turn them closed twice and reopened once, and the one that reopened will only do work for something he can see finished. So you take the sill up the shaft in a crate to a bench on the shallow edge where the light still reaches, you put it on the bench, and then you wait. The man at the bench is eighty and has been at it since before the water came, and he looks at forty centimetres of brass for a long time without touching it. Then he asks what it is for. You tell him. He says that is not a description of a hull, it is a description of a problem, and then he goes and gets a blank. He works four hours and says at no point that he is doing you a favour. At the end he puts a thumb on the thread and says it will hold, and that he has made a great many things that held, and that holding is not the same as being right. You ask his name, because you will need it later, and he writes it on a card and does not offer to shake.',
+        appearanceReason:
+          'The coppersmith on the shallow edge will only cut a screw for something he can see finished. Bring him the sill and let him make up his own mind.',
+        when: { shift: 'afternoon' },
+        test: 'resolve',
+        difficulty: 4,
+        success: {
+          stats: { resolve: 3, vigilance: 1 },
+          resources: { ducatsOfSalt: 2 },
+          items: ['draft-copper-screw'],
+          log: 'The screw comes off the lathe still warm and he wipes it with his sleeve before he will let you hold it, and when you ask what to pay he says nothing, which you eventually understand was the answer.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You describe the boat instead of the problem, and he turns back to the next blank on the bench and does not look up again, and the sill stays in the crate until he does.'
+        },
+        requires: [{ type: 'item', item: 'draft-brass-sill' }],
+        repeatable: false
+      },
+      {
+        id: 'deepdraft-buy-the-ballast',
+        title: 'Buy Lead at the Weigh-House',
+        summary:
+          'Ballast is the only part of this that costs money, and money down here is not money but weight, which is why it is bought at the weigh-house and not from a shop. The weigh-master does not ask what it is for, because in thirty years the weigh-master has never once asked anybody what anything is for, and this turns out to be the single most reassuring thing about the whole arrangement. You ask for the amount and he says it, and then he asks the only question he will ask you, which is under whose name. You give a name that does not exist. He writes it. The invoice is drawn on that name, and you pay it in coin and in a manner that the coin does not explain. It arrives on a pallet in oilcloth, which is the correct wrapping, and which you understand some hours afterwards is not there for the water at all: oilcloth is how the Combine records weight that is not trade. On the way out you notice that he entered it under amber.',
+        appearanceReason:
+          'The weigh-house sells anything that can be weighed and asks one question. It is the only supplier down here who has not asked yours.',
+        when: { shift: 'dusk' },
+        test: 'cunning',
+        difficulty: 5,
+        success: {
+          stats: { cunning: 3, resolve: 1 },
+          resources: { ducatsOfSalt: 4 },
+          items: ['draft-ballast-lead'],
+          log: 'The pallet comes up wrapped in oilcloth and the weigh-master draws an invoice on a company that has never existed, and signs it, and hands it over without comment.'
+        },
+        failure: {
+          resources: { scandal: 1, suspicion: 1 },
+          log: 'You give a real name, because it is the name of somebody you know, and the weigh-master writes it down and does not look up, and filed things in this city are not unfiled.'
+        },
+        requires: [{ type: 'item', item: 'draft-lens-glass' }],
+        repeatable: false
+      },
+      {
+        id: 'deepdraft-take-her-down',
+        title: 'Take Her Down at Night',
+        summary:
+          'She goes down at night because everything at this depth goes down at night, and the reason is the phosphor: in the dark the water carries its own light and you see the trench the way a cat sees a room, whereas the same descent in daylight is a grey wall four seconds after you leave the terrace. You check the ballast twice, because there is nothing else to check, and then you cut the cords loose. The first hundred fathoms are the warm layer and nothing happens. The next hundred is where the cold finds the seams, and you write the hour down, because the log has nine lines for nine hours and there is no tenth line on the sheet. Below that the trench opens out and you can see the nursery domes from above, and the lights down there are on. You had genuinely not expected them to be on. You sit and watch a farm that has been working all night, by people who cannot be seen. Then you go looking for the thing you actually came down for, which is the wall the Surveyors put at the bottom of every trench chart and have never once described. You find it. It is not a wall. You come back up on the last of the lead, and you write nine lines, and then you stop writing, and somebody finishes the sentence in your hand at the surface.',
+        appearanceReason:
+          'The phosphor carries light. A descent in daylight is a grey wall four seconds after you leave the terrace.',
+        when: { shift: 'small-hours' },
+        test: 'vigilance',
+        difficulty: 5,
+        success: {
+          stats: { vigilance: 4, resolve: 2 },
+          resources: { phosphorAmber: 2, whisperedSecrets: 1 },
+          standing: { faction: 'iron-sister', points: 5 },
+          items: ['draft-dive-log'],
+          sets: { deepdraftFirstDive: true },
+          log: 'Nine lines, one for each hour below, and the last line is not yours. You read it twice at the surface before you understand that you are not the one who wrote it.'
+        },
+        failure: {
+          resources: { wounds: 2, suspicion: 1 },
+          log: 'The cold finds you at the second hundred fathoms and the lead goes and she comes up on her own in eleven minutes with the hatch shut and you inside it. Neither of you is hurt and neither of you is fine.'
+        },
+        requires: [{ type: 'property', value: 'The Deep Draft' }],
+        repeatable: false
+      },
+
     ]
   },
   'astronavigators-salon': {
@@ -1309,13 +1716,39 @@ const locations = {
         },
         requires: [],
         repeatable: true
+      },
+
+      // ---- L'Escapement Wing, il pezzo che va a prendersi fuori -----------
+      {
+        id: 'wing-ask-the-salon-for-silk',
+        title: 'Ask the Salon for Silk off the Rack',
+        summary:
+          'A wing needs a surface, and the only surface in this city worth trusting is the silk the Salon has been stretching its charts over for three hundred years, because that silk is the only material anybody ever bothered to correct. The navigator you speak to is the one who works the rack, and she does not stop working while you talk, because the rack does not stop. She asks what you want it for, and you say a wing, and she keeps working for four more charts before she answers, and the answer is that she has a rack of nothing, which is true, and that the bottom two shelves have been dead since the routes stopped needing correcting, and that nobody has ever asked to have them. She counts the yards off by eye while she is still writing, which is the most professional thing you have seen anybody do all week. Then she says the part that will matter later, delivered without emphasis and without looking up: it has already been corrected, so whatever you do with it, somebody is going to find their own handwriting on it and be annoyed about it for a very long time. She wraps the silk in the same oilcloth the customs house uses, because there is only one kind of oilcloth in this city and everybody knows it.',
+        appearanceReason:
+          'The Salon rack has two dead shelves nobody has ever asked for. The navigator who works the rack will not stop working to talk to you.',
+        when: { shift: 'afternoon' },
+        test: 'elegance',
+        difficulty: 5,
+        success: {
+          stats: { elegance: 3, persuasion: 1 },
+          resources: { ducatsOfSalt: 3 },
+          standing: { faction: 'astral-salon', points: 5 },
+          items: ['wing-chart-silk'],
+          log: 'She counts the yards off by eye while writing a chart, wraps the silk in oilcloth, and tells you without looking up that somebody is going to find their own handwriting on it and be annoyed for a very long time.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You ask for a whole shelf. She stops writing for the first time in the conversation, looks at you, and tells you that a whole shelf is not cloth, it is an archive, and goes back to her chart.'
+        },
+        requires: [{ type: 'item', item: 'wing-weight' }],
+        repeatable: false
       }
     ]
   }
 };
 
 const defaultState = {
-  progressionVersion: 4,
+  progressionVersion: 5,
   player: {
     name: 'Aurelian Voss',
     stats: {
@@ -1389,6 +1822,13 @@ const defaultState = {
   },
   currentLocationId: 'grand-canal',
   time: 'day',
+  // L'orologio di fantasia. Nasce dall'orologio vero al primo avvio e poi scorre
+  // col tempo reale, anche a gioco chiuso: `clockSyncedAt` e' l'istante dell'ultimo
+  // allineamento, e la differenza con il prossimo caricamento e' cio' che e' passato
+  // in citta' mentre il giocatore non c'era. Il campo e' top-level e non in `player`
+  // perche' non e' una cosa del personaggio: e' il tempo del mondo.
+  clock: { year: GAME_YEAR, month: 0, day: 1, hour: 6, minute: 0 },
+  clockSyncedAt: 0,
   isLoaded: false
 };
 
@@ -2081,11 +2521,16 @@ function loadSave() {
     return {
       ...defaults,
       ...parsed,
-      progressionVersion: 4,
+      progressionVersion: 5,
       // Non sanificata come numero: se per errore contenesse qualcos'altro,
       // il confronto con `updated_at` deve semplicemente dare 0 (cronaca locale
       // vecchia) invece di produrre NaN e far vincere sempre il server.
       savedAt: Number.isFinite(parsed.savedAt) ? Number(parsed.savedAt) : 0,
+      // Un salvataggio anteriore alla versione 5 non ha orologio. Si semina dal tempo
+      // vero in quel caso: altrimenti una cronaca vecchia si ritroverebbe con l'orologio
+      // fermo al 1 gennaio 1530 e con tutte le finestre chiuse per sempre.
+      clock: sanitizeClock(parsed.clock),
+      clockSyncedAt: Number.isFinite(parsed.clockSyncedAt) ? Number(parsed.clockSyncedAt) : 0,
       player: {
         ...defaults.player,
         ...parsed.player,
@@ -3334,20 +3779,117 @@ function setPageHeading(kicker, title) {
   if (topbar) topbar.hidden = false;
 }
 
-function getGameClock(now = new Date()) {
-  const month = now.getMonth();
-  const hour = now.getHours();
+// ---------------------------------------------------------------------------
+// L'OROLOGIO
+//
+// Il tempo del gioco e' un orologio di fantasia ancorato a quello vero. Al primo
+// avvio prende l'ora, il giorno e il mese del giocatore e vi mette sopra l'anno
+// 1530; da quel momento scorre da solo, e scorre anche mentre il gioco e' chiuso,
+// perche' salvare l'allineamento e' l'unico modo che l'orologio resti un orologio
+// invece di diventare un contatore di sessioni.
+//
+// Tutto questo esiste perche' `when` prima accettava solo tre valori -- giorno,
+// notte, sempre -- e con un orologio vero quelli non bastavano: "solo alle tre di
+// notte" era indistinguibile da "solo quando lo decido io".
+// ---------------------------------------------------------------------------
+
+const MONTH_LENGTHS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+function daysInFictionMonth(month, year) {
+  if (month !== 1) return MONTH_LENGTHS[month];
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 29 : 28;
+}
+
+// Non sanificata come intero libero: un salvataggio scritto a mano con
+// `hour: 99` produrrebbe un orologio che nessuno puo' piu' raggiungere, e il
+// giocatore resterebbe con tutte le finestre chiuse senza capire perche'.
+function sanitizeClock(raw) {
+  const base = defaultState.clock;
+  const int = (value, min, max, fallback) => (
+    Number.isFinite(value) ? Math.min(max, Math.max(min, Math.round(value))) : fallback
+  );
+  if (!raw || typeof raw !== 'object') return { ...base };
+  const year = int(raw.year, GAME_YEAR, GAME_YEAR + 500, base.year);
+  const month = int(raw.month, 0, 11, base.month);
   return {
-    year: GAME_YEAR,
-    realYear: now.getFullYear(),
+    year,
     month,
-    monthName: MONTH_NAMES[month],
-    day: now.getDate(),
-    weekday: WEEKDAY_NAMES[now.getDay()],
-    hour,
-    minute: now.getMinutes(),
-    season: SEASONS.find((season) => season.months.includes(month)).name,
-    isDay: hour >= DAY_START_HOUR && hour < DAY_END_HOUR
+    day: int(raw.day, 1, daysInFictionMonth(month, year), base.day),
+    hour: int(raw.hour, 0, 23, base.hour),
+    minute: int(raw.minute, 0, 59, base.minute)
+  };
+}
+
+// Fa scorrere l'orologio di fantasia fino a `now`, che e' un timestamp reale.
+// Idempotente per lo stesso istante: chiamarla due volte di fila non muove niente,
+// quindi e' sicuro chiamarla da un getter che la pagina intera usa undici volte.
+//
+// Un orologio mai allineato non e' un orologio fermo: si semina dall'orologio
+// vero. Sta qui e non in `boot()` perche' una cronaca appena resettata ripassa da
+// questa funzione e non da `boot()`, e senza questa riga restava inchiodata al 1
+// gennaio alle sei per tutta la partita.
+function syncClock(now = Date.now()) {
+  const clock = state?.clock;
+  if (!clock) return 0;
+  if (!Number.isFinite(now)) return 0;
+  if (!state.clockSyncedAt) {
+    seedClockFromWallClock(now);
+    return 0;
+  }
+  const drift = now - state.clockSyncedAt;
+  state.clockSyncedAt = now;
+  if (!Number.isFinite(drift) || drift <= 0) return 0;
+
+  const minutes = Math.floor(drift / 60000);
+  if (!minutes) return 0;
+
+  clock.minute += minutes;
+  clock.hour += Math.floor(clock.minute / 60);
+  clock.minute %= 60;
+  clock.day += Math.floor(clock.hour / 24);
+  clock.hour %= 24;
+  while (clock.day > daysInFictionMonth(clock.month, clock.year)) {
+    clock.day -= daysInFictionMonth(clock.month, clock.year);
+    clock.month += 1;
+    if (clock.month > 11) {
+      clock.month = 0;
+      clock.year += 1;
+    }
+  }
+  return minutes;
+}
+
+// Allinea l'orologio partendo dall'orologio vero del giocatore. Va chiamata al
+// primo avvio di una cronaca e dopo un reset: e' il momento in cui le 23:54 del
+// tavolo diventano le 23:54 di Serenissima, ed e' la sola giustificazione che
+// l'orologio abbia cominciato dove comincia.
+function seedClockFromWallClock(now = Date.now()) {
+  const wall = new Date(now);
+  state.clock = {
+    year: GAME_YEAR,
+    month: wall.getMonth(),
+    day: wall.getDate(),
+    hour: wall.getHours(),
+    minute: wall.getMinutes()
+  };
+  state.clockSyncedAt = now;
+}
+
+function getGameClock(now = Date.now()) {
+  syncClock(now);
+  const clock = state.clock;
+  const weekdayIndex = new Date(clock.year, clock.month, clock.day).getDay();
+  return {
+    year: clock.year,
+    month: clock.month,
+    monthName: MONTH_NAMES[clock.month],
+    day: clock.day,
+    weekday: WEEKDAY_NAMES[weekdayIndex],
+    weekdayIndex,
+    hour: clock.hour,
+    minute: clock.minute,
+    season: SEASONS.find((season) => season.months.includes(clock.month)).name,
+    isDay: clock.hour >= DAY_START_HOUR && clock.hour < DAY_END_HOUR
   };
 }
 
@@ -3359,9 +3901,47 @@ function formatGameClock(clock) {
   return `${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`;
 }
 
+// L'incontro puo' chiedere un turno invece che giorno o notte. Ogni finestra
+// chiusa torna indietro con l'ora in cui riapre, anche giorno e notte: senza,
+// la pagina del giorno elencava sotto "waiting on the hour" degli incontri che
+// non avevano un'ora da dire e ci scriveva "undefined". Con un orologio vero
+// l'unica cosa che separa "non posso" da "non posso ancora" e' sapere quando.
 function describeEncounterWindow(action, clock = getGameClock()) {
-  if (action.when === 'day') return { label: 'Day only', icon: '☼', open: clock.isDay };
-  if (action.when === 'night') return { label: 'Night only', icon: '☾', open: !clock.isDay };
+  const shiftId = action.when && typeof action.when === 'object' ? action.when.shift : null;
+  const shift = shiftId ? SHIFTS[shiftId] : null;
+  if (shift) {
+    const open = clock.hour >= shift.from && clock.hour < shift.to;
+    // `today` solo se il turno comincia piu' tardi oggi. Alle 00:00 il turno delle
+    // 21:00 e' ancora oggi, non domani, ed e' esattamente il caso che sbagliava.
+    const laterToday = !open && clock.hour < shift.from;
+    return {
+      label: shift.label,
+      icon: shift.icon,
+      open,
+      shift: shiftId,
+      opensAt: `${String(shift.from).padStart(2, '0')}:00`,
+      opensOn: laterToday ? 'today' : 'tomorrow'
+    };
+  }
+  if (action.when === 'day') {
+    // Chiusa perche' e' tardo: riapre domani. Chiusa perche' e' presto: oggi.
+    return {
+      label: 'Day only',
+      icon: '☼',
+      open: clock.isDay,
+      opensAt: `${String(DAY_START_HOUR).padStart(2, '0')}:00`,
+      opensOn: clock.hour < DAY_START_HOUR ? 'today' : 'tomorrow'
+    };
+  }
+  if (action.when === 'night') {
+    return {
+      label: 'Night only',
+      icon: '☾',
+      open: !clock.isDay,
+      opensAt: `${String(DAY_END_HOUR).padStart(2, '0')}:00`,
+      opensOn: 'today'
+    };
+  }
 
   return { label: 'Any hour', icon: '◐', open: true };
 }
@@ -3396,19 +3976,32 @@ function describeDayRelation(day, viewed) {
 function renderDaySheet(viewed) {
   const clock = getGameClock();
   const day = calendarSelectedDay ?? clock.day;
-  const weekday = WEEKDAY_NAMES[new Date(clock.realYear, viewed.month, day).getDay()];
+  const weekday = WEEKDAY_NAMES[new Date(clock.year, viewed.month, day).getDay()];
   const season = getSeasonOfMonth(viewed.month);
   const location = locations[state.currentLocationId];
-  const open = getOpenActions(location).filter((action) => isActionRevealed(action));
+  // Due insiemi distinti, e la differenza e' tutta la ragione per cui questa pagina
+  // esiste. `available` e' cio' che il giocatore puo' tentare se ha l'ora giusta:
+  // i requisiti sono soddisfatti e la catena non e' fermata. `open` e' il sottoinsieme
+  // che si puo' fare adesso. Quel che resta fra i due non e' bloccato: e' in attesa.
+  const available = getOpenActions(location)
+    .filter((action) => describeActionUnlock(action).met && !isChainedBehindPendingStep(action));
+  const open = available.filter((action) => describeEncounterWindow(action).open);
   const byDay = open.filter((action) => action.when === 'day');
   const byNight = open.filter((action) => action.when === 'night');
   const anyHour = open.filter((action) => action.when !== 'day' && action.when !== 'night');
+  // Solo gli incontri che hanno davvero un'ora da dire. Un `when` che non ne
+  // dichiara (oggi giorno e notte la dichiarano, ma un turno nuovo potrebbe no)
+  // resta nelle colonne gia' mostrate e non arriva qui a scrivere "undefined".
+  const scheduled = available
+    .filter((action) => !describeEncounterWindow(action).open && describeEncounterWindow(action).opensAt)
+    .map((action) => ({ title: action.title, window: describeEncounterWindow(action) }))
+    .sort((a, b) => (a.window.opensAt || '').localeCompare(b.window.opensAt || ''));
 
   const column = (icon, title, list, note) => `
     <div class="day-column">
       <p class="day-column-title"><span aria-hidden="true">${icon}</span>${title}</p>
       ${list.length
-        ? `<ul class="day-list">${list.map((action) => `<li>${action.title}</li>`).join('')}</ul>`
+        ? `<ul class="day-list">${list.map((action) => `<li>${action}</li>`).join('')}</ul>`
         : `<p class="day-empty">${note}</p>`}
     </div>
   `;
@@ -3422,11 +4015,20 @@ function renderDaySheet(viewed) {
       </header>
       <p class="panel-hint">Open encounters in ${location.realm} on this day. Encounters you already passed do not come back.</p>
       <div class="day-columns">
-        ${column('☼', 'By day', byDay, 'Nothing that waits for daylight.')}
-        ${column('☾', 'By night', byNight, 'Nothing that waits for nightfall.')}
+        ${column('☼', 'By day', byDay.map((action) => action.title), 'Nothing that waits for daylight.')}
+        ${column('☾', 'By night', byNight.map((action) => action.title), 'Nothing that waits for nightfall.')}
       </div>
       ${anyHour.length ? `<p class="day-any"><span aria-hidden="true">◐</span>Any hour: ${anyHour.map((action) => action.title).join(' · ')}</p>` : ''}
-      <p class="day-note">Weekly and dated events will be announced here once the city starts keeping them.</p>
+      ${scheduled.length
+        ? `<div class="day-column day-scheduled">
+             <p class="day-column-title"><span aria-hidden="true">✧</span>Waiting on the hour</p>
+             <ul class="day-list">${scheduled.map((entry) => `<li>
+               <strong>${entry.title}</strong>
+               <span class="day-when">${entry.window.opensOn === 'today' ? 'today' : 'tomorrow'} at ${entry.window.opensAt}</span>
+             </li>`).join('')}</ul>
+           </div>`
+        : ''}
+      <p class="day-note">The clock in Serenissima is your own: it is ${formatGameClock(clock)} now, and it keeps running while you are away.</p>
     </section>
   `;
 }
@@ -3436,8 +4038,12 @@ function renderCalendarPanel() {
   const phase = getDayPhase(clock);
   const viewed = getViewedMonth();
   const panel = document.getElementById('calendarPanel');
-  const firstWeekday = new Date(clock.realYear, viewed.month, 1).getDay();
-  const daysInMonth = new Date(clock.realYear, viewed.month + 1, 0).getDate();
+  // L'anno e' quello della finzione, non quello di questa macchina: con `realYear`
+  // la griglia riceveva `NaN` e il mese non disegnava piu' nessuna casella. Nessun
+  // test se n'era accorto perche' `new Date(NaN, ...).getDate()` non lancia, restituisce
+  // semplicemente un altro `NaN`, e il ciclo `for` con il confronto non parte e basta.
+  const firstWeekday = new Date(clock.year, viewed.month, 1).getDay();
+  const daysInMonth = new Date(clock.year, viewed.month + 1, 0).getDate();
   const cells = [];
 
   for (let index = 0; index < firstWeekday; index += 1) {
@@ -3454,7 +4060,7 @@ function renderCalendarPanel() {
   panel.innerHTML = `
     <aside class="calendar-drawer" role="dialog" aria-modal="true" aria-label="Calendar of Anno Domini ${GAME_YEAR}">
       <header class="calendar-head">
-        <p class="eyebrow">Anno Domini ${GAME_YEAR}</p>
+        <p class="eyebrow">Anno Domini ${clock.year}</p>
         <h2>${String(clock.day).padStart(2, '0')} ${clock.monthName}</h2>
         <p class="calendar-weekday-name">${clock.weekday}</p>
       </header>
@@ -4672,6 +5278,10 @@ function resetGame() {
   // una disdetta dell'account. Viene pero' sovrascritto subito dallo stato nuovo,
   // altrimenti il server riporterebbe in vita la partita appena cancellata.
   state = createDefaultState();
+  // Una cronaca nuova riparte dall'orologio vero del giocatore, non dal mezzogiorno
+  // del catalogo. `syncClock` fa la semina da solo quando non c'e' un allineamento
+  // salvato, quindi qui basta dirgli di allinearsi.
+  syncClock();
   currentView = 'tales';
   resetArmed = false;
   profileNotice = '';
@@ -4931,6 +5541,13 @@ function isActionRevealed(action) {
 
 function findGrantorForProperty(property) {
   return getAllActions().find((entry) => (entry.action.success?.properties || []).includes(property)) || null;
+}
+
+// L'incontro che paga un pezzo. Serve al requisito di tipo `item` per dire da dove
+// arriva, con lo stesso tono del requisito `property`: "non ce l'hai" da solo è un
+// muro, e un muro è quello che rende una catena lunga impossibile da finire.
+function findGrantorForItem(itemId) {
+  return getAllActions().find((entry) => (entry.action.success?.items || []).includes(itemId)) || null;
 }
 
 function getEventRecord(actionId) {
@@ -5231,6 +5848,33 @@ function describeRequirement(requirement) {
         : record.outcome === 'Success'
           ? `You already resolved it as success${at}.`
           : `You failed it${at}. The step stays closed until you resolve it again.`
+    };
+  }
+
+  // Un pezzo che il giocatore deve possedere davvero. È il requisito che permette
+  // a una catena di essere fatta di oggetti e non di capitoli: senza, "oggetto
+  // dopo oggetto" si riduce a "passo dopo passo", che è la stessa cosa detta peggio.
+  //
+  // Conta sia in inventario sia addosso, perché un pezzo che il giocatore ha
+  // montato è un pezzo che ha. Un id che non esiste è un dato rotto e viene detto
+  // ad alta voce invece di sparire.
+  if (requirement.type === 'item') {
+    const item = findEquipmentItem(requirement.item);
+    const name = item ? item.name : requirement.item;
+    const owned = state.player.inventory.includes(requirement.item)
+      || (item ? state.player.equipment[item.slot] === requirement.item : false);
+    const grantor = owned ? null : findGrantorForItem(requirement.item);
+    return {
+      type: 'item',
+      met: owned,
+      label: `Hold ${name}`,
+      phrase: `holding ${name}`,
+      infinitive: `hold ${name}`,
+      detail: owned
+        ? 'You have it.'
+        : grantor
+          ? `You do not have it yet. Recover it by resolving “${grantor.action.title}” in ${locations[grantor.locationId]?.realm || 'the city'}.`
+          : 'You do not have it yet.'
     };
   }
 
@@ -5662,6 +6306,19 @@ function renderActionUnlock(action) {
   `;
 }
 
+// La finestra chiusa va detta con l'ora dentro. "Solo di notte" non dice niente a
+// chi ha chiuso il gioco alle 23:50; "riapre stasera alle 18:00" dice tutto. Il
+// ripiego resta per quando manca comunque un'ora: meglio "riprendi nell'ora giusta"
+// che stampare la parola `undefined` in mezzo a una pagina.
+function describeWaitingFor(window) {
+  if (!window.opensAt) {
+    const phase = window.label === 'Night only' ? 'nightfall' : 'daylight';
+    return `This encounter is here but waits for ${phase}. Come back to it in the right hour.`;
+  }
+  const when = window.opensOn === 'today' ? 'today' : 'tomorrow';
+  return `This encounter is here but waits for ${window.label}, which opens ${when} at ${window.opensAt}.`;
+}
+
 function renderActions() {
   const location = locations[state.currentLocationId];
   const visibleActions = getVisibleActions(location);
@@ -5709,7 +6366,7 @@ function renderActions() {
           <p>${action.summary}</p>
           ${renderActionUnlock(action)}
           ${renderEncounterKind(unlock)}
-          ${inWindow ? '' : `<p class="window-notice"><span aria-hidden="true">${encounterWindow.icon}</span>This encounter is here but waits for ${encounterWindow.label === 'Night only' ? 'nightfall' : 'daylight'}. Come back to it in the right hour.</p>`}
+          ${inWindow ? '' : `<p class="window-notice"><span aria-hidden="true">${encounterWindow.icon}</span>${describeWaitingFor(encounterWindow)}</p>`}
           ${renderActionRewards(action)}
           ${!affordable ? `<p class="lock-reason">Cost stands in the way: ${describeCost(action.cost)} must be paid before you commit.</p>` : ''}
           <div class="action-meta">
@@ -6352,6 +7009,13 @@ function boot() {
   // veniva silenziosamente scartato.
   state = loadSave();
 
+  // Una cronaca nuova parte dall'orologio vero del giocatore: le 23:54 sul tavolo
+  // diventano le 23:54 in citta'. Una cronaca che ne ha gia' uno lo conserva, e
+  // `syncClock` gli accoda tutto il tempo passato. La semina avviene qui e non in
+  // `loadSave` perche' `loadSave` viene chiamato anche dai test e dal percorso di
+  // importazione, dove l'orologio va sanificato ma non riseminato da capo.
+  syncClock();
+
   initializeTideDeck();
   const copyrightYear = document.getElementById('copyrightYear');
   if (copyrightYear) copyrightYear.textContent = new Date().getFullYear();
@@ -6403,3 +7067,5 @@ window.addEventListener('beforeunload', () => {
   const service = typeof auth !== 'undefined' ? auth : null;
   if (service && service.enabled && service.user) service.pushSave(state);
 });
+
+
