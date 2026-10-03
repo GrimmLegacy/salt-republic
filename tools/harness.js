@@ -1,7 +1,9 @@
 // Shared loader for the harnesses in this folder.
 //
 // index.html loads lore.js before app.js because lore.js supplies the flags and
-// discovery helpers that app.js calls at boot. Every harness must reproduce that
+// discovery helpers that app.js calls at boot. `threads.js` sits in the same
+// place, between lore.js and app.js, for the same reason: app.js sanitises the
+// declared choices while loading a save. Every harness must reproduce that
 // order, otherwise a save boot hits `loreFlags is not defined`. Centralising it
 // here means a new file cannot silently break six harnesses at once.
 //
@@ -19,7 +21,7 @@ const ROOT = path.join(__dirname, '..');
 
 // Stesso ordine di index.html, meno i file che i test non usano (auth.js fa
 // rete, motes.js disegna su un canvas che in Node non esiste).
-const GAME_SOURCES = ['factions.js', 'lore.js', 'app.js'];
+const GAME_SOURCES = ['factions.js', 'lore.js', 'threads.js', 'app.js'];
 
 function loadGame() {
   GAME_SOURCES.forEach((file) => {

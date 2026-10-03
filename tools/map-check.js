@@ -51,12 +51,11 @@ global.document = {
   querySelectorAll: () => []
 };
 
-// lore.js must load first, exactly as index.html orders them: it supplies the
-// flags and discovery helpers that app.js calls at boot.
-const root = path.join(__dirname, '..');
-vm.runInThisContext(fs.readFileSync(path.join(root, 'factions.js'), 'utf8'));
-vm.runInThisContext(fs.readFileSync(path.join(root, 'lore.js'), 'utf8'));
-vm.runInThisContext(fs.readFileSync(path.join(root, 'app.js'), 'utf8'));
+// L'ordine dei file e' quello di index.html, preso da harness.js: cosi' un file
+// nuovo non puo' rompere questa verifica perche' qualcuno si e' dimenticato di
+// aggiungerlo qui.
+const { loadGame } = require('./harness');
+loadGame();
 
 // ---- A) site table -----------------------------------------------------
 log('=== A) getMapSites() integrity ===');

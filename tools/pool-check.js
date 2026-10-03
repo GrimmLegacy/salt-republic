@@ -246,6 +246,19 @@ const maxGate = Math.max(
 const earnedEnough = factionThreshold(maxGate + 1);
 const savedReputation = state.player.reputation;
 
+// Maxing the standing is not enough to make "nothing is locked" true any more,
+// because the catalogue now has two kinds of gate. A card that waits for a
+// decision declared on a fork reads a flag, and standing never touches that.
+// Without declaring those decisions too, this fixture would be measuring
+// itself and the two checks below would fail for the wrong reason.
+//
+// The flags are read off the catalogue instead of listed here one by one: the
+// catalogue grows and this test must not have to be told about it.
+if (!state.player.flags) state.player.flags = {};
+const gateFlagIds = [...new Set(allTideCards.flatMap((card) => (card.requires || []).filter((r) => r.type === 'flag').map((r) => r.id)))];
+const savedFlags = gateFlagIds.map((id) => state.player.flags[id]);
+gateFlagIds.forEach((id) => { state.player.flags[id] = true; });
+
 const topStanding = {};
 Object.keys(factions).forEach((id) => { topStanding[id] = earnedEnough; });
 state.player.reputation = topStanding;
@@ -259,6 +272,13 @@ state.player.reputation = topStanding;
   const lockedHtml = viewContent.innerHTML;
 
   state.player.reputation = savedReputation;
+  // The declared decisions deliberately stay in place for the second half: only
+  // the standing drops, so the gap between the two numbers is still standing and
+  // nothing else.
+  gateFlagIds.forEach((id, index) => {
+    if (savedFlags[index] === undefined) delete state.player.flags[id];
+    else state.player.flags[id] = savedFlags[index];
+  });
 
   check('high standing opens every gated card', opened === allTideCards.length, `${opened} of ${allTideCards.length}`);
   check('no standing closes them again', locked < allTideCards.length, `${locked} of ${allTideCards.length} still open`);

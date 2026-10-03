@@ -136,11 +136,122 @@ Gate types available in lore entries and chapters: `always`, `flag`, `negFlag`,
 true; a **chapter** needs *all* of its own `requires`. That is what lets a vessel
 surface on a single hint while its deeper history stays shut.
 
+### Story threads and declared choices
+
+The Lore page records what the city has proved about itself. The Chronicles page
+records what **you** are building. The two are separate on purpose: one is
+discovery, the other is construction.
+
+A **thread** is an ongoing thing read as an ordered list of steps. The Brine-Farm
+is step 1 to step 6, not six unrelated encounters scattered across two realms,
+and the page collects them in the order they belong. Threads live in `threads.js`,
+which `index.html` loads after `lore.js` and before `app.js`.
+
+A thread keeps **no state of its own**. Every step names an encounter that
+already exists, and the step's state is read back from that encounter's record in
+`completedEvents`:
+
+| Step state | Meaning |
+| --- | --- |
+| `done` | the encounter was resolved as a `Success` |
+| `failed` | the encounter was attempted and failed; the step stays reopenable |
+| `open` | the requirements are met and you can act on it now |
+| `locked` | something is still missing. The path is still shown, never hidden |
+
+One source of truth: an encounter cannot read as "resolved" in the chronicle and
+"still open" in the thread, because there is only one place the answer lives.
+
+A **decision** is the one thing a thread needs that an encounter cannot express.
+An encounter rolls a die; a decision is *declared*. Flags are booleans, so they
+can record "the Combine backed the farm" but not the difference between the
+Combine backing it and the rows being leased out to the city. Decisions therefore
+keep their answer in `state.player.decisions`, keyed by fork id:
+
+```js
+requires: { flags: ['brineFarmSigned'] },
+options: [
+  { id: 'sole',    title: 'Keep it in your own hands',  sets: { farmSoleKept: true },      /* ... */ },
+  { id: 'combine', title: "Take the Combine's backing", sets: { farmCombineBacked: true }, /* ... */ },
+  { id: 'open',    title: 'Open the rows to the city',  sets: { farmOpenToCity: true },    /* ... */ }
+]
+```
+
+Every option writes **normal flags as well**, so the rest of the game only ever
+needs a flag and already knows how to read one. Decisions are final: declaring a
+second answer for the same fork is refused, because a choice you can take back is
+not the story of a farm, it is a menu. `sanitizeStoryDecisions()` drops anything
+the catalogue does not declare, so a hand-edited save cannot invent a fork or
+push one to "resolved" with an option that does not exist.
+
+A fork opens when its `requires` flags are set -- for the Brine-Farm, when the
+lease is signed, *before* every step is done. You choose while the farm is still
+empty, which is the only moment the choice is actually a choice. A shut fork
+shows its own `shutHint` and never an excerpt of its `prompt`: the prompt talks
+about a farm that is already yours, so reusing it as a preview would promise the
+player something that has not happened yet.
+
+### What a decision opens
+
+A decision that only writes a flag changes nothing the player can actually do, so
+every option is read back by the game as an ordinary gate. `app.js` grew a `flag`
+requirement for it: the same type `lore.js` already used for lore gates, reading
+the same field (`id`), so a fork and a lore entry do not need two grammars to say
+the same thing.
+
+```js
+requires: [{ type: 'flag', id: 'farmSoleKept' }]
+```
+
+Each branch of the Brine-Farm opens exactly one repeatable encounter in
+`leviathan-trench` and one uncommon tide card, and leaves the other two shut. The
+three are deliberately not interchangeable -- if they shared an hour, a test and a
+handout, the choice would be a label over one encounter:
+
+| Option | Repeated work | Hour | Test | Pays |
+| --- | --- | --- | --- | --- |
+| `farmSoleKept` | Work the Rows Alone at the Turn of the Tide | any | Resolve | 1 phosphor amber, 1 ducat |
+| `farmCombineBacked` | Deliver the Combine's Quota to the Weigh-House | night | Persuasion | 3 ducats |
+| `farmOpenToCity` | Collect the Row Rents at the Customs House | day | Cunning | 2 ducats |
+
+Encounters always pay faction standing on top, from the realm they happen in.
+The three uncommon cards (`storyCards` in `app.js`) are gated the same way and are
+the only ones that can disagree with that: they give standing to a faction only
+where there is somebody to please. Keeping the farm in your own hands raises
+nobody's opinion of you, because there is nobody left to convince.
+
+### Art that belongs to the data
+
+Two screens take their background from data rather than from a stylesheet rule:
+
+- a thread may declare `art`, and `renderChronicles()` puts it on the panel as
+  `--story-thread-art`. A thread without one keeps the plain panel background, so
+  adding a thread still needs no CSS.
+- the date card in the left sidebar shows `CLOCK_SKY.day` or `CLOCK_SKY.night`
+  depending on `clock.isDay`, and takes an `is-day` / `is-night` class so the hour
+  badge stops being a night badge at noon.
+
+`tools/assets-check.js` checks both against the disk, so a renamed or missing
+picture fails a check instead of showing an empty box.
+
+#### One picture belongs to one thing
+
+No card or encounter ever borrows another's picture. Until a piece of the world
+has an image of its own it shows `immagini/default.jpg`, declared once as
+`DEFAULT_ART` and used by encounter thumbnails, card faces, the card that turns
+over in the draw window, the card you play, and story thread panels. The default
+is checked against the disk like any other reference: a default that went missing
+would turn every honest gap into a broken image.
+
+New art goes in `immagini/carte/`, named after the card or encounter title, and
+the object gets a matching `image:` line. Reference and file are one edit, and
+`tools/assets-check.js` checks every one of them against the disk on the next run.
+
 ### What unlocks what
 
 Regenerate these tables from the source with `node tools/update-lore-docs.js`, so
 they cannot drift away from the gates the game actually uses.
 
+<!-- FLAGS:START -->
 | Flag | Meaning | Lean | Set by |
 | --- | --- | --- | --- |
 | `ledgerTrusted` | The customs house trusts you | helpful | **Take the Ledger Job at the Customs House** (success) |
@@ -156,6 +267,11 @@ they cannot drift away from the gates the game actually uses.
 | `checkpointMercy` | You spared a name at the checkpoint | helpful | **Carry the Sealed Cargo Past the Checkpoint** (success) |
 | `checkpointBetrayal` | You named someone at the checkpoint | hostile | **Carry the Sealed Cargo Past the Checkpoint** (failure) |
 | `scholariumDebt` | The Scholarium holds a debt over you | hostile | **Carry the Sealed Cargo Past the Checkpoint** (failure) |
+| `farmSoleKept` | The Brine-Farm answers to you alone | helpful | **How the farm is run** (choosing *Keep it in your own hands*) |
+| `farmCombineBacked` | The Combine bankrolls your Brine-Farm | helpful | **How the farm is run** (choosing *Take the Combine's backing*) |
+| `farmOpenToCity` | The Brine-Farm is leased row by row | helpful | **How the farm is run** (choosing *Open the rows to the city*) |
+<!-- FLAGS:END -->
+<!-- LORE:START -->
 | Id | Kind | Subject | Opens when | Chapters |
 | --- | --- | --- | --- | --- |
 | `place-spire` | Places | The Great Clockwork Belfry | from the start | 3 (1 flag-gated) |
@@ -171,6 +287,8 @@ they cannot drift away from the gates the game actually uses.
 | `place-salon` | Places | The Astronavigators' Salon | from the start | 3 (2 flag-gated) |
 | `person-conductors` | People | The Masked Conductors | flag `railTimetable` | 2 (1 flag-gated) |
 | `person-doge` | People | The Doge of the Drowned City | flag `brineFarmSigned` | 2 (1 flag-gated) |
+<!-- LORE:END -->
+<!-- CHAPTERS:START -->
 | Subject | Chapter | Needs |
 | --- | --- | --- |
 | `place-spire` | Moved stone by stone | with its subject |
@@ -205,12 +323,15 @@ they cannot drift away from the gates the game actually uses.
 | `person-conductors` | They knew your name | flag `railPassage` |
 | `person-doge` | The winter of 1502 | with its subject |
 | `person-doge` | The hand on the timetable | flag `railPassage` |
+<!-- CHAPTERS:END -->
+<!-- STANDING:START -->
 | Faction | Ally if you hold | Hostile if you hold |
 | --- | --- | --- |
 | The Council of Ten | `councilRecords` | `checkpointBetrayal` |
 | The Scholarium | `cargoCarried`, `ledgerTrusted` | `scholariumDebt` |
 | The Guild of Clocksmiths | `railTimetable` | — |
 | The Tide Monarchs | `treatyRead` | — |
+<!-- STANDING:END -->
 
 ### Adding lore
 
@@ -241,14 +362,19 @@ Node 18 or newer is only needed for the checks and the harnesses; the game
 itself has no runtime dependencies and no build step.
 
 ```bash
-npm run check       # syntax check app.js and lore.js
+npm run check       # syntax check app.js, lore.js and threads.js
 npm test            # run every harness in tools/
 npm run docs:lore   # regenerate the unlock tables in this file from lore.js
 ```
 
 The harnesses live in `tools/` and write their output to `tools/out/`, which is
-git-ignored. Each one loads `lore.js` before `app.js`, matching the order
-`index.html` uses, so a save boot cannot fail on a missing lore binding.
+git-ignored. They load the game through `tools/harness.js`, which owns the single
+`GAME_SOURCES` list mirroring the order `index.html` uses. A harness must never
+build its own file list: when a new data file is added to the page, it has to be
+added in one place, not remembered in a dozen.
+
+A single harness can be run on its own, for instance `node tools/story-check.js`
+for the story threads and decisions.
 
 ## Notes
 

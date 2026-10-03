@@ -163,6 +163,13 @@ button {
   gap: 12px;
 }
 
+/* `hidden` non basta da solo: la regola qui sopra dichiara `display: flex`, che
+   vince il `display: none` dell'attributo. Serve dirlo esplicitamente, e' il
+   motivo per cui questo non e' il comportamento atteso dagli attributi HTML. */
+.topbar[hidden] {
+  display: none;
+}
+
 .topbar-meta {
   display: flex;
   align-items: center;
@@ -846,6 +853,13 @@ button {
 .date-card {
   position: relative;
   padding: 9px 10px 8px;
+  /* Il cielo del giorno o della notte e' un `background-image` che mette
+     `renderGameClock`, perche' dipende dall'ora del gioco. Qui si dice solo come
+     deve coprire il riquadro: senza queste tre righe resterebbe a misura naturale,
+     cioe' una striscia in un angolo invece di un fondo. */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .date-row > span:first-child {
@@ -861,6 +875,17 @@ button {
   color: #b8b1f3;
   font-size: 0.55rem;
   text-transform: uppercase;
+}
+
+/* La pastiglia dell'ora nasce in index.html come pastiglia notturna, e la classe
+   resta quella per tutti gli altri usi. Su questa scheda pero' il gioco sa che
+   ora e' davvero: di giorno la stessa pastiglia vestita di viola direbbe una cosa
+   falsa sotto un cielo chiaro, quindi con `is-day` passa all'oro, che e' il
+   colore con cui il resto della scheda dice la data e l'ora. */
+.date-card.is-day .night-badge {
+  border-color: rgba(211, 154, 56, 0.42);
+  background: rgba(174, 113, 31, 0.24);
+  color: #f2cf8a;
 }
 
 .date-card p {
@@ -1233,7 +1258,7 @@ button {
 .hero-card {
   position: relative;
   display: flex;
-  min-height: 290px;
+  min-height: 205px;
   align-items: center;
   margin: 0;
   overflow: hidden;
@@ -1270,7 +1295,7 @@ button {
 .hero-copy {
   position: relative;
   width: 100%;
-  padding: 36px 30px 65px;
+  padding: 20px 26px 46px;
 }
 
 .hero-copy .eyebrow {
@@ -1280,30 +1305,30 @@ button {
 
 .hero-copy h2 {
   max-width: 780px;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   color: #f3ecdf;
   font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(2rem, 3vw, 3rem);
+  font-size: clamp(1.6rem, 2.2vw, 2.15rem);
   font-variant: small-caps;
   font-weight: 700;
   line-height: 0.98;
 }
 
 .hero-copy p:not(.eyebrow) {
-  max-width: 690px;
+  max-width: 640px;
   margin: 0;
   color: rgba(239, 230, 214, 0.84);
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.06rem;
-  line-height: 1.48;
+  font-size: 0.96rem;
+  line-height: 1.4;
   text-shadow: 0 1px 7px #090807;
 }
 
 .hero-map-button {
   position: absolute;
-  right: 28px;
-  bottom: 22px;
-  padding: 9px 14px;
+  right: 26px;
+  bottom: 14px;
+  padding: 7px 12px;
   border: 1px solid #c98d2f;
   border-radius: 4px;
   background: rgba(27, 20, 13, 0.84);
@@ -1574,7 +1599,7 @@ summary:focus-visible {
   }
 
   .hero-card {
-    min-height: 270px;
+    min-height: 190px;
   }
 
   .hero-copy {
@@ -1636,20 +1661,20 @@ summary:focus-visible {
   }
 
   .hero-card {
-    min-height: 330px;
+    min-height: 230px;
     align-items: flex-start;
   }
 
   .hero-copy {
-    padding: 28px 18px 76px;
+    padding: 22px 18px 62px;
   }
 
   .hero-copy h2 {
-    font-size: 2.1rem;
+    font-size: 1.7rem;
   }
 
   .hero-copy p:not(.eyebrow) {
-    font-size: 0.96rem;
+    font-size: 0.9rem;
   }
 
   .hero-map-button {
@@ -3248,6 +3273,239 @@ summary:focus-visible {
   max-width: 68ch;
 }
 
+/* Pagina Chronicles: i percorsi che il giocatore sta costruendo.
+   ============================================================================ */
+
+.story-thread-list {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 32px;
+}
+
+.story-thread {
+  padding: 20px;
+  border: 1px solid rgba(197, 151, 79, 0.2);
+  border-left: 3px solid var(--gold);
+  border-radius: 6px;
+  /* Il fondo sono tre cose in fila: la velatura che tiene leggibile il testo, la
+     foto del percorso se quel percorso ne dichiara una, e il pannello pieno sotto
+     tutto il resto.
+     `var(--story-thread-art, none)` e non `var(--story-thread-art)`: senza il
+     valore di ripiego una variabile mancante renderebbe invalida l'intera riga, e
+     il percorso senza arte resterebbe senza fondo invece che con quello di prima. */
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(180deg, rgba(19, 17, 14, 0.84), rgba(15, 13, 11, 0.95)),
+    var(--story-thread-art, none);
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-size: cover, cover;
+}
+
+.story-thread-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.story-thread-mark {
+  color: var(--gold);
+  font-size: 1.35rem;
+  text-shadow: 0 0 16px rgba(211, 154, 56, 0.45);
+  text-align: center;
+}
+
+.story-thread-head h4 {
+  margin: 0;
+  color: #f1e8d9;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-variant: small-caps;
+}
+
+.story-thread-meta {
+  margin: 2px 0 0;
+  color: #9b8b76;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.story-thread-teaser {
+  margin: 0 0 16px;
+  max-width: 72ch;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+/* I passi sono una lista numerata: il numero dice in che ordine il percorso si
+   percorre, il marchio dice a che punto si e'. La riga aperta e' l'unica
+   luminosa perche' e' l'unica su cui si puo' agire adesso. */
+.story-steps {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.story-step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border-radius: 3px;
+}
+
+.story-step-mark {
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.story-step.is-done .story-step-mark {
+  color: #8fc79a;
+}
+
+.story-step.is-failed .story-step-mark {
+  color: #d8a45f;
+}
+
+.story-step.is-open {
+  background: rgba(211, 154, 56, 0.09);
+  box-shadow: inset 2px 0 0 var(--gold);
+}
+
+.story-step.is-open .story-step-mark {
+  color: var(--gold);
+}
+
+.story-step.is-locked .story-step-mark {
+  color: #5c5245;
+}
+
+.story-step-title {
+  display: block;
+  color: #d8c9a8;
+  font-size: 0.8rem;
+}
+
+.story-step.is-locked .story-step-title {
+  color: #7d7263;
+}
+
+.story-step.is-done .story-step-title {
+  color: #b9c9ae;
+}
+
+.story-step-meta {
+  display: block;
+  margin-top: 1px;
+  color: #8a7d69;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Il bivio. Chiuso e aperto devono essere distinguibili a colpo d'occhio: uno
+   mostra tre bottoni, l'altro nessuno. */
+.story-fork {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(197, 151, 79, 0.24);
+  border-radius: 5px;
+  background: rgba(12, 10, 8, 0.45);
+}
+
+.story-fork.is-shut {
+  border-style: dashed;
+  border-color: rgba(123, 112, 96, 0.3);
+  background: transparent;
+}
+
+.story-fork-kicker {
+  margin: 0 0 8px;
+  color: var(--gold);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.story-fork-shut-body,
+.story-fork-closed-body {
+  margin: 0;
+  color: #9b8b76;
+  font-size: 0.76rem;
+  line-height: 1.6;
+}
+
+.story-fork-closed-title {
+  margin: 0 0 6px;
+  color: #f1e8d9;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-variant: small-caps;
+}
+
+.story-fork-prompt {
+  margin: 0 0 14px;
+  max-width: 72ch;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.story-fork-options {
+  display: grid;
+  gap: 10px;
+}
+
+/* I tre bottoni sono alti e parlanti perche' la scelta non e' reversibile e va
+   letta tutta prima di essere fatta. */
+.story-option {
+  display: grid;
+  gap: 6px;
+  padding: 13px 15px;
+  border: 1px solid rgba(197, 151, 79, 0.28);
+  border-radius: 4px;
+  background: rgba(24, 18, 12, 0.6);
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.story-option:hover {
+  border-color: var(--gold);
+  background: rgba(174, 113, 31, 0.16);
+  transform: translateY(-1px);
+}
+
+.story-option-title {
+  color: #e8bf74;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.02rem;
+  font-variant: small-caps;
+}
+
+.story-option-body {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.6;
+}
+
+.story-fork-hint {
+  margin: 12px 0 0;
+  color: #8a7d69;
+  font-size: 0.64rem;
+  font-style: italic;
+}
+
 .faction-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
@@ -3579,13 +3837,19 @@ summary:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
   gap: 62px;
-  align-items: center;
+  align-items: start;
   width: min(1080px, 100%);
   padding: 56px 44px;
 }
 
 .welcome-story {
   min-width: 0;
+  /* Solo la colonna di racconto sale, e sale piu' di quanto sembri: il blocco e'
+     centrato nel riquadro, quindi senza questo scarto il primo rigo di sinistra
+     finisce quasi alla stessa altezza del riquadro di accesso a destra. La
+     traslazione e' puramente visiva, quindi l'altezza della griglia non cambia e
+     il pannello con i pulsanti resta fermo dov'e'. */
+  transform: translateY(-64px);
 }
 
 .welcome-access {
@@ -3684,11 +3948,25 @@ summary:focus-visible {
 /* Il bottone Google resta in chiaro anche nel tema scuro: e' il segnale che
    identifica quel metodo di accesso. */
 .welcome-button.welcome-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
   border-color: rgba(218, 220, 224, 0.4);
   background: #f7f7f7;
   color: #3c4043;
   font-weight: 600;
+}
+
+/* Il logo e' a sinistra del testo, non sopra: il bottone resta una riga sola e
+   non da' l'idea di due bottoni. Il glifo e' multicolore e va lasciato stare:
+   colorare l'SVG dall'esterno lo renderebbe monocromo e non sembrerebbe piu' il
+   marchio. */
+.welcome-google-mark {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
 }
 
 .welcome-button.welcome-google:hover:not(:disabled) {
@@ -3785,6 +4063,14 @@ summary:focus-visible {
   font-size: 0.72rem;
 }
 
+/* Le quattro icone sono disegni, non caratteri: senza una dimensione esplicita
+   un SVG inline dentro una griglia eredita la dimensione della vista e di fatto
+   non si vede. `currentColor` (impostato sopra) e' il colore del tema. */
+.welcome-point-mark svg {
+  width: 15px;
+  height: 15px;
+}
+
 .welcome-points h2 {
   margin: 3px 0 5px;
   color: #efe4d2;
@@ -3879,6 +4165,13 @@ summary:focus-visible {
 
   .welcome-access {
     order: 2;
+  }
+
+  /* Impilate le due colonne non sono piu' una coppia affiancata: la griglia
+     scorre tutta intera, quindi la colonna di racconto torna al suo posto senza
+     la traslazione. */
+  .welcome-story {
+    transform: none;
   }
 }
 
@@ -4446,34 +4739,6 @@ summary:focus-visible {
 .deck-card .card-ribbon {
   border-color: color-mix(in srgb, var(--rarity-color, #d0b270) 45%, transparent);
   color: var(--rarity-color, #d0b270);
-}
-
-.card-art-placeholder {
-  display: grid;
-  height: 164px;
-  flex: 0 0 164px;
-  place-content: center;
-  gap: 8px;
-  border-bottom: 1px solid rgba(197, 151, 79, 0.16);
-  background:
-    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--rarity-color, #b49356) 20%, transparent), transparent 44%),
-    repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 9px),
-    #17120e;
-  color: var(--rarity-color, #b49356);
-  text-align: center;
-}
-
-.card-art-placeholder > span {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 3rem;
-  line-height: 1;
-}
-
-.card-art-placeholder > small {
-  color: #93836e;
-  font-size: 0.54rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .card-discard {

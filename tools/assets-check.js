@@ -26,6 +26,7 @@ global.document = { getElementById: () => makeEl(), querySelector: () => makeEl(
 const ROOT = 'C:/Users/focas/source/salt-republic';
 vm.runInThisContext(fs.readFileSync(`${ROOT}/factions.js`, 'utf8'));
 vm.runInThisContext(fs.readFileSync(`${ROOT}/lore.js`, 'utf8'));
+vm.runInThisContext(fs.readFileSync(`${ROOT}/threads.js`, 'utf8'));
 vm.runInThisContext(fs.readFileSync(`${ROOT}/app.js`, 'utf8'));
 
 const refs = new Set();
@@ -34,6 +35,17 @@ Object.values(locations).forEach((l) => {
   l.actions.forEach((a) => refs.add(a.image));
 });
 allTideCards.forEach((c) => refs.add(c.image));
+// The artwork a story thread declares for itself on the Chronicles page. Optional:
+// a thread without one keeps the plain panel background and is still a thread.
+storyThreads.forEach((t) => { if (t.art) refs.add(t.art); });
+// The figure shown when a piece of the world does not have its picture yet. It has
+// to exist, and it has to be checked exactly like a real reference: a default that
+// went missing would turn six honest gaps into six broken images.
+refs.add(DEFAULT_ART);
+// The sky behind the date card: the same box of the left menu, showing one of the
+// two pictures depending on the hour the game is at.
+refs.add(CLOCK_SKY.day);
+refs.add(CLOCK_SKY.night);
 malusCards.forEach((c) => {
   refs.add(`immagini/carte/malus ${c.asset} low.jpg`);
   refs.add(`immagini/carte/malus ${c.asset} high.jpg`);

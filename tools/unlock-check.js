@@ -37,6 +37,7 @@ const run = (source) => vm.runInThisContext(source);
 
 vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/factions.js', 'utf8'));
 vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/lore.js', 'utf8'));
+vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/threads.js', 'utf8'));
 vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/app.js', 'utf8'));
 
 log('=== A) Fresh save: how each encounter presents itself ===');

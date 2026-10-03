@@ -46,6 +46,7 @@ function check(label, ok) {
 const ROOT = 'C:/Users/focas/source/salt-republic';
 vm.runInThisContext(fs.readFileSync(`${ROOT}/factions.js`, 'utf8'));
 vm.runInThisContext(fs.readFileSync(`${ROOT}/lore.js`, 'utf8'));
+vm.runInThisContext(fs.readFileSync(`${ROOT}/threads.js`, 'utf8'));
 vm.runInThisContext(fs.readFileSync(`${ROOT}/app.js`, 'utf8'));
 
 log('=== 1) Faction data integrity ===');

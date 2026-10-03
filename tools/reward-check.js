@@ -51,6 +51,7 @@ const realRandom = Math.random;
 
 vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/factions.js', 'utf8'));
 vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/lore.js', 'utf8'));
+vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/threads.js', 'utf8'));
 vm.runInThisContext(fs.readFileSync('C:/Users/focas/source/salt-republic/app.js', 'utf8'));
 
 const CHAIN = ['take-ledger-job', 'carry-sealed-cargo', 'bargain-salt-pans', 'sign-brine-farm-papers'];

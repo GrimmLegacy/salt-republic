@@ -19,6 +19,18 @@ const MALUS_DRAW_WEIGHT = 55;
 const GAME_YEAR = 1530;
 const DAY_START_HOUR = 6;
 const DAY_END_HOUR = 18;
+// Il cielo che la scheda della data mostra. Sono un dato e non due stringhe scritte
+// dentro `renderGameClock`: `tools/assets-check.js` li controlla contro il disco
+// leggendoli da qui, quindi un file rinominato o cancellato salta fuori li' invece
+// che a schermo.
+const CLOCK_SKY = { day: 'immagini/giorno.jpg', night: 'immagini/notte.jpg' };
+// La figura quando non ne esiste ancora una. Vale per gli incontri, per le carte e
+// per i percorsi: un pezzo di mondo che non ha ancora il suo disegno mostra questa,
+// e non un riquadro vuoto ne' il segnaposto "Artwork to be added", che diceva al
+// giocatore che mancava qualcosa invece di dire che l'arte e' un lavoro aperto.
+// Nessuno riusa mai la figura di un altro pezzo: questa e' l'unica eccezione,
+// perche' non e' la figura di qualcosa, e' l'assenza dichiarata di una figura.
+const DEFAULT_ART = 'immagini/default.jpg';
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -624,6 +636,84 @@ const locations = {
         },
         requires: [],
         repeatable: true
+      },
+      // ------------------------------------------------------------------
+      // I tre esiti del bivio della Brine-Farm, uno per ramo.
+      //
+      // Sono la ragione per cui il bivio esiste: senza di questi, la scelta
+      // scriverebbe un flag e non cambierebbe niente di quello che il giocatore
+      // puo' fare. Ognuno ha un'ora, una fatica e un premio diversi, perche' un
+      // bivio non deve dare tre strade con lo stesso sapore.
+      //
+      // `requires` legge il flag scritto dall'opzione e nient'altro: nessuno di
+      // questi incontri ha codice proprio per il bivio, lo apre la stessa
+      // condizione che aprirebbe qualsiasi altro passo.
+      // ------------------------------------------------------------------
+      {
+        id: 'farm-work-the-rows-alone',
+        title: 'Work the Rows Alone at the Turn of the Tide',
+        summary:
+          'Nobody signs a shift for this and nobody is owed anything for it: the farm is yours, so the work is yours, and it happens at the turn of the tide when the vents go quiet and the beds stop moving. You go down the terrace ladder with the cutting rig and the brine gauge in the same hand, read the temperature of every vat yourself, and clip only what lit on its own. The beds answer a hand they have learned, which is the whole of the payment. The other way of having a farm is a crew and a ledger and a name on the deed that is not only yours; you have chosen the slower one, and the slower one is the only one the abyss cannot take off you.',
+        appearanceReason: 'The rows are worked by whoever signed for them, and at the turn of the tide there is no crew on the terrace but you.',
+        image: 'immagini/carte/Work the Rows Alone at the Turn of the Tide.jpg',
+        when: 'any',
+        test: 'resolve',
+        difficulty: 3,
+        success: {
+          stats: { resolve: 1 },
+          resources: { phosphorAmber: 1, ducatsOfSalt: 1 },
+          log: 'You come up the ladder with amber in the apron and the vats reading where you left them. The beds answered the hand that signed, and nobody was paid to stand there and watch you do it.'
+        },
+        failure: {
+          resources: { wounds: 1 },
+          log: 'A valve you should have read twice seizes under your grip. There is no crew on the terrace to haul you out, and that was the arrangement you wrote for yourself when you wrote your answer to the Combine.'
+        },
+        requires: [{ type: 'flag', id: 'farmSoleKept' }],
+        repeatable: true
+      },
+      {
+        id: 'farm-deliver-the-combine-quota',
+        title: 'Deliver the Combine\'s Quota to the Weigh-House',
+        summary:
+          'The Combine tallies its cargo at night, when the surface clerks are asleep and nobody has to write down who carried what. You bring the graded amber up the shaft in the sealed crates they leave on your dock, take the weight the weigh-master calls, and do not argue it, because arguing a weight with the Combine is how a farm stops being one of theirs. The berth is warm and the tea is real and the master knows your name, which is the part with the price on it. What you carry back down is coin and a little of their manner, and the manner is what you will still have when the coin is spent.',
+        appearanceReason: 'The Combine tallies the terraces at night, and the quota goes up to the weigh-house whether or not you are on the ladder.',
+        image: "immagini/carte/Deliver the Combine's Quota to the Weigh-House.jpg",
+        when: 'night',
+        test: 'persuasion',
+        difficulty: 4,
+        success: {
+          stats: { persuasion: 1 },
+          resources: { ducatsOfSalt: 3 },
+          log: 'The weigh-master calls the weight and you let it stand, and the Combine pays on the spot. Halfway down the shaft you notice you have started standing the way they stand.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You argue the weight. The master does not raise his voice, and a clerk you have never met writes your name on a list you will not be shown.'
+        },
+        requires: [{ type: 'flag', id: 'farmCombineBacked' }],
+        repeatable: true
+      },
+      {
+        id: 'farm-collect-the-row-rents',
+        title: 'Collect the Row Rents at the Customs House',
+        summary:
+          'The rows are leased bed by bed, and the rent falls due on the customs house wall, which means one morning a season you stand under the notices with the lease book and take coin from people you have never waded a vat beside. Most of them pay. The ones who do not offer a reason, and the reason is usually true, and what you do with it is the whole of what being a landlord is. You write down what came in and what did not, and the arithmetic is honest even when the rows are not, and the farm has already stopped being the keeper\'s rows and become whatever the city has decided it is worth.',
+        appearanceReason: 'The rows are leased bed by bed, and the rent is collected on the customs house wall at the start of every season.',
+        image: 'immagini/carte/Collect the Row Rents at the Customs House.jpg',
+        when: 'day',
+        test: 'cunning',
+        difficulty: 2,
+        success: {
+          stats: { cunning: 1 },
+          resources: { ducatsOfSalt: 2 },
+          log: 'The book balances and the wall says four names where it said three. You know two of them by sight now, and neither of them is the Combine.'
+        },
+        failure: {
+          resources: { scandal: 1 },
+          log: 'Two leases went to the same bed and both lessees have a witness. The notice on the wall is your notice, and the whole wall can read it.'
+        },
+        requires: [{ type: 'flag', id: 'farmOpenToCity' }],
+        repeatable: true
       }
     ]
   },
@@ -795,6 +885,11 @@ const defaultState = {
     // and lore gates read them, so the same choice can make a faction an ally or
     // an enemy. `lore` remembers what has been discovered and why.
     flags: {},
+    // Le scelte dichiarate, indicizzate per bivio (vedi threads.js). Un flag
+    // risponde solo si' o no: qui ci finisce la domanda " quale delle tre ", che
+    // un flag non puo' rappresentare. Ogni opzione scrive anche un flag, quindi
+    // tutto il resto del gioco continua a leggere il bivio senza sapere che esiste.
+    decisions: {},
     visitedLocations: [],
     lore: { entries: {}, chapters: {} },
     log: []
@@ -984,6 +1079,61 @@ const factionCards = [
   }
 ];
 
+// Le carte che vengono da una scelta dichiarata.
+//
+// Sono separate dalle carte di fazione perche' rispondono a un'altra domanda.
+// Quelle dicono quanto ti conosce una fazione, e salgono giocando; queste dicono
+// cosa hai deciso, e restano ferme per sempre. Una partita ha al massimo una di
+// esse nel mazzo, ed e' esattamente il punto: il mazzo di chi ha tenuto la
+// fattoria non contiene la carta di chi l'ha aperta alla citta'.
+//
+// Il gate e' un flag, non un livello, e questo le rende l'unico premio del gioco
+// che non si puo' guadagnare con il lavoro: si puo' solo scegliere.
+//
+// Le tre non danno tutte la stessa cosa, perche' i tre rami non promettono la
+// stessa cosa. La fattoria in mano propria non fa salire nessuno in reputazione
+// (non c'e' nessuno da convincere) e paga in risolutezza; il sostegno della
+// Combine paga in persuasione e in reputazione della Combine; le file aperte
+// pagano in astuzia e in reputazione del Consiglio.
+const storyCards = [
+  {
+    id: 'uncommon-farm-single-signature',
+    title: 'The Deed With One Signature',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '❋',
+    image: 'immagini/carte/The Deed With One Signature.jpg',
+    quote: 'There is one name on the lease, and it is the same name that comes up the terrace ladder at the turn of the tide.',
+    appearanceReason: 'An uncommon tide card. It surfaces only in a chronicle where the Brine-Farm was kept in one pair of hands, and it reads the same decision the rows already answer to.',
+    effects: { statXp: { resolve: 2, vigilance: 1 } },
+    requires: [{ type: 'flag', id: 'farmSoleKept' }]
+  },
+  {
+    id: 'uncommon-farm-combine-quota-book',
+    title: 'The Quota Book They Keep For You',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '≋',
+    image: 'immagini/carte/The Quota Book They Keep For You.jpg',
+    quote: 'The Combine keeps your weights in a book you are allowed to look at and not allowed to copy.',
+    appearanceReason: 'An uncommon tide card. It comes out of the reserve only in a chronicle where the Combine bankrolled the Brine-Farm, because the weights on that page are theirs now.',
+    effects: { statXp: { persuasion: 2, audacity: 1 }, standing: { faction: 'brine-combine', points: 5 } },
+    requires: [{ type: 'flag', id: 'farmCombineBacked' }]
+  },
+  {
+    id: 'uncommon-farm-names-on-the-wall',
+    title: 'The Names on the Wall',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '❖',
+    image: 'immagini/carte/The Names on the Wall.jpg',
+    quote: 'Four names for four beds, and one of them has been underlined by somebody who was not you.',
+    appearanceReason: 'An uncommon tide card. It surfaces only in a chronicle where the rows were leased out, because that is the day the city started writing on your farm.',
+    effects: { statXp: { cunning: 2, elegance: 1 }, standing: { faction: 'council', points: 5 } },
+    requires: [{ type: 'flag', id: 'farmOpenToCity' }]
+  }
+];
+
 const rarityCards = [
   {
     id: 'uncommon-brass-compass',
@@ -1060,7 +1210,10 @@ const rarityNames = {
   unique: 'Unique'
 };
 
-const allTideCards = [...trialCards, ...rarityCards, ...factionCards];
+// L'ordine non conta: il mazzo e' un pool e ogni sorteggio riparte dal catalogo
+// intero. Le carte con un gate restano nel mucchio e si aprono da sole quando la
+// condizione e' soddisfatta.
+const allTideCards = [...trialCards, ...rarityCards, ...factionCards, ...storyCards];
 
 const malusCards = [
   {
@@ -1286,6 +1439,7 @@ function loadSave() {
         equipment: sanitizeEquipment(parsed.player?.equipment),
         inventory: sanitizeInventory(parsed.player?.inventory, sanitizeEquipment(parsed.player?.equipment)),
         flags: sanitizeFlags(parsed.player?.flags),
+    decisions: sanitizeStoryDecisions(parsed.player?.decisions),
         reputation: sanitizeReputation(parsed.player?.reputation),
         visitedLocations: sanitizeVisited(parsed.player?.visitedLocations),
         lore: sanitizeLore(parsed.player?.lore),
@@ -1769,7 +1923,7 @@ function drawTideCard() {
     subtitle: drawnCard.quote,
     tone: 'neutral',
     draw: {
-      image: drawnCard.image,
+      image: drawnCard.image || DEFAULT_ART,
       sigil: drawnCard.symbol,
       detail: `${rarityNames[drawnCard.rarity]} · ${poolOdds}% of the pool you drew from`
     },
@@ -1890,7 +2044,7 @@ function playTideCard(cardId) {
     // tirato un numero econtro una soglia": qui non c'e' nessun test da superare,
     // e mostrare un dado avrebbe descritto un rischio che la carta non ha. La
     // carta che si rovescia dice la cosa giusta, cioe' che cosa hai giocato.
-    draw: { image: card.image, sigil: card.symbol, detail: `${rarityNames[card.rarity]} · ${rarityWeights[card.rarity]}% base rarity` },
+    draw: { image: card.image || DEFAULT_ART, sigil: card.symbol, detail: `${rarityNames[card.rarity]} · ${rarityWeights[card.rarity]}% base rarity` },
     narrative: card.quote,
     // La riga di standing entra insieme alle altre: il giocatore deve vedere
     // subito che cosa gli ha fatto guadagnare, non indovinarlo dalla pagina
@@ -2016,6 +2170,32 @@ function applyReward(reward, source = null) {
 
 const RESOLUTION_ROLL_MS = 1300;
 const RESOLUTION_SETTLE_MS = 900;
+
+// Registra una scelta dichiarata su un bivio.
+//
+// Diversamente da un incontro, qui non si tira niente: la scelta e' il risultato.
+// Il bivio si chiude per sempre e non e' ricancellabile, quindi la funzione
+// rifiuta una seconda scelta sullo stesso bivio invece di sovrascriverla. Il resto
+// del lavoro e' delegato ad `applyReward`: un'opzione scrive flag, risorse ed
+// esperienza esattamente come li scriverebbe un esito di incontro, e questa e' la
+// ragione per cui un bivio non ha bisogno di codice proprio per gli effetti.
+//
+// Il testo di `flag` va su `reason`: la cronaca spiega perche' la cosa e' successa,
+// e per un bivio la ragione e' "hai dichiarato", non "hai superato".
+function declareStoryDecision(forkId, optionId) {
+  const fork = findStoryFork(forkId);
+  const option = findStoryOption(fork, optionId);
+  if (!fork || !option) return false;
+  if (getStoryDecision(forkId)) return false;
+  if (!isStoryForkOpen(fork)) return false;
+
+  state.player.decisions[forkId] = optionId;
+  applyReward({ sets: option.sets, stats: option.stats, resources: option.resources });
+  addLog(option.log, fork.title, `You declared how the farm is run: ${option.title}. This was not a test and nothing was rolled — it is the answer you gave, and the chronicle keeps it.`);
+  saveGame();
+  render();
+  return true;
+}
 const SUSPENSE_LINES = [
   'The die turns…',
   'The lagoon holds its breath…',
@@ -2441,9 +2621,17 @@ function renderSidebar() {
   if (regeneration.changed) saveGame();
 }
 
+// La testata della pagina: occhiello sopra, titolo sotto.
+//
+// Scrive anche il fatto che la testata e' visibile. `Tales & locales` la nasconde
+// perche' li' sopra non c'e' niente da dire (il riquadro del luogo ripete tutto),
+// e senza questo le altre pagine resterebbero senza testata dopo un passaggio da
+// quella: la testata si nasconde una volta sola, non si ricorda da sola.
 function setPageHeading(kicker, title) {
   document.getElementById('pageKicker').textContent = kicker;
   document.getElementById('pageTitle').textContent = title;
+  const topbar = document.querySelector('.topbar');
+  if (topbar) topbar.hidden = false;
 }
 
 function getGameClock(now = new Date()) {
@@ -2610,6 +2798,26 @@ function renderGameClock() {
   setText('timeLabel', formatGameClock(clock));
   setText('calendarClock', formatGameClock(clock));
   setText('calendarPhase', `${phase.icon} ${phase.label}`);
+
+  // La scheda della data porta il cielo che il gioco sta vivendo: la stessa ora
+  // che il calendario dice a parole, detta con l'immagine del giorno o della
+  // notte. La velatura e la copertura stanno in styles.css insieme al resto
+  // dell'aspetto, perche' sotto la foto ci sono dei numeri e devono restare
+  // leggibili; qui si decide solo quale delle due sale sul fondo.
+  //
+  // La velatura e' piu' scura in alto che in basso perche' la riga della data sta
+  // in alto e l'ora in basso, e i due hanno bisogno di contrasti diversi.
+  //
+  // La classe `is-day` / `is-night` non serve alla foto ma al resto della
+  // scheda: la pastiglia dell'ora nasce come pastiglia notturna in index.html e
+  // senza la classe continuerebbe a essere viola a mezzogiorno.
+  const dateCard = document.querySelector('.date-card');
+  if (dateCard) {
+    const sky = clock.isDay ? CLOCK_SKY.day : CLOCK_SKY.night;
+    dateCard.classList.toggle('is-day', clock.isDay);
+    dateCard.classList.toggle('is-night', !clock.isDay);
+    dateCard.style.backgroundImage = `linear-gradient(180deg, rgba(16, 13, 10, 0.62), rgba(16, 13, 10, 0.9)), url("${sky}")`;
+  }
 }
 
 function openCalendar() {
@@ -2635,7 +2843,16 @@ function toggleCalendar() {
 
 function renderTales() {
   const location = locations[state.currentLocationId];
-  setPageHeading(location.realm, 'Tales & locales');
+  // La testata sopra la pagina dice "Tales & locales" e il nome del reame: due
+  // cose che il riquadro sotto ripete gia' ("Realm: Lagoon Heart") e che il
+  // giocatore ha gia' letto nel menu di sinistra. Sopra il riquadro non ci resta
+  // niente, quindi qui la testata si nasconde.
+  //
+  // Si nasconde e non si toglie: `setPageHeading` aggiorna un elemento fisso in
+  // index.html che le altre pagine continuano a usare, e ogni renderer deve
+  // poterlo mostrare di nuovo. Per questo ogni pagina che chiama
+  // `setPageHeading` riceve la testata indietro.
+  document.querySelector('.topbar').hidden = true;
   document.getElementById('viewContent').innerHTML = `
     <section class="hero-card">
       <div class="hero-art" aria-hidden="true"></div>
@@ -2922,9 +3139,10 @@ function renderDeck() {
 }
 
 function renderTideCard(card) {
-  const artwork = card.image
-    ? `<img src="${card.image}" alt="${card.title}" />`
-    : `<div class="card-art-placeholder rarity-${card.rarity}" aria-label="${card.rarity} card artwork to be added"><span>${card.symbol}</span><small>Artwork to be added</small></div>`;
+  // Una carta che non ha ancora il suo disegno mostra la figura di default invece
+  // del segnaposto: il mazzo e' una mensola di immagini e un vuoto li' deve
+  // sembrare un vuoto, non un caricamento fallito.
+  const artwork = `<img src="${card.image || DEFAULT_ART}" alt="${card.title}" />`;
   return `
     <article class="deck-card common-card rarity-${card.rarity}">
       ${artwork}
@@ -3403,12 +3621,112 @@ function renderStorageWarning() {
   `;
 }
 
+// I passi di un percorso, uno per riga, con lo stato che hanno davvero.
+//
+// `locked` si mostra esplicitamente perche' la pagina deve dire che quella coda
+// esiste: una fattoria con quattro passi ancora da fare e' un percorso, una
+// fattoria con due passi visibili sembrerebbe quasi finita. La riga chiusa dice
+// cosa manca, non lo nasconde.
+function renderStorySteps(thread) {
+  return `<ol class="story-steps">${thread.steps.map((step, index) => {
+    const status = getStoryStepState(step);
+    const record = getEventRecord(step.action);
+    const mark = { done: '✓', failed: '↻', open: '◈', locked: '·' }[status];
+    const outcome = record?.outcome === 'Failure' ? ' · failed, still open' : '';
+    return `
+      <li class="story-step is-${status}">
+        <span class="story-step-mark" aria-hidden="true">${mark}</span>
+        <span class="story-step-body">
+          <span class="story-step-title">${index + 1}. ${step.title}</span>
+          <span class="story-step-meta">${getStoryStepRealm(step)}${outcome}</span>
+        </span>
+      </li>`;
+  }).join('')}</ol>`;
+}
+
+// Un bivio aperto mostra le tre strade e nient'altro: se la risposta e' gia' data,
+// il bivio sparisce e al suo posto resta la sola scelta, con la frase che
+// spiega cosa e' successo. Non si lasciano mai tutte e tre visibili insieme a
+// scelta fatta: un bivio chiuso che sembra aperto e' la peggiore lettura possibile.
+function renderStoryFork(thread, fork) {
+  const chosenId = getStoryDecision(fork.id);
+  if (chosenId) {
+    const chosen = findStoryOption(fork, chosenId);
+    if (!chosen) return '';
+    return `
+      <div class="story-fork is-closed">
+        <p class="story-fork-kicker"><span aria-hidden="true">✦</span> ${fork.title}</p>
+        <p class="story-fork-closed-title">${chosen.title}</p>
+        <p class="story-fork-closed-body">${chosen.body}</p>
+      </div>`;
+  }
+
+  if (!isStoryForkOpen(fork)) {
+    return `
+      <div class="story-fork is-shut">
+        <p class="story-fork-kicker"><span aria-hidden="true">✦</span> ${fork.title}</p>
+        <p class="story-fork-shut-body">${fork.shutHint}</p>
+      </div>`;
+  }
+
+  return `
+    <div class="story-fork is-open">
+      <p class="story-fork-kicker"><span aria-hidden="true">✦</span> ${fork.title}</p>
+      <p class="story-fork-prompt">${fork.prompt}</p>
+      <div class="story-fork-options">
+        ${fork.options.map((option) => `
+          <button type="button" class="story-option" data-story-fork="${fork.id}" data-story-option="${option.id}">
+            <span class="story-option-title">${option.title}</span>
+            <span class="story-option-body">${option.body}</span>
+          </button>`).join('')}
+      </div>
+      <p class="story-fork-hint">No die is rolled here. This is a decision, not a test, and the chronicle keeps whichever one you declare.</p>
+    </div>`;
+}
+
+function renderStoryThread(thread) {
+  const done = thread.steps.filter((step) => getStoryStepState(step) === 'done').length;
+  const forks = (thread.forks || []).map((forkId) => findStoryFork(forkId)).filter(Boolean);
+  // L'arte del percorso arriva dal dato, come l'immagine di una zona o di una
+  // carta. Si passa come variabile CSS invece di scrivere un `background` inline,
+  // cosi' la velatura che tiene leggibile il testo resta in styles.css con il
+  // resto dell'aspetto, e cambiare arte a un percorso e' una riga in threads.js.
+  // Un percorso che non ne dichiara una riceve la figura di default, e la
+  // dichiara come fanno gli altri: cosi' il foglio di stile non deve conoscere
+  // due modi di essere un percorso.
+  //
+  // L'apostrofo viene messo come %27 perche' chiude l'attributo: in `immagini/`
+  // ci sono nomi che lo contengono gia' oggi, e un attributo spezzato da li' non
+  // darebbe nessun errore in console, solo un riquadro senza fondo.
+  const artSource = String(thread.art || DEFAULT_ART).replace(/'/g, '%27');
+  const art = ` style="--story-thread-art: url('${artSource}')"`;
+  return `
+    <article class="story-thread"${art}>
+      <header class="story-thread-head">
+        <span class="story-thread-mark" aria-hidden="true">${thread.icon || '❋'}</span>
+        <div>
+          <h4>${thread.title}</h4>
+          <p class="story-thread-meta">${thread.realm} · ${done} of ${thread.steps.length} steps taken</p>
+        </div>
+      </header>
+      <p class="story-thread-teaser">${thread.teaser}</p>
+      ${renderStorySteps(thread)}
+      ${forks.map((fork) => renderStoryFork(thread, fork)).join('')}
+    </article>`;
+}
+
 function renderChronicles() {
   setPageHeading('Who you have made yourself to', 'Chronicles');
   const list = factionList();
   // La pagina resta leggibile anche se un giorno una zona non avesse una
   // fazione: si mostra quello che c'e', senza lasciare un vuoto.
   const cards = list.map(renderFactionCard).join('');
+
+  // I percorsi stanno prima delle fazioni perche' rispondono a una domanda
+  // diversa e piu' urgente: le fazioni dicono chi ti conosce, i percorsi dicono
+  // cosa stai costruendo. Un giocatore nuovo ha una fattoria a meta' e nessuna
+  // idea di come sia finita li', quindi quella domanda viene prima.
+  const threads = storyThreads.map(renderStoryThread).join('');
 
   const highest = list.reduce((best, faction) => {
     const level = factionLevelFromXp(getFactionXp(faction.id));
@@ -3425,6 +3743,16 @@ function renderChronicles() {
   document.getElementById('viewContent').innerHTML = `
     <section class="chronicles-view">
       ${renderStorageWarning()}
+      <p class="eyebrow">What you are building</p>
+      <h3>Your paths through the city</h3>
+      <p class="panel-hint chronicles-hint">
+        Every step here is a piece of work that already exists somewhere in the lagoon: this page only
+        collects them in the order they belong. Closed steps say what is still missing, not what is
+        hidden.
+      </p>
+      <div class="story-thread-list">
+        ${threads || ''}
+      </div>
       <p class="eyebrow">Standing</p>
       <h3>The four powers of the lagoon</h3>
       ${summary}
@@ -4071,6 +4399,32 @@ function describeRequirement(requirement) {
     };
   }
 
+  // Una scelta dichiarata su un bivio, letta come un requisito qualsiasi.
+  //
+  // Il tipo esiste gia' in `lore.js` e legge lo stesso flag con lo stesso nome di
+  // campo (`id`), cosi' un bivio e una voce di lore non hanno due grammatiche per
+  // dire la stessa cosa. Serve qui perche' gli esiti di un bivio non hanno bisogno
+  // di codice proprio: aprono un incontro o una carta dichiarando il flag.
+  //
+  // L'etichetta non dice quale scelta manca quando la condizione non e' ancora
+  // soddisfatta: un ramo e' un bivio, e un testo che spiegasse cosa farebbe la
+  // scelta al posto del giocatore. Dice solo che la partita non ha ancora deciso.
+  if (requirement.type === 'flag') {
+    const held = Boolean(state.player.flags?.[requirement.id]);
+    // Il flag e' dichiarato in `loreFlags`: la sua etichetta e' gia' scritta per il
+    // giocatore, quindi non se ne inventa una seconda. Un flag non dichiarato e' un
+    // dato rotto, e mostra il suo id invece di sparire.
+    const label = loreFlags?.[requirement.id]?.label || requirement.id;
+    return {
+      type: 'flag',
+      met: held,
+      label: `Have it written in your chronicle: ${label}`,
+      phrase: `the decision “${label}”`,
+      infinitive: 'make a decision the chronicle can read',
+      detail: held ? `Your chronicle reads: ${label}.` : 'You have not settled it yet.'
+    };
+  }
+
   return { type: 'unknown', met: true, label: 'No recorded condition', phrase: '', infinitive: '', detail: '' };
 }
 
@@ -4434,8 +4788,11 @@ function renderActions() {
       </article>
     `;
   }).join('');
+  // La miniatura di un incontro senza arte sua cade sulla figura di default. Il
+  // fallback e' dichiarato qui e non lasciato al CSS perche' `url("undefined")`
+  // produrrebbe un riquadro rotto senza nessun errore in console che lo spieghi.
   list.querySelectorAll('.action-thumb').forEach((thumb, index) => {
-    thumb.style.backgroundImage = `linear-gradient(180deg, rgba(15, 12, 9, 0.08), rgba(15, 12, 9, 0.3)), url("${visibleActions[index].image}")`;
+    thumb.style.backgroundImage = `linear-gradient(180deg, rgba(15, 12, 9, 0.08), rgba(15, 12, 9, 0.3)), url("${visibleActions[index].image || DEFAULT_ART}")`;
   });
 }
 
@@ -4681,6 +5038,16 @@ function wireEvents() {
 
     const actionButton = event.target.closest('[data-action-id]');
     if (actionButton) resolveAction(actionButton.dataset.actionId);
+
+    // Scelta dichiarata su un bivio. Il bottone sparisce dopo il click perche' il
+    // bivio si chiude da solo, quindi non serve disabilitarlo: `declareStoryDecision`
+    // rifiuta comunque una seconda scelta, e il render che segue lo toglie dalla
+    // pagina. Quel rifiuto non e' una formalita': e' la garanzia che una decisione
+    // non possa essere cambiata da un doppio click.
+    const storyOption = event.target.closest('[data-story-fork]');
+    if (storyOption) {
+      declareStoryDecision(storyOption.dataset.storyFork, storyOption.dataset.storyOption);
+    }
   });
 
 document.addEventListener('keydown', (event) => {

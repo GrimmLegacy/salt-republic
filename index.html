@@ -33,48 +33,72 @@
 
           <ul class="welcome-points">
             <li>
-              <span class="welcome-point-mark" aria-hidden="true">⌖</span>
+              <span class="welcome-point-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                  <path d="M12 21.5s6-6.2 6-10.7a6 6 0 1 0-12 0c0 4.5 6 10.7 6 10.7Z" />
+                  <circle cx="12" cy="10.6" r="2.3" />
+                </svg>
+              </span>
               <div>
-                <h2>Four realms under the lagoon</h2>
+                <h2>Four drowned realms, each with its own work</h2>
                 <p>
-                  A clockwork belfry above the clouds, the Doge's flooded archive,
-                  a hydroponics farm eight hundred fathoms down, and a railway to
-                  the stars. Each has its own work, its own people and its own price.
+                  A bell tower above the clouds, a flooded archive of century-old
+                  ledgers, a farm growing food eight hundred fathoms down, and a rail
+                  line running to the stars. Each quarter has its own people, its own
+                  jobs and its own price for doing them.
                 </p>
               </div>
             </li>
             <li>
-              <span class="welcome-point-mark" aria-hidden="true">◈</span>
+              <span class="welcome-point-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                  <rect x="6" y="3.5" width="14" height="16" rx="2.2" />
+                  <path d="M3.5 6.5v11a3 3 0 0 0 3 3H17" />
+                  <path d="M10 8h6M10 11.5h6" />
+                </svg>
+              </span>
               <div>
-                <h2>A deck instead of a dialogue wheel</h2>
+                <h2>A deck of cards forged from your own story</h2>
                 <p>
-                  Every action draws from the tide deck. A passing card changes the
-                  board; a failing one is a malus that follows you until you clear it.
-                  Your own cards are never taken away, but an affliction card is spent
-                  when you play it.
+                  The jobs you take can hand you a card. The common ones are small
+                  favours. The rare ones arrive only because of who has come to trust
+                  you, and they carry real weight: they train your skills, open doors,
+                  and change how a quarter treats you. Carry four at a time and swap
+                  them freely.
                 </p>
               </div>
             </li>
             <li>
-              <span class="welcome-point-mark" aria-hidden="true">▧</span>
+              <span class="welcome-point-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                  <path d="M12 6.5C10.8 5.2 8.8 4.6 6.5 4.6A1.5 1.5 0 0 0 5 6.1v11c0 .8.7 1.5 1.5 1.5 2.3 0 4.3.6 5.5 1.9 1.2-1.3 3.2-1.9 5.5-1.9a1.5 1.5 0 0 0 1.5-1.5v-11a1.5 1.5 0 0 0-1.5-1.5c-2.3 0-4.3.6-5.5 1.9Z" />
+                  <path d="M12 6.5v13" />
+                </svg>
+              </span>
               <div>
-                <h2>Every choice is written down</h2>
+                <h2>The city keeps score of everything you do</h2>
                 <p>
-                  The chronicle records what you did and why. Pass an encounter and
-                  its page closes; fail and it stays in its realm, waiting for a
-                  better attempt. The lore opens one chapter at a time, and never
-                  in advance.
+                  Everything you do is written down and kept. Land a job and it is
+                  struck off the list for good. The city opens its history one page
+                  at a time. Choose a faction and your story is shaped around it:
+                  every favour you win with one is counted against its rival.
                 </p>
               </div>
             </li>
             <li>
-              <span class="welcome-point-mark" aria-hidden="true">◷</span>
+              <span class="welcome-point-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                  <circle cx="12" cy="12" r="8.5" />
+                  <path d="M12 7.2V12l3.2 2" />
+                </svg>
+              </span>
               <div>
-                <h2>It runs while you are away</h2>
+                <h2>The city keeps real hours</h2>
                 <p>
-                  Vigor and the card reserve refill on the clock, not while you
-                  watch. Close the tab, come back tomorrow, and the count is done:
-                  nothing was lost and nothing was wasted.
+                  Anno Domini 1530, counted day by day against your own clock. The
+                  season turns, the light changes, and some work only happens after
+                  dark, or only while the sun is still up. Come back tomorrow and the
+                  calendar has moved on without you.
                 </p>
               </div>
             </li>
@@ -101,7 +125,15 @@
             <p id="welcomeNotice" class="welcome-notice" hidden></p>
 
             <button type="button" class="welcome-button" data-welcome-signin>Sign in</button>
-            <button type="button" class="welcome-button welcome-google" data-welcome-google>Continue with Google</button>
+            <button type="button" class="welcome-button welcome-google" data-welcome-google>
+              <svg class="welcome-google-mark" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+                <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z" />
+                <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z" />
+                <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33Z" />
+                <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z" />
+              </svg>
+              <span>Continue with Google</span>
+            </button>
             <button type="button" class="welcome-button" data-welcome-signup>Create a new account</button>
 
             <p class="welcome-or"><span>or</span></p>
@@ -242,6 +274,10 @@
     <script src="motes.js"></script>
     <script src="factions.js"></script>
     <script src="lore.js"></script>
+    <!-- threads.js sta fra lore.js e app.js: descrive i percorsi e i bivi che la
+         pagina Chronicles mostra e che il salvataggio deve sanificare al
+         caricamento, quindi app.js lo usa gia' durante il boot. -->
+    <script src="threads.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

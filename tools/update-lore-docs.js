@@ -73,6 +73,27 @@ actionIds.forEach((id) => {
   });
 });
 
+// --- decision setters: the same table from the other half of the game --------
+// A flag can also be set by a *declared choice* rather than by a die roll. Those
+// live in threads.js, not in an encounter's `sets:`, so reading only app.js
+// would report every one of them as "nobody sets this" -- the exact false alarm
+// this table exists to catch. Read the forks as data, the same way as above.
+const threadsSandbox = { state: { player: {} }, locations: {}, console };
+threadsSandbox.window = threadsSandbox;
+const threadsContext = vm.createContext(threadsSandbox);
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'threads.js'), 'utf8'), threadsContext, { filename: 'threads.js' });
+const storyForks = vm.runInContext('storyForks', threadsContext);
+
+storyForks.forEach((fork) => {
+  (fork.options || []).forEach((option) => {
+    Object.keys(option.sets || {}).forEach((flag) => {
+      if (!loreFlags[flag]) return;
+      if (!setters.has(flag)) setters.set(flag, []);
+      setters.get(flag).push(`**${esc(fork.title)}** (choosing *${esc(option.title)}*)`);
+    });
+  });
+});
+
 const flagRows = Object.keys(loreFlags).map((flag) => {
   const info = loreFlags[flag];
   const who = setters.get(flag);
@@ -138,18 +159,46 @@ const orphaned = Object.keys(loreFlags).filter((f) => !setters.has(f));
 if (orphaned.length) console.log('WARNING flags nothing sets: ' + orphaned.join(', '));
 else console.log('every flag has at least one setter');
 
-// Splice the generated tables into README.md between their markers.
+// Splice the generated tables into README.md between their marker pairs.
+// The markers are a PAIR and both survive the splice. An earlier version replaced
+// a single `<!-- FLAGS -->` marker with the table, which consumed the marker: the
+// first run worked and every later run silently changed nothing, so the tables in
+// the README drifted away from the source while this script still reported
+// success. The check below looks for the marker pair and, unlike the version it
+// replaces, fails loudly when the pair is missing -- which is the only thing that
+// tells you the README was never updated.
+const MARKERS = {
+  FLAGS: flagTable,
+  LORE: loreTable,
+  CHAPTERS: chapterTable,
+  STANDING: standingTable
+};
+
+const inject = (readmeText, marker, table) => {
+  const start = `<!-- ${marker}:START -->`;
+  const end = `<!-- ${marker}:END -->`;
+  const from = readmeText.indexOf(start);
+  const to = from === -1 ? -1 : readmeText.indexOf(end, from + start.length);
+  if (from === -1 || to === -1) return { text: readmeText, ok: false };
+  return {
+    text: `${readmeText.slice(0, from + start.length)}\n${table}\n${readmeText.slice(to)}`,
+    ok: true
+  };
+};
+
 const readmePath = path.join(ROOT, 'README.md');
 if (fs.existsSync(readmePath)) {
-  const readme = fs.readFileSync(readmePath, 'utf8');
-  const inject = (readmeText, marker, table) => readmeText.replace(new RegExp(`<!-- ${marker} -->`), table);
-  let next = inject(readme, 'FLAGS', flagTable);
-  next = inject(next, 'LORE', loreTable);
-  next = inject(next, 'CHAPTERS', chapterTable);
-  next = inject(next, 'STANDING', standingTable);
-  fs.writeFileSync(readmePath, next, 'utf8');
-  const missing = ['FLAGS', 'LORE', 'CHAPTERS', 'STANDING'].filter((m) => next.includes(`<!-- ${m} -->`));
-  console.log(missing.length ? 'README markers left empty: ' + missing.join(', ') : 'README tables injected');
+  let readme = fs.readFileSync(readmePath, 'utf8');
+  const failed = [];
+  Object.keys(MARKERS).forEach((marker) => {
+    const result = inject(readme, marker, MARKERS[marker]);
+    readme = result.text;
+    if (!result.ok) failed.push(marker);
+  });
+  fs.writeFileSync(readmePath, readme, 'utf8');
+  console.log(failed.length
+    ? 'README NOT updated -- marker pair missing for: ' + failed.join(', ')
+    : 'README tables injected between their markers');
 } else {
   console.log('README.md not found; wrote tables to tools/out/lore-tables.txt only');
 }

@@ -27,7 +27,13 @@ const loreFlags = {
   railPassage: { label: 'The Conductors stamped your ticket', tone: 'good' },
   checkpointMercy: { label: 'You spared a name at the checkpoint', tone: 'good' },
   checkpointBetrayal: { label: 'You named someone at the checkpoint', tone: 'bad' },
-  scholariumDebt: { label: 'The Scholarium holds a debt over you', tone: 'bad' }
+  scholariumDebt: { label: 'The Scholarium holds a debt over you', tone: 'bad' },
+  // I tre esiti del bivio sulla fattoria. Sono flag come gli altri, non un
+  // sistema a parte: e' il bivio a scrivere qui, e tutto il resto del gioco
+  // continua a leggerli come qualsiasi altro flag.
+  farmSoleKept: { label: 'The Brine-Farm answers to you alone', tone: 'good' },
+  farmCombineBacked: { label: 'The Combine bankrolls your Brine-Farm', tone: 'neutral' },
+  farmOpenToCity: { label: 'The Brine-Farm is leased row by row', tone: 'neutral' }
 };
 
 const loreKinds = {
