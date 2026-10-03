@@ -1497,6 +1497,91 @@ const storyCards = [
   }
 ];
 
+// Le carte dei corpi che non sono poteri.
+//
+// Stessa meccanica di `factionCards`, ma per chi non presidia un reame e non e'
+// in gara con nessuno: due gradi per corpo, una carta a livello 5 e una a
+// livello 15. Il primo grado e' la porta, il secondo arriva quando la
+// relazione ha una forma.
+//
+// Una differenza rispetto alle carte delle quattro potenze: `exclusive` e
+// `noStanding` non esistono sul percorso delle carte. Non servono. Una carta
+// chiama `applyCardStanding`, che paga una sola fazione e non tocca le rivali,
+// quindi non puo' finire nel registro di un potere che non e' quello nominato.
+// Metterci un flag che nessuno legge sarebbe peggio che non metterlo.
+//
+// Nessuna di queste carte ha un'immagine propria: finche' nessuno le ha
+// disegnate mostrano la figura di default, e non riprendono mai l'arte di una
+// carta gia' esistente.
+const bodyCards = [
+  {
+    id: 'common-ledger-fee-of-1502',
+    title: 'The Fee Agreed in 1502',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '✂',
+    quote: 'The price was set in 1502 and has never been renegotiated, because nobody who could renegotiate it is still alive.',
+    appearanceReason: 'A common tide card. It starts turning up once the Ledger has you at level 5, which is roughly when they stop introducing themselves.',
+    effects: { statXp: { cunning: 1 }, standing: { faction: 'black-ledger', points: 3 } },
+    requires: [{ type: 'faction', faction: 'black-ledger', min: 5 }]
+  },
+  {
+    id: 'common-rats-evening-on-the-quay',
+    title: 'An Evening on the Quay',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '⚓',
+    quote: 'You hand it to somebody who is not waiting for you, and who does not look at it, and it arrives anyway.',
+    appearanceReason: 'A common tide card. The rats start giving you work at level 5, on the understanding that you will not ask where it went.',
+    effects: { statXp: { resolve: 1 }, standing: { faction: 'salt-rats', points: 3 } },
+    requires: [{ type: 'faction', faction: 'salt-rats', min: 5 }]
+  },
+  {
+    id: 'common-sister-the-temperature',
+    title: 'Writing Down the Temperature',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '⛓',
+    quote: 'She says a number, and leaves. The rest of the shift is reading frost and not opening anything.',
+    appearanceReason: 'A common tide card. At level 5 with her you have stood one shift, and the next one is already yours.',
+    effects: { statXp: { vigilance: 1 }, standing: { faction: 'iron-sister', points: 3 } },
+    requires: [{ type: 'faction', faction: 'iron-sister', min: 5 }]
+  },
+  {
+    id: 'uncommon-ledger-a-no-kept-exactly',
+    title: 'A No Kept Exactly as Said',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '❖',
+    quote: 'A signature can be bought from whoever is holding the pen. A refusal cannot, without somebody agreeing to be caught holding the other end of it.',
+    appearanceReason: 'An uncommon tide card. It stays in the reserve until the Ledger has you at level 15, by which point they have stopped explaining what they want.',
+    effects: { statXp: { cunning: 2, persuasion: 1 }, standing: { faction: 'black-ledger', points: 5 } },
+    requires: [{ type: 'faction', faction: 'black-ledger', min: 15 }]
+  },
+  {
+    id: 'uncommon-rats-counted-among',
+    title: 'Counted Among the Trustworthy',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '◈',
+    quote: 'The list is short, it is not written down, and your name is on it. You did nothing to earn it and you will never be told how.',
+    appearanceReason: 'An uncommon tide card. It surfaces only once the rats have you at level 15, which is when the asking starts and the using stops.',
+    effects: { statXp: { cunning: 2, resolve: 1 }, standing: { faction: 'salt-rats', points: 5 } },
+    requires: [{ type: 'faction', faction: 'salt-rats', min: 15 }]
+  },
+  {
+    id: 'uncommon-sister-the-hour-without-windows',
+    title: 'The Hour Without a Window',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '☾',
+    quote: 'Once a season the mask comes off, for an hour, in a room that has no windows. You are not invited. You are told, in advance.',
+    appearanceReason: 'An uncommon tide card. It does not come out until she has you at level 15, which is when the telling starts to cost her something.',
+    effects: { statXp: { resolve: 2, vigilance: 1 }, standing: { faction: 'iron-sister', points: 5 } },
+    requires: [{ type: 'faction', faction: 'iron-sister', min: 15 }]
+  }
+];
+
 const rarityCards = [
   {
     id: 'uncommon-brass-compass',
@@ -1576,7 +1661,7 @@ const rarityNames = {
 // L'ordine non conta: il mazzo e' un pool e ogni sorteggio riparte dal catalogo
 // intero. Le carte con un gate restano nel mucchio e si aprono da sole quando la
 // condizione e' soddisfatta.
-const allTideCards = [...trialCards, ...rarityCards, ...factionCards, ...storyCards];
+const allTideCards = [...trialCards, ...rarityCards, ...factionCards, ...storyCards, ...bodyCards];
 
 const malusCards = [
   {

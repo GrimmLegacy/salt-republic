@@ -266,6 +266,72 @@ check('the page shows the rival relationship', html.includes('faction-rival'));
 log(`   card count -> ${(html.match(/faction-card /g) || []).length}`);
 
 log('');
+log('=== 12) The three bodies behind the powers get their own cards ===');
+// The four powers each got a level-5 card before the new bodies existed. The
+// bodies that are not powers get two each: a common at 5 and an uncommon at 15.
+// What has to hold is that the gate opens on exactly the level it declares and
+// not a point earlier, because a card that arrives one point early is a card the
+// player did not earn.
+const newBodies = ['black-ledger', 'salt-rats', 'iron-sister'];
+const bodyCardOf = (factionId, rarity) => allTideCards.find((card) => (
+  card.effects?.standing?.faction === factionId
+  && card.rarity === rarity
+  && (card.requires || []).some((requirement) => requirement.type === 'faction' && requirement.faction === factionId)
+));
+
+newBodies.forEach((factionId) => {
+  check(`${factionId} is a real faction`, Boolean(factions[factionId]), 'no such faction');
+  const commonCard = bodyCardOf(factionId, 'common');
+  const uncommonCard = bodyCardOf(factionId, 'uncommon');
+  check(`${factionId} has a common card`, Boolean(commonCard), 'missing');
+  check(`${factionId} has an uncommon card`, Boolean(uncommonCard), 'missing');
+  check(`${factionId} cards carry no artwork of their own yet`,
+    [commonCard, uncommonCard].every((card) => !card?.image), 'a card claims art nobody drew');
+
+  [[commonCard, 5], [uncommonCard, 15]].forEach(([card, level]) => {
+    if (!card) return;
+    const gate = (card.requires || []).find((requirement) => requirement.type === 'faction');
+    check(`${card.id} is gated at level ${level}`, gate?.min === level, `gate says ${gate?.min}`);
+
+    // One level short, then exactly on it. The threshold comes from the curve, so
+    // this is a real level and not a guessed amount of points.
+    state.player.reputation = { [factionId]: factionThreshold(level - 1) };
+    check(`${card.id} is still shut one level below ${level}`, isCardAvailable(card.id) === false, 'it opened early');
+    state.player.reputation = { [factionId]: factionThreshold(level) };
+    check(`${card.id} opens exactly at level ${level}`, isCardAvailable(card.id) === true, 'it stayed shut');
+
+    // Playing it pays the body and nobody else. A card goes through
+    // `applyCardStanding`, which never touches a rival, so the powers cannot be
+    // moved from here even by accident.
+    state.player.reputation = {};
+    state.player.hand = [card.id];
+    state.player.malus = {};
+    state.player.pendingMalus = [];
+    playTideCard(card.id);
+    check(`${card.id} pays ${factionId}`, getFactionXp(factionId) > 0, `xp ${getFactionXp(factionId)}`);
+    const moved = Object.keys(state.player.reputation);
+    check(`${card.id} moves no other book`, moved.length === 1 && moved[0] === factionId, `${moved.join(', ')}`);
+  });
+});
+
+log('');
+log('=== 13) Every faction in the catalogue has somewhere to go ===');
+// A faction with a standing curve and no card behind it is a dead end: the player
+// can climb it and never see the game acknowledge it.
+const withCards = [...new Set(allTideCards
+  .flatMap((card) => (card.requires || []).filter((requirement) => requirement.type === 'faction').map((requirement) => requirement.faction)))];
+check('every faction has at least one gated card',
+  Object.keys(factions).every((id) => withCards.includes(id)),
+  `with cards: ${withCards.length} of ${Object.keys(factions).length}`);
+Object.keys(factions).forEach((factionId) => {
+  const gates = allTideCards
+    .flatMap((card) => (card.requires || []).filter((requirement) => requirement.type === 'faction' && requirement.faction === factionId))
+    .map((requirement) => requirement.min);
+  check(`${factionId} opens a card at level 5`, gates.includes(5), `gates: ${gates.join(', ') || 'none'}`);
+});
+log(`   gated factions -> ${withCards.join(', ')}`);
+
+log('');
 log(failures === 0 ? 'FACTION HARNESS DONE' : `${failures} FACTION CHECKS FAILED`);
 process.stdout.write(out.join('\n'));
 process.exitCode = failures === 0 ? 0 : 1;

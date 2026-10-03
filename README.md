@@ -31,6 +31,7 @@ A prototype for a text-heavy narrative game inspired by the tone and structure o
 - the calendar drawer browses months and seasons and opens a day sheet listing what that day holds
 - a night-only run of ten steps in the Belfry that goes one to ten and then starts again, resuming at the step it stopped on if the game is closed halfway
 - repeatable night-only stories that pay a guild or a person rather than the power that governs the zone
+- a card per faction body that unlocks from the deck at level 5 and another at level 15, so a standing curve is never a dead end
 - a Materials section for stackable goods that are collected rather than worn
 - automatic local save after key decisions
 - optional online accounts (email/password and Google) with a Supabase-backed save, so a chronicle follows the player across devices; the game stays fully playable as a guest, and the account layer degrades to plain local play if it is not configured
@@ -220,6 +221,26 @@ one masked woman who has been holding a door shut since 1502. They declare
 `rival: null` and no `principal`, and they live on the Chronicles under their own
 heading rather than inside "the four powers", because the page should not tell the
 player the city has seven powers when it has four.
+
+Each of the three bodies has two tide cards of its own: a common that joins the
+drawable pool at level 5 and an uncommon at level 15. Note the shape differs from
+the four powers, whose common cards are open from the first day and whose uncommon
+cards sit at level 5 — the new bodies start closed on both, so the first card is
+the reward for having started the relationship at all.
+
+```js
+{
+  id: 'uncommon-ledger-a-no-kept-exactly',
+  rarity: 'uncommon',
+  effects: { standing: { faction: 'black-ledger', points: 5 } },
+  requires: [{ type: 'faction', faction: 'black-ledger', min: 15 }]
+}
+```
+
+`tools/faction-check.js` opens each of the six on the exact level it declares and
+on no level below, and checks that playing one moves that body's book and no
+other. A card never pays a rival, so these cannot move a power's standing even by
+accident.
 
 One source of truth: an encounter cannot read as "resolved" in the chronicle and
 "still open" in the thread, because there is only one place the answer lives.
