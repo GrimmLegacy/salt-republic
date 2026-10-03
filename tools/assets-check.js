@@ -41,6 +41,11 @@ allTideCards.forEach((c) => refs.add(c.image || DEFAULT_ART));
 // The artwork a story thread declares for itself on the Chronicles page. Optional:
 // a thread without one keeps the plain panel background and is still a thread.
 storyThreads.forEach((t) => { if (t.art) refs.add(t.art); });
+// The portrait behind a faction card on the Chronicles page. Optional in exactly the
+// same way a thread's art is optional: a body with no picture shows the default figure.
+// The Chronicles page paints it as a CSS background, so a wrong name here produces no
+// broken-image icon and no console error -- it just quietly stops being a portrait.
+Object.values(factions).forEach((f) => { refs.add(f.image || DEFAULT_ART); });
 // The figure shown when a piece of the world does not have its picture yet. It has
 // to exist, and it has to be checked exactly like a real reference: a default that
 // went missing would turn six honest gaps into six broken images.

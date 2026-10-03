@@ -608,6 +608,91 @@ nightContent.forEach(([actionId, locationId, runIndex, payer]) => {
 });
 Math.random = realRandom;
 
+// ---------------------------------------------------------------------------
+log('');
+log('=== S) The day bodies keep the same rule, and the rivalry bites ===');
+// The same two rules as the night, applied to the four bodies that are awake:
+// a daytime story pays exactly the body it names, and it pays no power of the zone
+// it happens in.
+//
+// The one genuinely new thing is the clergy and the Court being in rivalry. This
+// is the first pair in the catalogue where the player has to pick a side, so it
+// is checked from both ends: climbing one must cost the other, and a body that is
+// in no rivalry must cost nobody.
+const dayStories = [
+  ['clergy-carry-the-bell-book', 'spire', 'clergy'],
+  ['monarchs-stand-in-the-long-room', 'grand-canal', 'bohemian-court'],
+  ['duellist-be-put-on-the-card', 'grand-canal', 'widow-duellist'],
+  ['guard-take-a-reading-in-the-current', 'leviathan-trench', 'imperial-guard']
+];
+Math.random = () => 0;
+
+dayStories.forEach(([actionId, locationId, payer]) => {
+  const action = findActionById(actionId);
+  check(`${actionId} happens only by day`, action.when === 'day', 'it happens at night');
+  check(`${actionId} can be done again`, action.repeatable === true, 'it is a one-off');
+  check(`${actionId} pays only the body it names`, action.success.standing?.exclusive === true, 'the realm is paid too');
+
+  state = createDefaultState();
+  state.currentLocationId = locationId;
+  state.player.vigor = VIGOR_MAX;
+  state.player.reputation = {};
+  resolveAction(actionId);
+  closeResolution();
+  check(`${payer} was paid`, getFactionXp(payer) > 0, `xp ${getFactionXp(payer)}`);
+  const realmFaction = factionForRealm(locationRealmOf(locationId));
+  check(`the power that holds ${locationId} was left out of it`,
+    getFactionXp(realmFaction.id) === 0, `${realmFaction.id} got ${getFactionXp(realmFaction.id)}`);
+});
+Math.random = realRandom;
+
+// Climb one side of the pair and the other must come down. The ratio is the
+// game's own damping, so it is read from the rule rather than hardcoded here.
+const clergySide = planStandingGrants(findActionById('clergy-carry-the-bell-book'), 'spire');
+check('the clergy story plans a payment', clergySide.length === 1, `${clergySide.length}`);
+const clergyPlan = clergySide[0];
+check('the clergy plan penalises the Court', clergyPlan.rival?.id === 'bohemian-court', `rival is ${clergyPlan.rival?.id}`);
+check('the Court is the clergy rival and the reverse is true too', factions['bohemian-court'].rival === 'clergy');
+
+state = createDefaultState();
+state.currentLocationId = 'spire';
+state.player.vigor = VIGOR_MAX;
+state.player.reputation = {};
+Math.random = () => 0;
+resolveAction('clergy-carry-the-bell-book');
+closeResolution();
+check('climbing the clergy moves the Court down', getFactionXp('bohemian-court') < 0, `court ${getFactionXp('bohemian-court')}`);
+
+// And the opposite direction, so the pair cannot be one-way.
+state = createDefaultState();
+state.currentLocationId = 'grand-canal';
+state.player.vigor = VIGOR_MAX;
+state.player.reputation = {};
+resolveAction('monarchs-stand-in-the-long-room');
+closeResolution();
+check('climbing the Court moves the clergy down', getFactionXp('clergy') < 0, `clergy ${getFactionXp('clergy')}`);
+Math.random = realRandom;
+
+// The Guard answers to a bit of everyone, which in this game means it is in no
+// rivalry: standing with the Court must not cost it anything.
+state = createDefaultState();
+state.currentLocationId = 'grand-canal';
+state.player.vigor = VIGOR_MAX;
+state.player.reputation = {};
+Math.random = () => 0;
+resolveAction('monarchs-stand-in-the-long-room');
+closeResolution();
+Math.random = realRandom;
+state = createDefaultState();
+state.currentLocationId = 'leviathan-trench';
+state.player.vigor = VIGOR_MAX;
+state.player.reputation = {};
+Math.random = () => 0;
+resolveAction('guard-take-a-reading-in-the-current');
+closeResolution();
+Math.random = realRandom;
+check('the Guard lost nothing to the Court', getFactionXp('bohemian-court') >= 0, `court ${getFactionXp('bohemian-court')}`);
+
 log('');
 log(`story-check: ${failures} FAILURES`);
 

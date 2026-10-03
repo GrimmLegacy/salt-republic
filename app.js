@@ -645,6 +645,42 @@ const locations = {
         noStanding: true,
         requires: [{ type: 'chainRun', action: 'belfry-night-strike-the-hour' }],
         repeatable: true
+      },
+
+      // ------------------------------------------------------------------
+      // IL GIORNO NELLA TORRE.
+      //
+      // Di sotto il lavoro notturno della Campana, di giorno la stessa torre
+      // ospita un corpo che non e' il guild e non e' nemmeno in gara con lui: il
+      // libro delle campane del clero e' tenuto qui da prima che la torre fosse
+      // del guild, e nessuno dei due ha mai chiesto perche'.
+      //
+      // Il turno e' diurno perche' le campane si suonano di giorno perche'
+      // qualcuno le ascolti. Di notte il libro non serve a nessuno: la correzione
+      // arriva gia' scritta e il guild conosce i numeri a memoria da quattro
+      // secoli.
+      // ------------------------------------------------------------------
+      {
+        id: 'clergy-carry-the-bell-book',
+        title: 'Carry the Bell Book Up the Stair',
+        summary:
+          'The church keeps its bell book in the guild tower, which nobody arranged and nobody has explained. Four hundred pages, and it weighs what a small child weighs, and the bell-winders let you take it up because they have carried it up before and know exactly what it costs. You learn the strokes the way you learn a face: a passing bell, a death, an office, and the ninth hour that no office calls for. By the fourth morning you can tell them all from the gallery with your eyes shut. Nobody in the tower asks how you learned, and that is the unusual part.',
+        appearanceReason: 'A day shift in the tower. The church sends somebody up with the book most mornings and the guild has stopped remarking on who.',
+        when: 'day',
+        test: 'vigilance',
+        difficulty: 2,
+        success: {
+          stats: { vigilance: 2 },
+          resources: { ducatsOfSalt: 2 },
+          standing: { faction: 'clergy', points: 8, exclusive: true },
+          log: 'You get the book to the gallery and get the four strokes right, and a priest downstairs says nothing about it at all, which is how you know it was noticed.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'You mistake the passing bell for the office and answer a stroke that nobody called. It is a small error and it travels: by the afternoon, three people know and one of them is the guild.'
+        },
+        requires: [],
+        repeatable: true
       }
     ]
   },
@@ -857,6 +893,65 @@ const locations = {
         failure: {
           resources: { suspicion: 1 },
           log: 'You are seen stopping on the quay. Nobody says anything to you, but by morning three of the lines have changed and none of them are yours.'
+        },
+        requires: [],
+        repeatable: true
+      },
+
+      // ------------------------------------------------------------------
+      // IL GIORNO NEGLI ARCHIVI AFFOGATI.
+      //
+      // Due storie diurni nella stessa stanza del Consiglio dei Dieci, che non
+      // e' il potere di nessuna delle due e non ha niente a che fare con nessuna.
+      //
+      // Una e' della corte bohemiana, che ha stabilito un palazzo dove prima
+      // c'era un deposito di mappe. L'altra e' della vedova duellante, che ha
+      // comprato il locale a due porte dal Consiglio perche' la luce e' buona e
+      // perche' nessuno voleva misurare il pavimento.
+      //
+      // Entrambe pagano in esclusiva, quindi salire con l'una non tocca il
+      // Consiglio: lavorare in questa stanza non e' lavorare per loro.
+      // ------------------------------------------------------------------
+      {
+        id: 'monarchs-stand-in-the-long-room',
+        title: 'Stand in the Long Room Until You Are Fed',
+        summary:
+          'Nobody announces you. You are simply not removed, and at the long table that is the entire promotion. For four hours a queen who is not beautiful and is enormously expensive looks at the room the way a person reads a page, and you are on the page. The light is one specific colour and the noise is one specific sound and neither is ever explained. The small plate arrives without anybody having asked for it, and when it arrives the whole room adjusts very slightly, and you are the only person in it who does not notice, which is the part that is noticed.',
+        appearanceReason: 'A day at the palace. The court takes people into the long room by not throwing them out, and repeats the experiment until somebody answers.',
+        when: 'day',
+        test: 'elegance',
+        difficulty: 4,
+        success: {
+          stats: { elegance: 2, persuasion: 1 },
+          resources: { ducatsOfSalt: 4 },
+          standing: { faction: 'bohemian-court', points: 8, exclusive: true },
+          log: 'You are fed off the smaller plate in front of eleven thousand people who will all deny it happened, and the court pays you in something that is not money and is not discussed.'
+        },
+        failure: {
+          resources: { scandal: 1 },
+          log: 'You look at the plate when it arrives. Looking at it is the one thing the room is watching for, and eleven hundred people see you do it.'
+        },
+        requires: [],
+        repeatable: true
+      },
+      {
+        id: 'duellist-be-put-on-the-card',
+        title: 'Be Put on the Card',
+        summary:
+          'Somebody writes your name on a card and leaves it at a door in the Lagoon Heart, and the card says a time and nothing else. You arrive at the time. Inside, a woman who talks constantly explains, at length and without ever once raising her voice, precisely what she intends to do about you, and then she does it, and then she hands you a bundle that is heavier than it looks and asks you to bring it back next Tuesday without opening it. She is still talking when you leave. She was talking when you arrived.',
+        appearanceReason: 'A day errand for the Widow. Cards turn up at your door most mornings and nobody will tell you who is leaving them.',
+        when: 'day',
+        test: 'audacity',
+        difficulty: 4,
+        success: {
+          stats: { audacity: 2, resolve: 1 },
+          resources: { ducatsOfSalt: 3 },
+          standing: { faction: 'widow-duellist', points: 8, exclusive: true },
+          log: 'You carry it back on Tuesday without opening it, and she takes it, and mentions in passing four names that you will need inside a month. She does not say where you will meet.'
+        },
+        failure: {
+          resources: { wounds: 1, suspicion: 1 },
+          log: 'You open it. She notices from across the room, keeps talking, and the card is on the floor by evening with your name on it in a hand that is not hers.'
         },
         requires: [],
         repeatable: true
@@ -1074,6 +1169,41 @@ const locations = {
         failure: {
           resources: { wounds: 1, suspicion: 1 },
           log: 'The cold gets into you somewhere around the third hour and by dawn you are shivering in a place that is not cold, which is the sort of detail the rota will record very carefully.'
+        },
+        requires: [],
+        repeatable: true
+      },
+
+      // ------------------------------------------------------------------
+      // IL GIORNO SOTTO.
+      //
+      // Di notte qui c'e' la Sorella di Ferro e la porta fredda che non apre. Di
+      // giorno, alla stessa profondita', c'e' la Guardia imperiale: gli stessi
+      // fusti, gli stessi strumenti, un altro padron di casa.
+      //
+      // La guardia non e' in gara con nessuno, e non perche' sia neutrale. Risponde
+      // a un po' di tutti, quindi nessuno la tocca e lei non tocca nessuno. E' la
+      // terza via fra la corte e il clero, e l'unica che sia in grado di dire no a
+      // entrambe nello stesso pomeriggio.
+      // ------------------------------------------------------------------
+      {
+        id: 'guard-take-a-reading-in-the-current',
+        title: 'Take a Reading Where the Current Moves',
+        summary:
+          'The dial is bolted eight hundred fathoms down and the current moves it. The Combine\'s book says the number it should read; the guard says the number it does read. They pay you to be the one holding it while the two disagree. You hold it for six hours in a cold that gets into the seams of everything, and at the end you write down what the instrument says rather than what the ledger says it should. You hand it up. That is the whole shift, and it is the reason the water at this depth is still called water.',
+        appearanceReason: 'A day reading at depth. The Guard post one gauge on the Combine\'s rota and pay for the shift themselves, which is the arrangement nobody questions.',
+        when: 'day',
+        test: 'vigilance',
+        difficulty: 4,
+        success: {
+          stats: { vigilance: 2 },
+          resources: { ducatsOfSalt: 3, phosphorAmber: 1 },
+          standing: { faction: 'imperial-guard', points: 8, exclusive: true },
+          log: 'You write what the dial says and hand it up, and two reports go out that differ by four, and the difference is yours. Nobody writes down who made it.'
+        },
+        failure: {
+          resources: { wounds: 1, suspicion: 1 },
+          log: 'You round the figure to the nearest quarter to match the book, because the book is the number everybody is expecting. The guard notices. They always notice; that is the entire job.'
         },
         requires: [],
         repeatable: true
@@ -1504,6 +1634,10 @@ const storyCards = [
 // livello 15. Il primo grado e' la porta, il secondo arriva quando la
 // relazione ha una forma.
 //
+// Qui ci sono i tre corpi della notte e i quattro del giorno. La regola e' la
+// stessa per tutti, anche per il clero e la corte che invece sono in gara fra
+// loro: la carta non conosce le rivalita', paga una gilda e chiude.
+//
 // Una differenza rispetto alle carte delle quattro potenze: `exclusive` e
 // `noStanding` non esistono sul percorso delle carte. Non servono. Una carta
 // chiama `applyCardStanding`, che paga una sola fazione e non tocca le rivali,
@@ -1579,6 +1713,97 @@ const bodyCards = [
     appearanceReason: 'An uncommon tide card. It does not come out until she has you at level 15, which is when the telling starts to cost her something.',
     effects: { statXp: { resolve: 2, vigilance: 1 }, standing: { faction: 'iron-sister', points: 5 } },
     requires: [{ type: 'faction', faction: 'iron-sister', min: 15 }]
+  },
+
+  // ---- I corpi del giorno -------------------------------------------------
+
+  {
+    id: 'common-duellist-card-at-the-door',
+    title: 'The Card Left at Her Door',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '⚔',
+    quote: 'Somebody writes your name on a card and leaves. The card says a time. It does not say what for.',
+    appearanceReason: 'A common tide card. It turns up in your deck once the Widow has you at level 5, which is the first time anybody has been put on a list at her door.',
+    effects: { statXp: { audacity: 1 }, standing: { faction: 'widow-duellist', points: 3 } },
+    requires: [{ type: 'faction', faction: 'widow-duellist', min: 5 }]
+  },
+  {
+    id: 'common-clergy-the-bell-book',
+    title: 'The Bell Book, Carried Up',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '✝',
+    quote: 'You learn which stroke means which office. After a month you are the only person in the city who can tell a passing bell from a death.',
+    appearanceReason: 'A common tide card. The clergy start leaving the book in your hand at level 5, and nobody in the church mentions that they have done so.',
+    effects: { statXp: { vigilance: 1 }, standing: { faction: 'clergy', points: 3 } },
+    requires: [{ type: 'faction', faction: 'clergy', min: 5 }]
+  },
+  {
+    id: 'common-monarchs-the-long-table',
+    title: 'A Seat at the Long Table',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '♛',
+    quote: 'The noise is one specific sound and the light is one specific colour, and neither of them is ever explained to you.',
+    appearanceReason: 'A common tide card. At level 5 with the Court you have been in the room once and been fed, and the deck has started offering you the room again.',
+    effects: { statXp: { persuasion: 1 }, standing: { faction: 'bohemian-court', points: 3 } },
+    requires: [{ type: 'faction', faction: 'bohemian-court', min: 5 }]
+  },
+  {
+    id: 'common-guard-a-post-in-the-cold',
+    title: 'A Post in the Cold',
+    rarity: 'common',
+    rarityIcon: '✧',
+    symbol: '⚑',
+    quote: 'Four hours, no movement, no conversation. The coat fits nobody and the shift is eight.',
+    appearanceReason: 'A common tide card. It surfaces once the Guard has you at level 5, which is the point at which they give you a coat instead of lending you one.',
+    effects: { statXp: { resolve: 1 }, standing: { faction: 'imperial-guard', points: 3 } },
+    requires: [{ type: 'faction', faction: 'imperial-guard', min: 5 }]
+  },
+  {
+    id: 'uncommon-duellist-ledger-of-hands',
+    title: 'The Ledger of Hands',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '⚔',
+    quote: 'Every hand that has been struck is written down with a date and a reason. Yours is not in it, and the not being in it is the only thing she has ever offered.',
+    appearanceReason: 'An uncommon tide card. It stays shut until the Widow has you at level 15, which is when being absent from a book starts to look like an achievement.',
+    effects: { statXp: { resolve: 2, audacity: 1 }, standing: { faction: 'widow-duellist', points: 5 } },
+    requires: [{ type: 'faction', faction: 'widow-duellist', min: 15 }]
+  },
+  {
+    id: 'uncommon-clergy-the-wet-register',
+    title: 'The Register That Runs in Wet Air',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '✝',
+    quote: 'The entry you write settles estates and moves property. It is not written by the court, and it is not appealed, and the church knows exactly what that is worth.',
+    appearanceReason: 'An uncommon tide card. It does not come out before level 15, which is when they hand you the pen rather than the book.',
+    effects: { statXp: { vigilance: 2, resolve: 1 }, standing: { faction: 'clergy', points: 5 } },
+    requires: [{ type: 'faction', faction: 'clergy', min: 15 }]
+  },
+  {
+    id: 'uncommon-monarchs-the-small-plate',
+    title: 'The Small Plate, Set Down',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '♛',
+    quote: 'The small plate is put down and not returned, and the entire court understands what it means, and understands it differently.',
+    appearanceReason: 'An uncommon tide card. It reaches you at level 15, which is the level at which the Court stops explaining things to you and starts just doing them.',
+    effects: { statXp: { elegance: 2, persuasion: 1 }, standing: { faction: 'bohemian-court', points: 5 } },
+    requires: [{ type: 'faction', faction: 'bohemian-court', min: 15 }]
+  },
+  {
+    id: 'uncommon-guard-two-reports',
+    title: 'Two Reports That Disagree by Four',
+    rarity: 'uncommon',
+    rarityIcon: '✦',
+    symbol: '⚑',
+    quote: 'One report goes up and one report goes down, and the two of them differ by four, and you are the reason they differ.',
+    appearanceReason: 'An uncommon tide card. It surfaces only at level 15 with the Guard, which is when writing two versions of the truth becomes a duty rather than a favour.',
+    effects: { statXp: { resolve: 2, cunning: 1 }, standing: { faction: 'imperial-guard', points: 5 } },
+    requires: [{ type: 'faction', faction: 'imperial-guard', min: 15 }]
   }
 ];
 

@@ -222,11 +222,47 @@ one masked woman who has been holding a door shut since 1502. They declare
 heading rather than inside "the four powers", because the page should not tell the
 player the city has seven powers when it has four.
 
-Each of the three bodies has two tide cards of its own: a common that joins the
-drawable pool at level 5 and an uncommon at level 15. Note the shape differs from
-the four powers, whose common cards are open from the first day and whose uncommon
-cards sit at level 5 — the new bodies start closed on both, so the first card is
-the reward for having started the relationship at all.
+The day has four more, and one of those pairs is a real choice:
+
+| Body | Realm | Rival |
+| --- | --- | --- |
+| The Widow Duellist | Lagoon Heart | nobody |
+| The Drowned Clergy | Aether Heights | **The Bohemian Court** |
+| The Bohemian Court | Lagoon Heart | **The Drowned Clergy** |
+| The Imperial Guard | Abyssal Depth | nobody |
+
+Clergy and Court are the first pair in the catalogue where climbing one costs
+the other, so the player ends up allied with one, the other, or neither. The
+Guard is deliberately the third way: it takes orders from the Combine on
+Tuesdays, from the church on nothing in particular and from whichever party
+most recently laid claim to the Doge's chair, and has never been instructed by
+all three at once. In this data model that is `rival: null` — it cannot be bought
+and it is not bought.
+
+**The throne is empty, and everybody is arguing about who gets to sit in it.**
+The Doge went down into the lower chambers in 1502 and the Council has ruled the
+palace vacant ever since. That vacancy is what the Clergy and the Court are
+actually fighting over, and it is why their rivalry is about paperwork rather
+than territory: the Church holds the register, a coronation that is not in the
+register did not happen, and the Queen has been refused twice and knows that a
+third request costs her the same nothing the second one did. Note that `monarchs`
+was the original id here and it had to be renamed to `bohemian-court`: the
+`loreFactions` table has carried a `monarchs` key since the Treaty of 1528,
+where it means **the Tide Monarchs**, a drowned crown with no reputation curve.
+Sharing the key would have shown two different names for one id — the standing
+panel would read *The Tide Monarchs* while the reputation sheet read *The
+Bohemian Court*, and any future `{type:'faction', id:'monarchs'}` gate would
+have silently tested the treaty flag instead of the Court.
+
+**A body is not a realm.** The four realms already have one power each, and that
+is what `principal` marks. These seven sit inside the existing zones, which is why
+their cards and their encounters are the way the player actually meets them.
+
+Each body has two tide cards of its own: a common that joins the drawable pool at
+level 5 and an uncommon at level 15. Note the shape differs from the four powers,
+whose common cards are open from the first day and whose uncommon cards sit at
+level 5 — the bodies start closed on both, so the first card is the reward for
+having started the relationship at all.
 
 ```js
 {
@@ -364,6 +400,13 @@ they cannot drift away from the gates the game actually uses.
 | `person-scribe` | People | The Chief Scribe | flag `ledgerTrusted` | 2 (1 flag-gated) |
 | `faction-council` | Factions | The Council of Ten | resolving **Take the Ledger Job at the Customs House** | 3 (2 flag-gated) |
 | `faction-scholarium` | Factions | The Scholarium | resolving **Carry the Sealed Cargo Past the Checkpoint** | 2 (1 flag-gated) |
+| `faction-black-ledger` | Factions | The Black Ledger | resolving **Carry the Refusal Back to the Second Book** | 2 |
+| `faction-salt-rats` | Factions | The Salt Rats | resolving **Run the Word Along the Rope-Line** | 2 |
+| `person-iron-sister` | People | The Iron Sister | resolving **sister-take-the-cold-door-shift** | 3 |
+| `person-widow-duellist` | People | The Widow Duellist | resolving **Be Put on the Card** | 2 |
+| `faction-clergy` | Factions | The Drowned Clergy | resolving **Carry the Bell Book Up the Stair** | 2 |
+| `faction-bohemian-court` | Factions | The Bohemian Court | resolving **Stand in the Long Room Until You Are Fed** | 2 |
+| `faction-imperial-guard` | Factions | The Imperial Guard | resolving **Take a Reading Where the Current Moves** | 2 |
 | `place-salt-pans` | Places | The Abandoned Salt Pans | from the start | 3 (2 flag-gated) |
 | `person-keeper` | People | The Last Keeper of the Pans | flag `pansLeased` | 2 (1 flag-gated) |
 | `place-trench` | Places | The Leviathan Trench | from the start | 3 (1 flag-gated) |
@@ -390,6 +433,21 @@ they cannot drift away from the gates the game actually uses.
 | `faction-council` | The line you left blank | flag `checkpointMercy` |
 | `faction-scholarium` | What they ask in payment | with its subject |
 | `faction-scholarium` | The mark you now carry | flag `scholariumDebt` |
+| `faction-black-ledger` | The second book | with its subject |
+| `faction-black-ledger` | What a refusal is worth | with its subject |
+| `faction-salt-rats` | What a washing line is for | with its subject |
+| `faction-salt-rats` | What they refuse to have | with its subject |
+| `person-iron-sister` | What the iron is for | with its subject |
+| `person-iron-sister` | The door she does not open | with its subject |
+| `person-iron-sister` | The rota from 1502 | resolving **sister-take-the-cold-door-shift** |
+| `person-widow-duellist` | The only licensed blade | with its subject |
+| `person-widow-duellist` | Disputes nobody will take | with its subject |
+| `faction-clergy` | What an office is | with its subject |
+| `faction-clergy` | The twice-refused throne | with its subject |
+| `faction-bohemian-court` | Eleven people, two years | with its subject |
+| `faction-bohemian-court` | Fourteen plates | with its subject |
+| `faction-imperial-guard` | Orders, and the days they arrive on | with its subject |
+| `faction-imperial-guard` | Why two reports | with its subject |
 | `place-salt-pans` | Abandoned in a single season | with its subject |
 | `place-salt-pans` | The keeper who signed anyway | flag `pansLeased` |
 | `place-salt-pans` | What the vent carries | flag `desaltinators` |

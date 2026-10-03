@@ -322,6 +322,102 @@ const loreEntries = [
     ]
   },
   {
+    id: 'person-widow-duellist',
+    kind: 'person',
+    realm: 'lagoon-heart',
+    title: 'The Widow Duellist',
+    icon: '⚔',
+    teaser: 'She buried a husband and kept his name, and his debts, and his blade.',
+    unlocks: [{ type: 'event', id: 'duellist-be-put-on-the-card' }],
+    lockedHint: 'Nobody has put your name on a card yet.',
+    chapters: [
+      {
+      id: 'the-licence',
+      title: 'The only licensed blade',
+      requires: [{ type: 'always' }],
+      text: 'The lagoon licenses exactly one duelling blade and has licensed the same one for thirty years. It is hers, in the sense that nobody has replaced it. When the watch closes a street, that licence is what makes a blade lawful to carry at all, which is a fact she has never once raised and which everybody in the Lagoon Heart has worked out on their own.'
+      },
+      {
+      id: 'the-floor',
+      title: 'Disputes nobody will take',
+      requires: [{ type: 'always' }],
+      text: 'Claims too small for a magistrate and too large to lose are settled on her floor, because a verdict delivered by a blade is at least impossible to buy. She talks through every one of them, continuously, and the talking is not commentary. She believes she is explaining. Nobody has ever corrected her and she has never noticed that nobody has.'
+      }
+    ]
+  },
+  {
+    id: 'faction-clergy',
+    kind: 'faction',
+    realm: 'aether-heights',
+    title: 'The Drowned Clergy',
+    icon: '✝',
+    teaser: 'The throne is empty. The register is not.',
+    unlocks: [{ type: 'event', id: 'clergy-carry-the-bell-book' }],
+    lockedHint: 'You have not carried the bell book up.',
+    chapters: [
+      {
+      id: 'the-office',
+      title: 'What an office is',
+      requires: [{ type: 'always' }],
+      text: 'A burial is a document. The clergy write them, they keep them, and the copy in their book settles estates, ends claims and moves property. It is not signed by the court and it is not appealed, and the reason for that arrangement is four hundred years old and nobody alive can give you the reason.'
+      },
+      {
+      id: 'the-refusal',
+      title: 'The twice-refused throne',
+      requires: [{ type: 'always' }],
+      text: 'They have refused to crown the Bohemian Court twice. Both refusals are written, both are binding, and the Court has paid for the privilege of asking a third time without ever being answered. It cannot do anything else: a coronation that is not in their book did not happen, whatever is sat in the Doge\'s chair, and there has been nothing in the Doge\'s chair for twenty-eight years. The church does not explain itself and does not need to.'
+      }
+    ]
+  },
+  {
+    id: 'faction-bohemian-court',
+    kind: 'faction',
+    realm: 'lagoon-heart',
+    title: 'The Bohemian Court',
+    icon: '♛',
+    teaser: 'She is not beautiful. She is expensive.',
+    unlocks: [{ type: 'event', id: 'monarchs-stand-in-the-long-room' }],
+    lockedHint: 'You have not been let past the long room.',
+    chapters: [
+      {
+      id: 'eleven-people',
+      title: 'Eleven people, two years',
+      requires: [{ type: 'always' }],
+      text: 'She arrived with a court of eleven and had eleven thousand within two years, which is the only measurable thing about her. Everything she wants becomes law in four days. Nothing has ever been bought from her, because what she does is arrange for you to want to give it before she has finished asking, and a gift given early is a debt with better manners.'
+      },
+      {
+      id: 'the-small-plate',
+      title: 'Fourteen plates',
+      requires: [{ type: 'always' }],
+      text: 'A thousand people work in that palace doing the same job and fourteen of them ever see the smaller plate. The plate is the rank. Everything else about the hierarchy, including the titles, is decoration hung around the fact that you were fed before you were looked at, and the two things are not the same and the court has never pretended they are.'
+      }
+    ]
+  },
+  {
+    id: 'faction-imperial-guard',
+    kind: 'faction',
+    realm: 'abyssal-depth',
+    title: 'The Imperial Guard',
+    icon: '⚑',
+    teaser: 'We keep the order. We are not told whose.',
+    unlocks: [{ type: 'event', id: 'guard-take-a-reading-in-the-current' }],
+    lockedHint: 'You have not held a reading for them.',
+    chapters: [
+      {
+      id: 'tuesdays',
+      title: 'Orders, and the days they arrive on',
+      requires: [{ type: 'always' }],
+      text: 'They take orders from the Combine on Tuesdays, from the church on nothing in particular, and from whichever party most recently laid claim to the Doge\'s chair wherever a reading has to be held at depth. The chair has been empty for twenty-eight years and none of the three has ever stopped issuing orders about it. They have never once been instructed by all three at the same moment, which is not a rule anybody wrote. It is a coincidence of scheduling that has outlived everyone who knew it was a coincidence.'
+      },
+      {
+      id: 'two-reports',
+      title: 'Why two reports',
+      requires: [{ type: 'always' }],
+      text: 'A shift at depth produces one true number and three expected ones. The guard writes the true number and sends a second report that differs from it by a small fixed amount. The gap is not an error. It exists so that each of the three offices has something to be slightly wrong about, and an organisation with three slightly wrong offices never finds the one that is completely right.'
+      }
+    ]
+  },
+  {
     id: 'place-salt-pans',
     kind: 'place',
     realm: 'lagoon-heart',
