@@ -4576,6 +4576,36 @@ summary:focus-visible {
   color: #d8b26a !important;
 }
 
+/* La riga di standing ha il colore del nome della fazione, perche' il numero che
+   conta non e' il premio ma il posto che quello vale: e' l'unica riga dei premi
+   che non finisce in tasca al giocatore. */
+.reward-line.standing {
+  color: #c9a86a !important;
+}
+
+.reward-line.standing b {
+  color: #b08d4f;
+}
+
+/* Gli oggetti hanno una riga propria perche' sono l'unica parte dei premi che il
+   giocatore porta via con se' e deve poter trovare di nuovo. */
+.reward-line.items {
+  color: #9fc4b4 !important;
+}
+
+.reward-line.items b {
+  color: #7d9c8e;
+}
+
+/* Un oggetto gia' in tasca resta nella riga, ma in grigio scuro: la voce dice
+   "questa l'hai fatta" senza competere con quella, ancora chiara, di un pezzo che
+   e' ancora da prendere. Il contrasto e' voluto basso, non assente: e' piu' scuro
+   del testo spento ma resta leggibile, perche' e' un'informazione e non un
+   dettaglio. */
+.item-owned {
+  color: #5d5346;
+}
+
 .reward-line.chance b {
   color: #d8b26a;
 }

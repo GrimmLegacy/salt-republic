@@ -266,8 +266,11 @@ check('calendar re-hides both once the farm is gone', !sheetAgain.includes('Harv
 log('');
 log('=== G) equipment slots and bonuses ===');
 state.player.equipment = sanitizeEquipment(null);
+// Borsa vuota all'avvio. Prima era `grantMissingStarterItems` a riempirla di tutto
+// il catalogo, e un controllo qui verificava che ogni pezzo fosse posseduto. Era
+// un controllo sul difetto: non si puo' onorare insieme a un gioco in cui gli
+// oggetti si guadagnano, quindi il controllo adesso verifica la cosa vera.
 state.player.inventory = [];
-grantMissingStarterItems();
 check('seven slots declared', equipmentSlots.length === 7, equipmentSlots.map((s) => s.key).join(','));
 check('companion slot exists', equipmentSlots.some((s) => s.key === 'companion'));
 check('companion slot flagged as living', equipmentSlots.filter((s) => s.living).length === 1);
@@ -278,10 +281,13 @@ check('companion kinds are beasts or spirits only', equipmentItems.filter((i) =>
 check('every catalogue item targets a real slot', equipmentItems.every((i) => equipmentSlots.some((s) => s.key === i.slot)));
 check('item ids are unique', new Set(equipmentItems.map((i) => i.id)).size === equipmentItems.length);
 check('starter kit is fully populated', equipmentSlots.every((s) => state.player.equipment[s.key] !== undefined));
-check('every item is owned exactly once', (() => {
-  const owned = [...Object.values(state.player.equipment).filter(Boolean), ...state.player.inventory];
-  return new Set(owned).size === owned.length && owned.length === equipmentItems.length;
-})(), `${[...Object.values(state.player.equipment).filter(Boolean), ...state.player.inventory].length} owned`);
+// Il gioco non regala nulla: appena aperto, la borsa e' vuota e ci sono solo i
+// pezzi di partenza indossati. E' la difesa contro il difetto che c'era prima,
+// dove ogni avvio infilava in inventario l'intero catalogo.
+const ownedAtStart = [...Object.values(state.player.equipment).filter(Boolean), ...state.player.inventory];
+check('a fresh chronicle owns only its starting kit', ownedAtStart.length === Object.values(startingEquipment).filter(Boolean).length, `${ownedAtStart.length} owned`);
+check('no faction loot is handed out for free', !ownedAtStart.some((id) => /^(guild|salon|combine)-/.test(id)), ownedAtStart.join(','));
+check('nothing is owned twice', new Set(ownedAtStart).size === ownedAtStart.length);
 
 check('base stats untouched by gear', state.player.stats.vigilance === 1);
 check('hood grants Vigilance', getEquipmentStatBonus('vigilance') === 1, `${getEquipmentStatBonus('vigilance')}`);
@@ -308,9 +314,14 @@ check('removing gear gives the bonus back', getEquipmentStatBonus('elegance') ==
 log('');
 log('=== H) equip / unequip behaviour ===');
 state.player.equipment = sanitizeEquipment(null);
-state.player.inventory = [];
-grantMissingStarterItems();
+// La borsa parte vuota: gli oggetti si guadagnano facendo gli incontri, e non
+// piu' a ogni avvio. Il test mette quello che serve a mano.
+state.player.inventory = ['starter-reef-cloak', 'starter-council-seal'];
 const before = state.player.inventory.length;
+// Quanti pezzi il giocatore possiede prima di iniziare a scambiarli: il controllo
+// "non ne perdi nessuno" confronta con questo numero, non col catalogo, perche'
+// gli oggetti si guadagnano e non tutti sono ancora arrivati.
+const countOwnedBeforeSwaps = [...Object.values(state.player.equipment).filter(Boolean), ...state.player.inventory].length;
 equipItem('starter-reef-cloak');
 check('wearing moves the item out of the satchel', state.player.equipment.mantle === 'starter-reef-cloak');
 check('wearing removes it from inventory', !state.player.inventory.includes('starter-reef-cloak'), `${state.player.inventory.length} left from ${before}`);
@@ -336,9 +347,13 @@ check('companion replaced nothing else', state.player.equipment.body === 'starte
 equipItem('starter-lampwright');
 check('a second companion swaps the first out', state.player.equipment.companion === 'starter-lampwright');
 check('displaced companion is kept', state.player.inventory.includes('starter-drowned-cat'));
+// "Nessun oggetto va perso" non vuol dire "ne possiedi tutti": vuol dire che
+// ogni pezzo che avevi prima di un scambio lo hai ancora dopo. Il totale non e'
+// piu' confrontabile col catalogo perche' gli oggetti si guadagnano e non tutti
+// sono ancora arrivati: quello che conta e' che il numero non cali.
 check('no item is ever lost', (() => {
   const owned = [...Object.values(state.player.equipment).filter(Boolean), ...state.player.inventory];
-  return new Set(owned).size === owned.length && owned.length === equipmentItems.length;
+  return new Set(owned).size === owned.length && owned.length >= countOwnedBeforeSwaps;
 })(), `${[...Object.values(state.player.equipment).filter(Boolean), ...state.player.inventory].length} owned`);
 
 const inventoryBefore = state.player.inventory.slice();

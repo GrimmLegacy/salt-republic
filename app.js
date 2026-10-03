@@ -183,6 +183,66 @@ const equipmentItems = [
     vigor: 1,
     malusRelief: { suspicion: 1 },
     notes: 'He drowned in the fire of his own lamp a long time ago, and still walks the stairs he built. He will not be hurried.'
+  },
+
+  // ---- Oggetti che si guadagnano ripetendo il lavoro con una fazione --------
+  //
+  // Questi non si trovano in un cassone: si guadagnano facendo il mestiere di
+  // quella citta' ancora e ancora. Ogni slot ha una sola risposta, perche' quello
+  // che un posto ti insegna davvero e' come si lavora in quel posto.
+  //
+  // Sono tutti `common`, e tutti con un bonus piccolo. Non sono ricompense per la
+  // riuscita, sono strumenti: il giocatore li mette perche' gli servono, non
+  // perche' hanno numeri piu' alti.
+
+  // Aether Heights — la corporazione degli orologi.
+  {
+    id: 'guild-bench-apron',
+    name: 'Bench Apron of the Guild',
+    slot: 'body',
+    rarity: 'common',
+    icon: '🧵',
+    stats: { resolve: 1 },
+    notes: 'Twelve pockets, all of them full of screws. The guild stops calling it out to anyone who asks, because it means you have been here a while.'
+  },
+  {
+    id: 'guild-brass-loupe',
+    name: 'Brass Loupe',
+    slot: 'trinket',
+    rarity: 'common',
+    icon: '🔍',
+    stats: { vigilance: 1 },
+    notes: 'Ground for the guild, then pocketed by the guild, then found by the guild in a different pocket three months later.'
+  },
+
+  // Astral Terminus — il Salon degli navigatori.
+  {
+    id: 'salon-star-chart-sleeve',
+    name: 'Chart Sleeve of the Salon',
+    slot: 'mantle',
+    rarity: 'common',
+    icon: '📜',
+    stats: { elegance: 1, persuasion: 1 },
+    notes: 'Waxed against spray and against curiosity. It holds six folded charts and one that nobody will admit to owning.'
+  },
+  {
+    id: 'salon-conductors-pin',
+    name: 'Masked Conductor’s Pin',
+    slot: 'trinket',
+    rarity: 'common',
+    icon: '🎖️',
+    notes: 'No name on it. It is enough that they see it and stop checking your face.'
+  },
+
+  // Abyssal Depth — la fattoria idroponica.
+  {
+    id: 'combine-warm-waders',
+    name: 'Warm Waders of the Farm',
+    slot: 'feet',
+    rarity: 'common',
+    icon: '🥾',
+    stats: { audacity: 1 },
+    notes: 'Eight hundred fathoms down the water is warmer than the city, which is the only honest thing anyone will tell you about the place.'
   }
 ];
 
@@ -230,6 +290,29 @@ const locations = {
           log: 'The pendulum slips. Your grip falters and the clockwork alarms ring; a dozen gossiping officers notice your misstep.'
         },
         requires: []
+      },
+      {
+        id: 'guild-oils-the-escapement',
+        title: 'Oil the Escapement on Gallery Night',
+        summary:
+          'The guild does its real work at noon, when the light comes down through the belfry arches and you can see what you are doing. The escapement is the small brass brain that lets the bell let go of itself at the right second; it is also the only part anybody still oils by hand, because a machine that decides when the city wakes should not decide it with a machine that can be argued with. You climb the ladder with the can against your hip, take the escapement apart on the gallery bench under a cloth, and put it back together with fewer pieces than you took out. The foreman watches from the floor without climbing. When you come down he says nothing, and a different can is waiting on the rail, and this one is yours. It happens every day of the year and there is always somebody on the ladder.',
+        appearanceReason: 'The escapement is oiled by hand at noon, every day, by whoever is on the ladder. The guild has started leaving your can on the rail.',
+        image: 'immagini/carte/Oil the Escapement on Gallery Night.jpg',
+        when: 'day',
+        test: 'resolve',
+        difficulty: 2,
+        success: {
+          stats: { resolve: 2, vigilance: 1 },
+          resources: { ducatsOfSalt: 2 },
+          items: ['guild-bench-apron', 'guild-brass-loupe'],
+          log: 'The bell lets go at the right second and the gallery of apprentices applauds before they remember not to. The foreman leaves a can on the rail for you.'
+        },
+        failure: {
+          resources: { wounds: 1 },
+          log: 'A tooth skids on the third piece and puts a bright line across your palm. The bell is four seconds out and somebody upstairs is already writing it down.'
+        },
+        requires: [],
+        repeatable: true
       }
     ]
   },
@@ -469,6 +552,29 @@ const locations = {
           log: 'The silt clutches you. A loose hinge drops on your shoulders and the returning bell rings too long in your ears.'
         },
         requires: []
+      },
+      {
+        id: 'combine-walk-the-warm-terraces',
+        title: 'Walk the Warm Terraces at First Light',
+        summary:
+          'Eight hundred fathoms down, the water is warmer than the city will ever be, and everything the farm grows depends on somebody noticing that before it becomes a problem. You take the terrace at first light, when the vents have been shut for the night and the phosphor still holds the glow in the water like something being decided. The Combine does not send anybody: it posts the round on a board, the round is the same every morning, and the person who walks it is whoever turned up. You read the temperature at each vat by hand, because a gauge is a thing you read and the water is a thing you feel, and the two disagree more often than anyone will admit. Nobody down here is paid for this and nobody down here stops doing it. The waders belong to whoever walks the round, and after a while there is no second pair in the rack, because there has not been a second person in a long time.',
+        appearanceReason: 'The warm terraces are walked by hand at first light, every morning, and the round is open to whoever turns up for it.',
+        image: 'immagini/carte/Walk the Warm Terraces at First Light.jpg',
+        when: 'day',
+        test: 'audacity',
+        difficulty: 3,
+        success: {
+          stats: { audacity: 1, resolve: 2 },
+          resources: { phosphorAmber: 2, ducatsOfSalt: 2 },
+          items: ['combine-warm-waders'],
+          log: 'The last vat holds its heat and the vents are shut on time. There is one pair of waders in the rack, and they are the ones you just walked back in.'
+        },
+        failure: {
+          resources: { wounds: 1 },
+          log: 'A valve you wrote off as tired seizes while you are reading the next vat, and the terrace spends the morning venting into the dark.'
+        },
+        requires: [],
+        repeatable: true
       }
     ]
   },
@@ -525,6 +631,52 @@ const locations = {
           log: 'The conductor knows your name already, but refuses to say how. Every masked passenger turns to watch you leave.'
         },
         requires: []
+      },
+      {
+        id: 'salon-copy-the-manifest',
+        title: 'Copy the Manifest in the Reading Room',
+        summary:
+          'Nobody may read the platform timetable, and everybody has to write it out. That is the trick the Salon has been running since the company stopped telling its navigators where the departures go: the routes are kept in a room upstairs where they are copied, by hand, four times a day, and a name that appears on the copy desk long enough stops being checked. The ink is iron gall and it bites the paper, so the copies last exactly long enough to be useful and not one hour longer. You sit with the pen and the cold cup of coffee that is never refilled, and you do not hurry, because a hurried manifest is a manifest with a mistake in it, and a mistake in a manifest is how the Salon finds out that you have been reading. After a few days of this the clerk in the corner leaves a waxed sleeve on your bench without a word, and the waxed sleeve is how you will be handed your own name on a folded sheet.',
+        appearanceReason: 'The Salon copies its timetable four times a day by hand. The desk takes anyone who can read and does not hurry.',
+        image: 'immagini/carte/Copy the Manifest in the Reading Room.jpg',
+        when: 'day',
+        test: 'elegance',
+        difficulty: 3,
+        success: {
+          stats: { elegance: 2, persuasion: 1 },
+          resources: { ducatsOfSalt: 3 },
+          items: ['salon-star-chart-sleeve'],
+          log: 'The manifest is copied, signed and shelved. The clerk in the corner leaves a waxed sleeve on your bench without saying anything at all.'
+        },
+        failure: {
+          resources: { suspicion: 1 },
+          log: 'The iron gall eats a date you cannot scrape off. The copy is wrong, the Salon is disappointed, and the wrong page is filed under your name.'
+        },
+        requires: [],
+        repeatable: true
+      },
+      {
+        id: 'salon-inspect-the-dead-timetable',
+        title: 'Inspect the Timetable in the Condemned Store',
+        summary:
+          'The old timetables cannot go in the furnace. Paper that has been read by a Salon navigator is paper somebody will one day be held to, and the Salon is careful enough to keep its own proof. So the condemned years go down to a store under the dome, shelved in oilcloth and racked by departure rather than by date, because a navigator asking for the wrong year is told there is no wrong year, only a shelf. You go down with a lamp and read the spines. Somewhere in this racking is the year that does not fit, the one the archivists will not bring up to the dome, and the reason the Stygian Rail can still be heard from a platform where no line has run since before anyone was born.',
+        appearanceReason: 'The Salon keeps its old timetables rather than burning them. The condemned store is open to anyone the desk trusts with a lamp.',
+        image: 'immagini/carte/Inspect the Timetable in the Condemned Store.jpg',
+        when: 'day',
+        test: 'vigilance',
+        difficulty: 4,
+        success: {
+          stats: { vigilance: 2, cunning: 1 },
+          resources: { whisperedSecrets: 2, ducatsOfSalt: 1 },
+          items: ['salon-conductors-pin'],
+          log: 'A spine with no year on it, filed between two that cannot both be right. On the way out, a masked officer notes your face and decides not to check it again.'
+        },
+        failure: {
+          resources: { suspicion: 1, nightmare: 1 },
+          log: 'The rack behind you is not where you left it, and the oilcloth has your fingerprints on a year that does not exist. The lamp goes out by itself.'
+        },
+        requires: [],
+        repeatable: true
       }
     ]
   }
@@ -934,14 +1086,15 @@ function sanitizeInventory(raw, equipped) {
     });
 }
 
-// Tops up the inventory with any catalogue item the player is missing, so the
-// screen is never empty while the real loot system is still being built out.
-function grantMissingStarterItems() {
-  const owned = new Set([...Object.values(state.player.equipment).filter(Boolean), ...state.player.inventory]);
-  equipmentItems.forEach((item) => {
-    if (!owned.has(item.id)) state.player.inventory.push(item.id);
-  });
-}
+// NOTA: qui un tempo c'era `grantMissingStarterItems`, che infilava in inventario
+// ogni oggetto del catalogo senza che il giocatore lo avesse ottenuto. Era uno
+// impalcatura scritta quando gli oggetti non si guadagnavano davvero, perche' la
+// pagina dei pezzi non doveva restare vuota.
+//
+// Ha smesso di essere innocua quando gli incontri hanno cominciato a consegnare
+// roba: regalava anche quella, e la riga dei premi diceva "gia' tuo" per pezzi che
+// non avevi mai visto. Se la schermata dei pezzi torna vuota in una partita nuova,
+// il problema e' altrove e va risolto lì: non si risolve riaprendo questa porta.
 
 function getEquippedItems() {
   return Object.values(state.player.equipment)
@@ -1694,6 +1847,24 @@ function applyReward(reward, source = null) {
       if (!state.player.properties.includes(property)) {
         state.player.properties.push(property);
       }
+    });
+  }
+
+  // Oggetti. L'id si risolve sul catalogo: se un incontro nomina un oggetto che
+  // non esiste, o che e' stato tolto dal catalogo in un aggiornamento, l'incontro
+  // resta giocabile e semplicemente non dà niente. Fermare il gioco per un dato
+  // rotto sarebbe molto peggio che perderlo.
+  //
+  // Un oggetto non si duplica in inventario: quello che si possiede gia' resta
+  // quello, e non viene conteggiato due volte. Il caso vero pero' e' l'esaurito:
+  // un oggetto consumato non torna.
+  if (reward.items) {
+    reward.items.forEach((itemId) => {
+      const item = findEquipmentItem(itemId);
+      if (!item) return;
+      if (state.player.equipment[item.slot] === item.id) return;
+      if (state.player.inventory.includes(item.id)) return;
+      state.player.inventory.push(item.id);
     });
   }
 }
@@ -3178,6 +3349,17 @@ function importSave(file) {
 
 function resetGame() {
   localStorage.removeItem(STORAGE_KEY);
+  // Un invio cloud gia' in coda trasporterebbe la cronaca di un momento fa e la
+  // rimetterebbe sul server: il reset sembrerebbe non funzionare e i tuoi oggetti
+  // ricomparirebbero al prossimo avvio. Il timer va annullato prima di creare lo
+  // stato nuovo.
+  if (cloudSaveTimer) {
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = null;
+  }
+  // Il save su Supabase non si cancella: il reset e' una decisione di gioco, non
+  // una disdetta dell'account. Viene pero' sovrascritto subito dallo stato nuovo,
+  // altrimenti il server riporterebbe in vita la partita appena cancellata.
   state = createDefaultState();
   currentView = 'tales';
   resetArmed = false;
@@ -3815,10 +3997,83 @@ function renderActionRewards(action) {
 
   lines.push(`<p class="reward-line cost"><b>Cost</b>1 Vigor${cost ? ` · ${cost}` : ''}</p>`);
   if (success) lines.push(`<p class="reward-line success"><b>On success</b>${success}</p>`);
+
+  // Gli oggetti hanno una riga tutta loro invece di stare accodati in "On
+  // success". Il giocatore sta guardando una scheda per capire se vale la pena
+  // premere: se l'unica traccia di un oggetto e' una voce in coda a un elenco di
+  // numeri, l'oggetto non si vede.
+  //
+  // La riga resta anche quando l'oggetto e' gia' in tasca, e lo segnala: un
+  // incontro ripetibile che accorcia la propria lista a ogni uso, dopo due passi
+  // smette di dire che cosa e' e cosa da.
+  const itemLine = describeActionItems(action);
+  if (itemLine) lines.push(`<p class="reward-line items"><b>Items</b>${itemLine}</p>`);
+
+  // Quanto standing porta questo incontro, detto prima di giocarlo. Il numero e'
+  // quello che `awardFactionStanding` assegna davvero, dalla stessa tabella, quindi
+  // non puo' divergere da quello che il giocatore vede dopo.
+  //
+  // La riga e' sull'esito e non sul pulsante perche' e' `awardFactionStanding` a
+  // decidere se lo standing arriva, e lo chiama solo sul successo: fallire non
+  // dice niente su di te a chi ti ha dato il lavoro.
+  const standingLine = describeActionStanding(action);
+  if (standingLine) lines.push(`<p class="reward-line standing">${standingLine}</p>`);
+
   if (chances) lines.push(`<p class="reward-line chance"><b>Chance drops</b>${chances}</p>`);
   if (failure) lines.push(`<p class="reward-line failure"><b>On failure</b>${failure}</p>`);
 
   return `<div class="action-rewards">${lines.join('')}</div>`;
+}
+
+// Gli oggetti che un incontro puo' dare, scritti col loro nome e lo slot in cui
+// andranno.
+//
+// La riga non sparisce quando l'oggetto e' gia' in tasca: sparisce solo quando
+// l'incontro non da piu' niente di nuovo, e cioe' quando non ha oggetti da
+// elencare. Un elenco che si accorcia a ogni uso e' un elenco che smette di
+// dire che quell'incontro esiste e cosa fa: dopo due passi al banco non si sa
+// piu' che da li' si ottiene roba. Quello che si spegne e' solo l'avviso di
+// novita', non la voce.
+//
+// Chi e' gia' in tasca resta nell'elenco ma in grigio: e' una delle voci piu'
+// utili della scheda, perche' dice "questa l'hai fatta". Diventandola invisibile
+// si perderebbe esattamente l'informazione che distingue un incontro che hai
+// gia' attraversato da uno che ti resta davanti.
+function describeActionItems(action) {
+  const fresh = [];
+  const owned = [];
+  (action.success?.items || []).forEach((itemId) => {
+    const item = findEquipmentItem(itemId);
+    // Un id che non esiste e' un dato rotto: si salta, non si blocca la pagina.
+    if (!item) return;
+    const slotLabel = equipmentSlots.find((slot) => slot.key === item.slot)?.label || item.slot;
+    const entry = `${item.name} (${slotLabel})`;
+    const hasIt = state.player.equipment[item.slot] === item.id || state.player.inventory.includes(item.id);
+    (hasIt ? owned : fresh).push(entry);
+  });
+
+  // I pezzi nuovi vengono per primi: sono quelli per cui vale la pena premere.
+  // Dietro, spenti, quelli che il giocatore ha gia' raccolto da questa azione.
+  return [
+    ...fresh,
+    ...owned.map((entry) => `<span class="item-owned">${entry}</span>`)
+  ].join(' · ');
+}
+
+// La riga di reputazione dentro i premi di un incontro.
+//
+// La fazione viene dalla zona in cui l'incontro si svolge, non dall'incontro: e'
+// il lavoro che fai in un posto a farti notare da chi lavora li'. La perdita per
+// l'avversaria e' metta di quanto guadagni, e la riga lo dice, perche' una cosa
+// che arriva e una cosa che va altrove devono essere entrambe visibili prima di
+// premere.
+function describeActionStanding(action) {
+  const faction = factionForRealm(locationRealmOf(state.currentLocationId));
+  if (!faction) return '';
+  const gained = factionXpForAction(action);
+  const lost = Math.max(1, Math.round(gained * FACTION_RIVAL_DAMPING));
+  const rival = factions[faction.rival];
+  return `<b>Standing</b>${faction.name} +${gained}, ${rival.name} −${lost}, on success only`;
 }
 
 function renderActionUnlock(action) {
@@ -4537,7 +4792,6 @@ function boot() {
   }
   render();
   wireEvents();
-  grantMissingStarterItems();
   // A chronicle always starts with its starting realm on the record, so the
   // first pages of lore are open before the player has done anything at all.
   markLocationVisited(state.currentLocationId);
